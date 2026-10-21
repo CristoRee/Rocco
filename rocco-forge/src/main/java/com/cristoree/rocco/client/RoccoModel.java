@@ -41,7 +41,14 @@ public class RoccoModel extends GeoModel<RoccoEntity>
     {
         super.setCustomAnimations(rocco, instanceId, animationState);
 
+        // Si el modelo todavia no trae la cara pedida (pasa al exportar de Blockbench a mitad de
+        // camino), se usa happy: sin esto se esconderian todas y Rocco quedaria sin cara.
         String current = rocco.getExpression().id();
+        if (getBone("eyes_" + current).isEmpty())
+        {
+            current = RoccoExpression.HAPPY.id();
+        }
+
         for (RoccoExpression expression : RoccoExpression.all())
         {
             boolean hidden = !expression.id().equals(current);

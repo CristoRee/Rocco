@@ -1,5 +1,6 @@
 package com.cristoree.rocco;
 
+import com.cristoree.rocco.client.RoccoClientHooks;
 import com.cristoree.rocco.client.RoccoRenderer;
 import com.cristoree.rocco.config.RoccoConfig;
 import com.cristoree.rocco.entity.RoccoEntity;
@@ -17,6 +18,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import org.slf4j.Logger;
 
 @Mod(RoccoMod.MODID)
@@ -32,6 +34,13 @@ public class RoccoMod
         RoccoConfig.register(context);
         ModEntities.register(modEventBus);
         ModItems.register(modEventBus);
+
+        // Se registra aca y no en un evento de setup: ahi el contexto del mod puede no ser el
+        // nuestro, porque Forge despacha esos eventos en paralelo.
+        if (FMLEnvironment.dist == Dist.CLIENT)
+        {
+            RoccoClientHooks.registerConfigScreen(context);
+        }
     }
 
     @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
@@ -70,5 +79,6 @@ public class RoccoMod
         {
             event.registerEntityRenderer(ModEntities.ROCCO.get(), RoccoRenderer::new);
         }
+
     }
 }

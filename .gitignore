@@ -20,3 +20,7 @@ src/generated/
 .settings/
 bin/
 out/
+
+# Volcados de crash de la JVM
+hs_err_pid*.log
+replay_pid*.log

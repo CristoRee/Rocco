@@ -1,7 +1,10 @@
 package com.cristoree.rocco.entity;
 
+import com.cristoree.rocco.ai.RoccoBrain;
 import com.cristoree.rocco.config.RoccoCommonConfig;
+import com.cristoree.rocco.config.RoccoConfig;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -49,6 +52,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity
 
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
+    private RoccoBrain brain;
     private int awakenTicks;
     private int talkTicks;
 
@@ -134,6 +138,23 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity
         setTalking(true);
     }
 
+    public void beginAwakening()
+    {
+        setRoccoState(RoccoState.AWAKENING);
+        this.awakenTicks = 0;
+        playSound(SoundEvents.GRASS_BREAK, 0.8F, 1.2F);
+    }
+
+    // Solo existe del lado del servidor: es donde se habla con Gemini.
+    public RoccoBrain brain()
+    {
+        if (this.brain == null)
+        {
+            this.brain = new RoccoBrain(this);
+        }
+        return this.brain;
+    }
+
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand)
     {
@@ -151,9 +172,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity
         {
             case PLANT ->
             {
-                setRoccoState(RoccoState.AWAKENING);
-                this.awakenTicks = 0;
-                playSound(SoundEvents.GRASS_BREAK, 0.8F, 1.2F);
+                beginAwakening();
                 return InteractionResult.CONSUME;
             }
             case AWAKENING -> {
@@ -195,6 +214,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity
                 if (nearest != null)
                 {
                     lookAtPlayer(nearest);
+                    greet(nearest);
                 }
             }
         }
@@ -226,6 +246,15 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity
     {
         lookAt(player, 30.0F, 30.0F);
         this.yBodyRot = this.getYRot();
+    }
+
+    private void greet(Player player)
+    {
+        if (player instanceof ServerPlayer serverPlayer && RoccoConfig.chatReady())
+        {
+            brain().ask(serverPlayer,
+                    "(Acabas de despertar de la tierra y ves a este jugador por primera vez. Saludalo en una frase.)");
+        }
     }
 
     // En planta no se lo puede empujar ni mover.
