@@ -1,0 +1,22 @@
+# Claves de API y config local: nunca deben entrar a git
+**/config/rocco-*.toml
+**/rocco-secrets.*
+.env
+*.env
+
+# Gradle / build
+.gradle/
+build/
+run/
+run-data/
+logs/
+src/generated/
+
+# IDE
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+bin/
+out/
