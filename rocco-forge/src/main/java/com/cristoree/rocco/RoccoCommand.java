@@ -59,8 +59,29 @@ public final class RoccoCommand
         if (source.getEntity() instanceof ServerPlayer player)
         {
             RoccoEntity rocco = nearest(player);
-            String state = rocco == null ? "no hay ninguno cerca" : rocco.getRoccoState().name();
-            source.sendSuccess(() -> Component.literal("Rocco cerca: " + state)
+            if (rocco == null)
+            {
+                source.sendSuccess(() -> Component.literal("Rocco cerca: no hay ninguno")
+                        .withStyle(ChatFormatting.GRAY), false);
+                return;
+            }
+
+            source.sendSuccess(() -> Component.literal("Estado: " + rocco.getRoccoState().name()
+                    + " | cara: " + rocco.getExpression().id()
+                    + " | tapa: " + (rocco.isLidOpen() ? "abierta" : "cerrada"))
+                    .withStyle(ChatFormatting.GRAY), false);
+
+            String seeds = rocco.plantableStacks().isEmpty()
+                    ? "ninguna"
+                    : rocco.plantableStacks().stream()
+                            .map(stack -> stack.getHoverName().getString()
+                                    + " x" + rocco.countInInventory(stack))
+                            .reduce((a, b) -> a + ", " + b).orElse("ninguna");
+
+            source.sendSuccess(() -> Component.literal("Semillas: " + seeds)
+                    .withStyle(ChatFormatting.GRAY), false);
+            source.sendSuccess(() -> Component.literal("Trabajos en cola: " + rocco.queueSize()
+                    + " | siguiendo: " + (rocco.isFollowing() ? "si" : "no"))
                     .withStyle(ChatFormatting.GRAY), false);
         }
     }

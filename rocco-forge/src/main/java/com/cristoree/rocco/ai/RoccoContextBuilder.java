@@ -2,6 +2,7 @@ package com.cristoree.rocco.ai;
 
 import com.cristoree.rocco.config.RoccoCommonConfig;
 import com.cristoree.rocco.entity.RoccoEntity;
+import com.cristoree.rocco.entity.RoccoWork;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -10,6 +11,7 @@ import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,6 +61,17 @@ public final class RoccoContextBuilder
             }
         }
 
+        // Lo que sigue decide si puede aceptar una orden de trabajo, asi que va siempre:
+        // con esto la IA contesta bien de una sin tener que fallar primero.
+        facts.put("Semillas que llevas encima", plantables(rocco));
+        facts.put("Tierra de cultivo libre cerca",
+                String.valueOf(RoccoWork.findFarmland(level, rocco.blockPosition(), 32).size()));
+        facts.put("Cultivos maduros cerca",
+                String.valueOf(RoccoWork.findRipeCrops(level, rocco.blockPosition(), 32).size()));
+        facts.put("Puertas o trampillas cerca",
+                String.valueOf(RoccoWork.findOpenables(level, rocco.blockPosition(), 8).size()));
+        facts.put("Lo estas siguiendo", rocco.isFollowing() ? "si" : "no, te pidio que esperes");
+
         if (facts.isEmpty())
         {
             return "";
@@ -76,6 +89,28 @@ public final class RoccoContextBuilder
             }
         }
 
+        return out.toString();
+    }
+
+    // Con el id exacto, para que la IA pueda mandarlo tal cual en la accion.
+    private static String plantables(RoccoEntity rocco)
+    {
+        List<ItemStack> stacks = rocco.plantableStacks();
+        if (stacks.isEmpty())
+        {
+            return "ninguna";
+        }
+
+        StringBuilder out = new StringBuilder();
+        for (ItemStack stack : stacks)
+        {
+            if (!out.isEmpty())
+            {
+                out.append(", ");
+            }
+            out.append(ForgeRegistries.ITEMS.getKey(stack.getItem()))
+                    .append(" x").append(rocco.countInInventory(stack));
+        }
         return out.toString();
     }
 

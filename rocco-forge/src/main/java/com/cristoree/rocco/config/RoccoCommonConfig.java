@@ -78,6 +78,7 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.IntValue ANTI_STUCK_TICKS;
     public static final ForgeConfigSpec.IntValue MAX_FALL_DROP;
     public static final ForgeConfigSpec.DoubleValue MAX_HEALTH;
+    public static final ForgeConfigSpec.BooleanValue IMMORTAL;
     public static final ForgeConfigSpec.BooleanValue INVULNERABLE;
     public static final ForgeConfigSpec.BooleanValue DEFEND_PLAYER;
     public static final ForgeConfigSpec.BooleanValue AVOID_WATER;
@@ -302,9 +303,10 @@ public final class RoccoCommonConfig
                 .comment("Multiplicador de velocidad al seguirte.")
                 .defineInRange("followSpeed", 1.0D, 0.1D, 3.0D);
         TELEPORT_DISTANCE = b
-                .comment("Si queda mas lejos que esto, aparece al lado tuyo.",
+                .comment("Si queda mas lejos que esto, aparece al lado tuyo. Tambien lo usa",
+                         "cuando se traba o se queda en el agua y no puede llegar.",
                          "0 desactiva el teleport.")
-                .defineInRange("teleportDistance", 32.0D, 0.0D, 256.0D);
+                .defineInRange("teleportDistance", 24.0D, 0.0D, 256.0D);
         LOOK_AT_PLAYER = b
                 .comment("Gira la cabeza hacia el jugador mas cercano.")
                 .define("lookAtPlayer", true);
@@ -328,12 +330,18 @@ public final class RoccoCommonConfig
                 .comment("Vida maxima de Rocco. Se aplica al volver a entrar al mundo.")
                 .worldRestart()
                 .defineInRange("maxHealth", 20.0D, 1.0D, 200.0D);
+        IMMORTAL = b
+                .comment("Rocco recibe los golpes y se queja, pero nunca baja de 1 de vida.",
+                         "Con esto puesto no se te muere. /kill sigue funcionando.")
+                .define("immortal", true);
         INVULNERABLE = b
-                .comment("Rocco no recibe dano de ningun tipo.")
+                .comment("Mas fuerte que lo anterior: directamente no recibe dano,",
+                         "ni siquiera se queja.")
                 .define("invulnerable", false);
         DEFEND_PLAYER = b
-                .comment("Ataca a lo que te este atacando.")
-                .define("defendPlayer", true);
+                .comment("Ataca a lo que te este atacando.",
+                         "TODAVIA NO HACE NADA: falta el sistema de combate.")
+                .define("defendPlayer", false);
         AVOID_WATER = b
                 .comment("Evita entrar al agua cuando busca ruta.")
                 .define("avoidWater", false);

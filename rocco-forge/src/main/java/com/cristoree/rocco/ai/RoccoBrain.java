@@ -104,8 +104,14 @@ public class RoccoBrain
 
     private void deliver(ServerPlayer player, String question, String rawAnswer)
     {
-        String answer = rawAnswer;
+        // Primero se saca la orden de trabajo, asi no aparece en el chat.
+        RoccoActions.Parsed parsed = RoccoActions.parse(rawAnswer);
+        String answer = parsed.cleanText();
         boolean chose = false;
+
+        RoccoActions.Outcome outcome = parsed.verb() == null
+                ? null
+                : RoccoActions.run(this.rocco, parsed.verb(), parsed.argument());
 
         Matcher tag = EXPRESSION_TAG.matcher(answer);
         if (tag.find())
@@ -130,7 +136,8 @@ public class RoccoBrain
             this.rocco.setExpression(RoccoExpression.HAPPY);
         }
 
-        answer = answer.replace('\n', ' ').trim();
+        // Una sola linea y sin espacios dobles: el chat no muestra saltos de linea.
+        answer = answer.replaceAll("\\s+", " ").trim();
 
         int limit = RoccoCommonConfig.CHAT_MAX_RESPONSE_CHARS.get();
         if (answer.length() > limit)
@@ -150,6 +157,13 @@ public class RoccoBrain
         this.rocco.talkFor(Math.min(200, 20 + answer.length()));
 
         tell(player, answer, false);
+
+        // Si dijo que iba a hacer algo y no pudo, lo aclara en vez de quedarse quieto sin mas.
+        if (outcome != null && !outcome.ok() && outcome.note() != null)
+        {
+            this.rocco.setExpression(RoccoExpression.SAD);
+            tell(player, outcome.note() + ".", false);
+        }
     }
 
     private void tell(ServerPlayer player, String message, boolean problem)

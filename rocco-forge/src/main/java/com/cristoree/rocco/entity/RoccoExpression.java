@@ -10,7 +10,8 @@ public enum RoccoExpression
     SAD("sad"),
     ANGRY("angry"),
     SMUG("smug"),
-    PSYCHO("psycho");
+    PSYCHO("psycho"),
+    DIZZY("dizzy");
 
     private static final RoccoExpression[] VALUES = values();
 
