@@ -1,4 +1,29 @@
 {
   "entity.rocco.rocco": "Rocco",
-  "item.rocco.rocco_spawn_egg": "Huevo generador de Rocco"
+  "item.rocco.rocco_spawn_egg": "Huevo generador de Rocco",
+
+  "key.categories.rocco": "Rocco",
+  "key.rocco.talk": "Hablarle a Rocco (micrófono)",
+
+  "subtitles.rocco.awaken_pop": "Rocco sale de la tierra",
+  "subtitles.rocco.chew": "Rocco mastica",
+  "subtitles.rocco.dirt": "Tierra removida",
+  "subtitles.rocco.goo": "Baba chapotea",
+  "subtitles.rocco.gulp": "Rocco traga",
+  "subtitles.rocco.gulp_big": "Rocco traga algo enorme",
+  "subtitles.rocco.harvest_pop": "Rocco arranca un cultivo",
+  "subtitles.rocco.hurt": "Rocco se lastima",
+  "subtitles.rocco.leaves": "Hojitas se mueven",
+  "subtitles.rocco.lid_close": "Rocco cierra su tapa",
+  "subtitles.rocco.lid_open": "Rocco abre su tapa",
+  "subtitles.rocco.step": "Pasos de Rocco",
+  "subtitles.rocco.snore": "Rocco respira dormido",
+  "subtitles.rocco.bubble_pop": "Burbujita explota",
+  "subtitles.rocco.sit_plop": "Rocco se sienta",
+  "subtitles.rocco.mate_pour": "Rocco ceba un mate",
+  "subtitles.rocco.mate_sip": "Rocco toma mate",
+  "subtitles.rocco.mate_slurp": "La bombilla hace ruido",
+  "subtitles.rocco.magic_hum": "Rocco junta magia",
+  "subtitles.rocco.magic_burst": "Rocco encanta algo",
+  "subtitles.rocco.voice": "Rocco habla"
 }

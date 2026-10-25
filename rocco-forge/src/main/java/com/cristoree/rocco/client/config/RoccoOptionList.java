@@ -73,7 +73,17 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
             else if (value instanceof ForgeConfigSpec.ConfigValue<?> configValue
                     && valueSpec instanceof ForgeConfigSpec.ValueSpec typeSpec)
             {
-                addEntry(buildRow(configValue, typeSpec, entry.getKey()));
+                // Es de uso interno: editarlo a mano romperia las migraciones.
+                if (entry.getKey().equals("configVersion"))
+                {
+                    continue;
+                }
+
+                Row row = buildRow(configValue, typeSpec, entry.getKey());
+                if (row != null)
+                {
+                    addEntry(row);
+                }
             }
         }
     }
@@ -81,7 +91,7 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
     private Row buildRow(ForgeConfigSpec.ConfigValue<?> configValue, ForgeConfigSpec.ValueSpec typeSpec, String key)
     {
         Component label = Component.literal(prettify(key));
-        Class<?> type = typeSpec.getClazz();
+        Class<?> type = resolveType(typeSpec);
 
         if (type == Boolean.class)
         {
@@ -91,11 +101,34 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         {
             return new EnumRow(label, typeSpec, cast(configValue), type);
         }
-        if (type == String.class)
+        if (type == Integer.class || type == Long.class || type == Double.class || type == Float.class)
+        {
+            return new NumberRow(label, typeSpec, configValue, type);
+        }
+        if (CharSequence.class.isAssignableFrom(type))
         {
             return new TextRow(label, typeSpec, cast(configValue), isSecret(key));
         }
-        return new NumberRow(label, typeSpec, configValue, type);
+
+        // Tipo que esta pantalla no sabe editar (una lista, por ejemplo): mejor no mostrar
+        // una fila rota. Se edita a mano en el .toml.
+        return null;
+    }
+
+    // Un define() normal de Forge registra la clase como Object.class (ver ForgeConfigSpec,
+    // define(path, supplier, validator) -> define(..., Object.class)), asi que para los textos
+    // hay que mirar el tipo del valor por defecto. Sin esto las claves de API se dibujaban como
+    // campos numericos: todo en rojo y el guardado las descartaba por invalidas.
+    private static Class<?> resolveType(ForgeConfigSpec.ValueSpec typeSpec)
+    {
+        Class<?> declared = typeSpec.getClazz();
+        if (declared != null && declared != Object.class)
+        {
+            return declared;
+        }
+
+        Object fallback = typeSpec.getDefault();
+        return fallback != null ? fallback.getClass() : Object.class;
     }
 
     private static boolean isSecret(String key)

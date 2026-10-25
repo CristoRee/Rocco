@@ -1,0 +1,155 @@
+{
+  "awaken_pop": {
+    "subtitle": "subtitles.rocco.awaken_pop",
+    "sounds": [
+      "rocco:awaken_pop1"
+    ]
+  },
+  "bubble_pop": {
+    "subtitle": "subtitles.rocco.bubble_pop",
+    "sounds": [
+      "rocco:bubble_pop1",
+      "rocco:bubble_pop2"
+    ]
+  },
+  "chew": {
+    "subtitle": "subtitles.rocco.chew",
+    "sounds": [
+      "rocco:chew1",
+      "rocco:chew2",
+      "rocco:chew3"
+    ]
+  },
+  "dirt": {
+    "subtitle": "subtitles.rocco.dirt",
+    "sounds": [
+      "rocco:dirt1",
+      "rocco:dirt2",
+      "rocco:dirt3"
+    ]
+  },
+  "goo": {
+    "subtitle": "subtitles.rocco.goo",
+    "sounds": [
+      "rocco:goo1",
+      "rocco:goo2"
+    ]
+  },
+  "gulp": {
+    "subtitle": "subtitles.rocco.gulp",
+    "sounds": [
+      "rocco:gulp1",
+      "rocco:gulp2"
+    ]
+  },
+  "gulp_big": {
+    "subtitle": "subtitles.rocco.gulp_big",
+    "sounds": [
+      "rocco:gulp_big1"
+    ]
+  },
+  "harvest_pop": {
+    "subtitle": "subtitles.rocco.harvest_pop",
+    "sounds": [
+      "rocco:harvest_pop1",
+      "rocco:harvest_pop2"
+    ]
+  },
+  "hurt": {
+    "subtitle": "subtitles.rocco.hurt",
+    "sounds": [
+      "rocco:hurt1",
+      "rocco:hurt2"
+    ]
+  },
+  "leaves": {
+    "subtitle": "subtitles.rocco.leaves",
+    "sounds": [
+      "rocco:leaves1",
+      "rocco:leaves2"
+    ]
+  },
+  "lid_close": {
+    "subtitle": "subtitles.rocco.lid_close",
+    "sounds": [
+      "rocco:lid_close1",
+      "rocco:lid_close2"
+    ]
+  },
+  "lid_open": {
+    "subtitle": "subtitles.rocco.lid_open",
+    "sounds": [
+      "rocco:lid_open1",
+      "rocco:lid_open2"
+    ]
+  },
+  "sit_plop": {
+    "subtitle": "subtitles.rocco.sit_plop",
+    "sounds": [
+      "rocco:sit_plop1",
+      "rocco:sit_plop2"
+    ]
+  },
+  "snore": {
+    "subtitle": "subtitles.rocco.snore",
+    "sounds": [
+      "rocco:snore1",
+      "rocco:snore2"
+    ]
+  },
+  "step": {
+    "subtitle": "subtitles.rocco.step",
+    "sounds": [
+      "rocco:step1",
+      "rocco:step2",
+      "rocco:step3",
+      "rocco:step4"
+    ]
+  },
+  "mate_pour": {
+    "subtitle": "subtitles.rocco.mate_pour",
+    "sounds": [
+      "rocco:mate_pour1",
+      "rocco:mate_pour2"
+    ]
+  },
+  "mate_sip": {
+    "subtitle": "subtitles.rocco.mate_sip",
+    "sounds": [
+      "rocco:mate_sip1",
+      "rocco:mate_sip2",
+      "rocco:mate_sip3"
+    ]
+  },
+  "mate_slurp": {
+    "subtitle": "subtitles.rocco.mate_slurp",
+    "sounds": [
+      "rocco:mate_slurp1",
+      "rocco:mate_slurp2"
+    ]
+  },
+  "magic_hum": {
+    "subtitle": "subtitles.rocco.magic_hum",
+    "sounds": [
+      "rocco:magic_hum1",
+      "rocco:magic_hum2"
+    ]
+  },
+  "magic_burst": {
+    "subtitle": "subtitles.rocco.magic_burst",
+    "sounds": [
+      "rocco:magic_burst1",
+      "rocco:magic_burst2"
+    ]
+  },
+  "voice": {
+    "subtitle": "subtitles.rocco.voice",
+    "sounds": [
+      {
+        "name": "rocco:bubble_pop1",
+        "stream": true,
+        "attenuation_distance": 32
+      }
+    ]
+  }
+}

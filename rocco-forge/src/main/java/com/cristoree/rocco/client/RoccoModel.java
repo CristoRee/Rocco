@@ -3,6 +3,7 @@ package com.cristoree.rocco.client;
 import com.cristoree.rocco.RoccoMod;
 import com.cristoree.rocco.entity.RoccoEntity;
 import com.cristoree.rocco.entity.RoccoExpression;
+import com.cristoree.rocco.entity.RoccoTask;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -49,7 +50,7 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         return ANIMATION_FALLBACKS;
     }
 
-    // El modelo trae las ocho caras encimadas y la planta puesta: las animaciones mueven las
+    // El modelo trae las catorce caras encimadas y la planta puesta: las animaciones mueven las
     // partes, pero es aca donde se decide cuales existen en cada fotograma.
     @Override
     public void setCustomAnimations(RoccoEntity rocco, long instanceId, AnimationState<RoccoEntity> animationState)
@@ -73,12 +74,36 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         }
 
         // La animacion de habla intercambia smile y mouth_talk por escala, asi que mouth_talk
-        // solo tiene que existir mientras habla.
+        // solo tiene que existir mientras habla. Este hueso no tiene cubos propios: lo unico
+        // que lo esconde de verdad es tapar a sus hijos.
         hide("mouth_talk", !rocco.isTalking());
         hide("plant", !rocco.isPlantVisible());
 
+        // El mate, el termo y las esferas de magia viven escondidos adentro del cuerpo; igual se
+        // tapan de verdad cuando no se usan, porque algunas animaciones abren la boca o la tapa.
+        boolean mate = rocco.getActiveTask() == RoccoTask.MATE;
+        boolean magic = rocco.getActiveTask() == RoccoTask.ENCHANTING;
+        for (String bone : MATE_BONES)
+        {
+            hide(bone, !mate);
+        }
+        for (String bone : MAGIC_BONES)
+        {
+            hide(bone, !magic);
+        }
+
+        // Los localizadores de particulas tienen que saber donde quedan en el mundo.
+        for (String locator : LOCATORS)
+        {
+            getBone(locator).ifPresent(bone -> bone.setTrackingMatrices(true));
+        }
+
         aimHeadAtWork(rocco);
     }
+
+    private static final String[] MATE_BONES = {"mate", "termo", "mate_water"};
+    private static final String[] MAGIC_BONES = {"magic_right", "magic_left"};
+    public static final String[] LOCATORS = {"fx_head", "fx_mate", "fx_spout", "fx_magic_right", "fx_magic_left"};
 
     // El giro se SUMA al que ya trae la animacion, no lo reemplaza: en plant y harvest la mirada
     // hacia abajo viene del fotograma, asi que aca solo se corrige el costado.
@@ -107,8 +132,15 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         getBone("head").ifPresent(head -> head.setRotY(head.getRotY() - yaw));
     }
 
+    // GeckoLib tiene dos banderas distintas: setHidden tapa SOLO los cubos del propio hueso y
+    // setChildrenHidden tapa a sus hijos. Usando una sola, un hueso como mouth_talk (que no
+    // tiene cubos propios, solo 12 hijos) seguia dibujandose entero.
     private void hide(String boneName, boolean hidden)
     {
-        getBone(boneName).ifPresent(bone -> bone.setHidden(hidden));
+        getBone(boneName).ifPresent(bone ->
+        {
+            bone.setHidden(hidden);
+            bone.setChildrenHidden(hidden);
+        });
     }
 }

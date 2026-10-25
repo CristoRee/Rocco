@@ -4,13 +4,17 @@ import com.cristoree.rocco.config.RoccoClientConfig;
 import com.cristoree.rocco.entity.RoccoEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3d;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
+import software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer;
 import software.bernie.geckolib.renderer.layer.BlockAndItemGeoLayer;
 
 public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
@@ -43,6 +47,9 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
                         : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND;
             }
         });
+
+        // Las esferitas de magia brillan en la oscuridad: rocco_glowmask.png marca solo esas partes.
+        addRenderLayer(new AutoGlowingGeoLayer<>(this));
     }
 
     @Override
@@ -59,5 +66,39 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
 
         super.preRender(poseStack, animatable, model, bufferSource, buffer, isReRender, partialTick,
                 packedLight, packedOverlay, red, green, blue, alpha);
+    }
+
+    // Despues de dibujar, anota donde quedaron los localizadores (cabeza, mate, manos) para que
+    // las particulas salgan justo de ahi.
+    @Override
+    public void renderFinal(PoseStack poseStack, RoccoEntity animatable, BakedGeoModel model,
+                            MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick,
+                            int packedLight, int packedOverlay, float red, float green, float blue, float alpha)
+    {
+        super.renderFinal(poseStack, animatable, model, bufferSource, buffer, partialTick, packedLight,
+                packedOverlay, red, green, blue, alpha);
+
+        for (String name : RoccoModel.LOCATORS)
+        {
+            model.getBone(name).ifPresent(bone ->
+            {
+                if (bone.isTrackingMatrices())
+                {
+                    Vector3d world = bone.getWorldPosition();
+                    RoccoParticleFx.rememberLocator(animatable, name, new Vec3(world.x, world.y, world.z));
+                }
+            });
+        }
+    }
+
+    @Override
+    public boolean shouldShowName(RoccoEntity animatable)
+    {
+        if (!RoccoClientConfig.SHOW_NAMEPLATE.get() || !Minecraft.renderNames() || animatable.isPlantVisible())
+        {
+            return false;
+        }
+        double max = RoccoClientConfig.NAMEPLATE_DISTANCE.get();
+        return this.entityRenderDispatcher.distanceToSqr(animatable) <= max * max;
     }
 }

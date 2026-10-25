@@ -3,6 +3,18 @@ package com.cristoree.rocco.ai;
 import com.cristoree.rocco.config.RoccoCommonConfig;
 import com.cristoree.rocco.entity.RoccoEntity;
 import com.cristoree.rocco.entity.RoccoWork;
+import com.cristoree.rocco.work.Crops;
+import com.cristoree.rocco.work.Errand;
+import com.cristoree.rocco.work.Inv;
+import com.cristoree.rocco.work.Names;
+import com.cristoree.rocco.work.Storage;
+import com.cristoree.rocco.work.Tools;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.Container;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -63,14 +75,63 @@ public final class RoccoContextBuilder
 
         // Lo que sigue decide si puede aceptar una orden de trabajo, asi que va siempre:
         // con esto la IA contesta bien de una sin tener que fallar primero.
-        facts.put("Semillas que llevas encima", plantables(rocco));
-        facts.put("Tierra de cultivo libre cerca",
-                String.valueOf(RoccoWork.findFarmland(level, rocco.blockPosition(), 32).size()));
+        Errand errand = rocco.currentErrand();
+        facts.put("Lo que estas haciendo", errand == null ? "nada en particular" : errand.describe());
+        facts.put("Tu inventario", inventoryOf(rocco));
+        facts.put("Tierra de cultivo libre cerca", String.valueOf(freeFarmland(level, rocco)));
         facts.put("Cultivos maduros cerca",
-                String.valueOf(RoccoWork.findRipeCrops(level, rocco.blockPosition(), 32).size()));
+                String.valueOf(Crops.findRipe(level, rocco.blockPosition(), 8, 64).size()));
+        facts.put("Cofres cerca", chestsNear(level, rocco, player));
+        facts.put("Mesa de crafteo cerca", Storage.findBlock(level, rocco.blockPosition(), 12, 4,
+                state -> state.is(Blocks.CRAFTING_TABLE)) != null ? "si" : "no");
+        facts.put("Horno cerca", Storage.findBlockEntities(level, rocco.blockPosition(), 16,
+                entity -> entity instanceof AbstractFurnaceBlockEntity).isEmpty() ? "no" : "si");
+
+        BlockPos harvestChest = rocco.getHarvestChest();
+        facts.put("Cofre de la cosecha", harvestChest == null
+                ? "ninguno elegido todavia"
+                : harvestChest.getX() + ", " + harvestChest.getY() + ", " + harvestChest.getZ());
+
+        String looking = lookingAt(level, player);
+        if (looking != null)
+        {
+            facts.put("El jugador esta mirando", looking);
+        }
+
+        long enchantLeft = rocco.enchantCooldownLeft();
+        facts.put("Tu poder de encantar", enchantLeft <= 0
+                ? "listo para usar"
+                : "descansando, vuelve en " + Math.max(1, (enchantLeft + 1199) / 1200) + " minutos");
+
+        facts.put("Lugares que recordas", placesOf(rocco, player));
+
+        String animals = breedable(level, rocco);
+        if (!animals.isEmpty())
+        {
+            facts.put("Animales adultos cerca", animals);
+        }
+        String villagers = villagersNear(level, rocco);
+        if (!villagers.isEmpty())
+        {
+            facts.put("Aldeanos cerca", villagers);
+        }
+
         facts.put("Puertas o trampillas cerca",
                 String.valueOf(RoccoWork.findOpenables(level, rocco.blockPosition(), 8).size()));
         facts.put("Lo estas siguiendo", rocco.isFollowing() ? "si" : "no, te pidio que esperes");
+        facts.put("Tu postura", postureOf(rocco));
+
+        // Si el jugador pregunta donde murio, Rocco tiene el dato a mano.
+        BlockPos death = rocco.getLastDeathPos();
+        if (death != null)
+        {
+            String place = death.getX() + ", " + death.getY() + ", " + death.getZ();
+            String dimension = rocco.getLastDeathDimension().replace("minecraft:", "");
+            long day = rocco.getLastDeathDay();
+
+            facts.put("Donde murio el jugador la ultima vez",
+                    place + " (en " + dimension + (day >= 0 ? ", dia " + day : "") + ")");
+        }
 
         if (facts.isEmpty())
         {
@@ -89,29 +150,142 @@ public final class RoccoContextBuilder
             }
         }
 
+        // Algunas IAs contestan "dale, me quedo" y se olvidan la orden: sin ella Rocco no hace nada.
+        out.append("\nRECORDATORIO: si el jugador te pide que hagas algo (moverte, quedarte, sentarte, ")
+                .append("levantarte, trabajar...), la ULTIMA linea de tu respuesta tiene que ser ")
+                .append("\"#accion: <verbo> <argumento>\". Sin esa linea no lo haces de verdad.\n");
+
         return out.toString();
     }
 
-    // Con el id exacto, para que la IA pueda mandarlo tal cual en la accion.
-    private static String plantables(RoccoEntity rocco)
+    private static String postureOf(RoccoEntity rocco)
     {
-        List<ItemStack> stacks = rocco.plantableStacks();
-        if (stacks.isEmpty())
+        return switch (rocco.getRoccoPose())
         {
-            return "ninguna";
+            case STANDING -> "de pie";
+            case SITTING_DOWN, SITTING -> "sentado";
+            case STANDING_UP -> "levantandote";
+            case FALLING_ASLEEP -> "acostandote a dormir";
+            case SLEEPING -> "dormido";
+            case WAKING_UP -> "despertandote";
+        };
+    }
+
+    // Con el id exacto, para que la IA pueda mandarlo tal cual en la accion. Las herramientas
+    // van con sus encantamientos y la durabilidad que les queda.
+    private static String inventoryOf(RoccoEntity rocco)
+    {
+        Map<String, Integer> totals = new LinkedHashMap<>();
+        List<String> tools = new java.util.ArrayList<>();
+
+        for (ItemStack stack : Inv.contents(rocco.inventory()))
+        {
+            if (stack.isDamageableItem())
+            {
+                tools.add(Inv.id(stack) + " = " + Tools.describe(stack));
+            }
+            else
+            {
+                totals.merge(Inv.id(stack), stack.getCount(), Integer::sum);
+            }
         }
 
-        StringBuilder out = new StringBuilder();
-        for (ItemStack stack : stacks)
+        if (totals.isEmpty() && tools.isEmpty())
         {
-            if (!out.isEmpty())
-            {
-                out.append(", ");
-            }
-            out.append(ForgeRegistries.ITEMS.getKey(stack.getItem()))
-                    .append(" x").append(rocco.countInInventory(stack));
+            return "vacio";
         }
-        return out.toString();
+
+        List<String> parts = new java.util.ArrayList<>(tools);
+        totals.forEach((id, count) -> parts.add(id + " x" + count));
+        return String.join(", ", parts);
+    }
+
+    private static int freeFarmland(ServerLevel level, RoccoEntity rocco)
+    {
+        Crops.Plantable wheat = Crops.plantableFor(net.minecraft.world.item.Items.WHEAT_SEEDS);
+        return wheat == null ? 0 : Crops.freeSpots(level, rocco.blockPosition(), wheat, 8, 64).size();
+    }
+
+    // Cuantos cofres hay y que tienen, resumido: lo justo para que sepa si conviene ir a buscar.
+    private static String chestsNear(ServerLevel level, RoccoEntity rocco, Player player)
+    {
+        List<BlockPos> chests = Storage.find(level, rocco.blockPosition(), RoccoCommonConfig.WORK_SEARCH_RADIUS.get());
+        if (chests.isEmpty())
+        {
+            return "ninguno";
+        }
+
+        Map<String, Integer> totals = new LinkedHashMap<>();
+        for (BlockPos chest : chests)
+        {
+            Container container = Storage.open(level, chest, player);
+            if (container != null)
+            {
+                Inv.addTally(totals, container);
+            }
+        }
+
+        String contents = totals.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(15)
+                .map(entry -> entry.getKey() + " x" + entry.getValue())
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("vacios");
+        return chests.size() + " (con: " + contents + ")";
+    }
+
+    // "casa (a 120 bloques al norte), mina (en el nether)".
+    private static String placesOf(RoccoEntity rocco, Player player)
+    {
+        if (rocco.places().isEmpty())
+        {
+            return "ninguno todavia";
+        }
+        String here = player.level().dimension().location().toString();
+        List<String> parts = new java.util.ArrayList<>();
+        rocco.places().forEach((name, place) -> parts.add(name + " (" + (place.dimension().equals(here)
+                ? com.cristoree.rocco.work.GuideErrand.directions(player, place.pos())
+                : "en " + place.dimension().replace("minecraft:", "")) + ")"));
+        return String.join(", ", parts);
+    }
+
+    private static String breedable(ServerLevel level, RoccoEntity rocco)
+    {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (net.minecraft.world.entity.animal.Animal animal : level.getEntitiesOfClass(
+                net.minecraft.world.entity.animal.Animal.class, rocco.getBoundingBox().inflate(14.0D),
+                animal -> animal.isAlive() && !animal.isBaby()))
+        {
+            counts.merge(String.valueOf(ForgeRegistries.ENTITY_TYPES.getKey(animal.getType())), 1, Integer::sum);
+        }
+        return counts.entrySet().stream().limit(8).map(entry -> entry.getKey() + " x" + entry.getValue())
+                .reduce((a, b) -> a + ", " + b).orElse("");
+    }
+
+    private static String villagersNear(ServerLevel level, RoccoEntity rocco)
+    {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (net.minecraft.world.entity.npc.Villager villager : level.getEntitiesOfClass(
+                net.minecraft.world.entity.npc.Villager.class, rocco.getBoundingBox().inflate(20.0D),
+                villager -> villager.isAlive() && !villager.isBaby()))
+        {
+            counts.merge(villager.getVillagerData().getProfession().name(), 1, Integer::sum);
+        }
+        return counts.entrySet().stream().map(entry -> entry.getKey() + " x" + entry.getValue())
+                .reduce((a, b) -> a + ", " + b).orElse("");
+    }
+
+    private static String lookingAt(ServerLevel level, Player player)
+    {
+        BlockHitResult hit = Storage.lookedAt(player, 6.0D);
+        if (hit == null)
+        {
+            return null;
+        }
+        BlockState state = level.getBlockState(hit.getBlockPos());
+        String id = String.valueOf(ForgeRegistries.BLOCKS.getKey(state.getBlock()));
+        String extra = Storage.isStorage(level, hit.getBlockPos()) ? " (es un cofre)" : "";
+        return Names.name(state.getBlock().asItem()) + " (" + id + ")" + extra;
     }
 
     private static String timeOfDay(ServerLevel level)

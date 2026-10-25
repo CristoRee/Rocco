@@ -4,16 +4,22 @@ import net.minecraftforge.common.ForgeConfigSpec;
 
 public final class RoccoCommonConfig
 {
+    // Modelo vigente. Google retiro gemini-2.5-flash para claves nuevas (HTTP 404).
+    public static final String DEFAULT_GEMINI_MODEL = "auto";
+    public static final String RETIRED_GEMINI_MODEL = "gemini-2.5-flash";
+
     public static final ForgeConfigSpec SPEC;
 
     // general
     public static final ForgeConfigSpec.BooleanValue ENABLED;
     public static final ForgeConfigSpec.ConfigValue<String> COMPANION_NAME;
-    public static final ForgeConfigSpec.EnumValue<Language> LANGUAGE;
-    public static final ForgeConfigSpec.BooleanValue DEBUG_LOGGING;
     public static final ForgeConfigSpec.BooleanValue LOG_REQUEST_BODIES;
+    public static final ForgeConfigSpec.IntValue CONFIG_VERSION;
 
     // ai (Gemini)
+    public static final ForgeConfigSpec.EnumValue<AiProviderChoice> AI_PROVIDER;
+    public static final ForgeConfigSpec.ConfigValue<String> AI_PROVIDER_ORDER;
+    public static final ForgeConfigSpec.BooleanValue AI_OFFLINE_FALLBACK;
     public static final ForgeConfigSpec.ConfigValue<String> GEMINI_API_KEY;
     public static final ForgeConfigSpec.ConfigValue<String> GEMINI_MODEL;
     public static final ForgeConfigSpec.ConfigValue<String> GEMINI_ENDPOINT;
@@ -22,9 +28,23 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.IntValue AI_TOP_K;
     public static final ForgeConfigSpec.IntValue AI_MAX_OUTPUT_TOKENS;
     public static final ForgeConfigSpec.IntValue AI_THINKING_BUDGET;
+    public static final ForgeConfigSpec.EnumValue<ThinkingLevel> AI_THINKING_LEVEL;
     public static final ForgeConfigSpec.IntValue AI_TIMEOUT_SECONDS;
     public static final ForgeConfigSpec.IntValue AI_MAX_RETRIES;
     public static final ForgeConfigSpec.EnumValue<SafetyLevel> AI_SAFETY_LEVEL;
+
+    // providers
+    public static final ForgeConfigSpec.ConfigValue<String> GROQ_API_KEY;
+    public static final ForgeConfigSpec.ConfigValue<String> GROQ_MODEL;
+    public static final ForgeConfigSpec.ConfigValue<String> OPENROUTER_API_KEY;
+    public static final ForgeConfigSpec.ConfigValue<String> OPENROUTER_MODEL;
+    public static final ForgeConfigSpec.BooleanValue OLLAMA_ENABLED;
+    public static final ForgeConfigSpec.ConfigValue<String> OLLAMA_URL;
+    public static final ForgeConfigSpec.ConfigValue<String> OLLAMA_MODEL;
+    public static final ForgeConfigSpec.ConfigValue<String> CUSTOM_NAME;
+    public static final ForgeConfigSpec.ConfigValue<String> CUSTOM_URL;
+    public static final ForgeConfigSpec.ConfigValue<String> CUSTOM_API_KEY;
+    public static final ForgeConfigSpec.ConfigValue<String> CUSTOM_MODEL;
 
     // chat
     public static final ForgeConfigSpec.IntValue CHAT_HISTORY_TURNS;
@@ -33,7 +53,6 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.DoubleValue CHAT_HEARING_RADIUS;
     public static final ForgeConfigSpec.BooleanValue CHAT_REQUIRE_NAME_MENTION;
     public static final ForgeConfigSpec.BooleanValue CHAT_SHOW_IN_CHAT;
-    public static final ForgeConfigSpec.IntValue CHAT_COOLDOWN_TICKS;
     public static final ForgeConfigSpec.BooleanValue CHAT_READ_PLAYER_CHAT;
 
     // voice (Fish Audio)
@@ -42,7 +61,7 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.ConfigValue<String> FISH_VOICE_ID;
     public static final ForgeConfigSpec.ConfigValue<String> FISH_MODEL;
     public static final ForgeConfigSpec.ConfigValue<String> FISH_ENDPOINT;
-    public static final ForgeConfigSpec.EnumValue<AudioFormat> VOICE_FORMAT;
+    public static final ForgeConfigSpec.IntValue VOICE_SAMPLE_RATE;
     public static final ForgeConfigSpec.EnumValue<LatencyMode> VOICE_LATENCY_MODE;
     public static final ForgeConfigSpec.DoubleValue VOICE_SPEED;
     public static final ForgeConfigSpec.DoubleValue VOICE_LOUDNESS;
@@ -60,10 +79,8 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.EnumValue<MicActivation> STT_ACTIVATION;
     public static final ForgeConfigSpec.DoubleValue STT_MIC_GAIN;
     public static final ForgeConfigSpec.IntValue STT_SILENCE_TIMEOUT_MS;
-    public static final ForgeConfigSpec.IntValue STT_ENDPOINTING_MS;
     public static final ForgeConfigSpec.IntValue STT_MAX_SECONDS;
     public static final ForgeConfigSpec.BooleanValue STT_PUNCTUATE;
-    public static final ForgeConfigSpec.BooleanValue STT_INTERIM_RESULTS;
 
     // behavior
     public static final ForgeConfigSpec.BooleanValue FOLLOW_ENABLED;
@@ -73,24 +90,32 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.DoubleValue TELEPORT_DISTANCE;
     public static final ForgeConfigSpec.BooleanValue LOOK_AT_PLAYER;
     public static final ForgeConfigSpec.DoubleValue LOOK_RADIUS;
-    public static final ForgeConfigSpec.BooleanValue IDLE_LOOK_ENABLED;
     public static final ForgeConfigSpec.BooleanValue ANTI_STUCK_ENABLED;
     public static final ForgeConfigSpec.IntValue ANTI_STUCK_TICKS;
-    public static final ForgeConfigSpec.IntValue MAX_FALL_DROP;
     public static final ForgeConfigSpec.DoubleValue MAX_HEALTH;
     public static final ForgeConfigSpec.BooleanValue IMMORTAL;
     public static final ForgeConfigSpec.BooleanValue INVULNERABLE;
-    public static final ForgeConfigSpec.BooleanValue DEFEND_PLAYER;
     public static final ForgeConfigSpec.BooleanValue AVOID_WATER;
     public static final ForgeConfigSpec.BooleanValue CAN_OPEN_DOORS;
+    public static final ForgeConfigSpec.DoubleValue WANDER_RADIUS;
+    public static final ForgeConfigSpec.BooleanValue SLEEP_WITH_PLAYER;
+    public static final ForgeConfigSpec.BooleanValue IDLE_SIT_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue IDLE_MATE_ENABLED;
+    public static final ForgeConfigSpec.IntValue IDLE_MATE_COOLDOWN_MINUTES;
 
-    // memory
-    public static final ForgeConfigSpec.BooleanValue MEMORY_ENABLED;
-    public static final ForgeConfigSpec.IntValue MEMORY_MAX_FACTS;
-    public static final ForgeConfigSpec.BooleanValue MEMORY_PER_WORLD;
-    public static final ForgeConfigSpec.IntValue MEMORY_AUTOSAVE_SECONDS;
-    public static final ForgeConfigSpec.BooleanValue FAMILIARITY_ENABLED;
-    public static final ForgeConfigSpec.IntValue FAMILIARITY_HOURS_PER_STAGE;
+    // magic
+    public static final ForgeConfigSpec.IntValue ENCHANT_COOLDOWN_MINUTES;
+    public static final ForgeConfigSpec.IntValue ENCHANT_POWER;
+    public static final ForgeConfigSpec.BooleanValue ENCHANT_TREASURE;
+
+    // work
+    public static final ForgeConfigSpec.IntValue WORK_WAIT_FOR_ITEMS_SECONDS;
+    public static final ForgeConfigSpec.IntValue WORK_SEARCH_RADIUS;
+    public static final ForgeConfigSpec.BooleanValue WORK_GIVE_RESULTS;
+    public static final ForgeConfigSpec.BooleanValue WORK_PICK_UP_GIFTS;
+    public static final ForgeConfigSpec.BooleanValue WORK_GATHER_FROM_NATURE;
+    public static final ForgeConfigSpec.BooleanValue WORK_PROTECT_ENCHANTED;
+    public static final ForgeConfigSpec.IntValue WORK_MAX_MINING_SECONDS;
 
     // personality
     public static final ForgeConfigSpec.ConfigValue<String> PROMPT_FILE;
@@ -99,16 +124,10 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.BooleanValue CONTEXT_NEARBY_ENTITIES;
     public static final ForgeConfigSpec.BooleanValue CONTEXT_PLAYER_STATS;
     public static final ForgeConfigSpec.BooleanValue MOOD_ENABLED;
-    public static final ForgeConfigSpec.BooleanValue CHATTER_ENABLED;
-    public static final ForgeConfigSpec.IntValue CHATTER_MIN_SECONDS;
-    public static final ForgeConfigSpec.IntValue CHATTER_MAX_SECONDS;
-    public static final ForgeConfigSpec.DoubleValue CHATTER_CHANCE;
-    public static final ForgeConfigSpec.BooleanValue REACT_TO_EVENTS;
 
     // performance
     public static final ForgeConfigSpec.IntValue MAX_CONCURRENT_REQUESTS;
     public static final ForgeConfigSpec.IntValue RATE_LIMIT_PER_MINUTE;
-    public static final ForgeConfigSpec.IntValue AI_TICK_INTERVAL;
 
     static
     {
@@ -123,45 +142,73 @@ public final class RoccoCommonConfig
         COMPANION_NAME = b
                 .comment("Nombre que se muestra y con el que responde.")
                 .define("companionName", "Rocco");
-        LANGUAGE = b
-                .comment("Idioma en el que Rocco habla y escribe.")
-                .defineEnum("language", Language.SPANISH);
-        DEBUG_LOGGING = b
-                .comment("Escribe informacion extra en logs/latest.log. Util para diagnosticar.")
-                .define("debugLogging", false);
         LOG_REQUEST_BODIES = b
                 .comment("Registra el contenido enviado a las APIs. Solo para depurar:",
                          "puede llenar el log y nunca incluye las claves.")
                 .define("logRequestBodies", false);
+        CONFIG_VERSION = b
+                .comment("Uso interno: sirve para actualizar una sola vez valores por defecto viejos.",
+                         "No lo cambies.")
+                .defineInRange("configVersion", 0, 0, 1000);
         b.pop();
 
-        b.comment("Cerebro de texto (Google Gemini).").push("ai");
+        b.comment("Cerebro de Rocco: con que IA piensa.",
+                  "Sin ninguna clave Rocco igual habla y obedece ordenes basicas, con frases propias.",
+                  "Con una clave gratis (Groq, Gemini u OpenRouter) charla de verdad. Con mas de una,",
+                  "si una falla o se queda sin cupo, pasa sola a la siguiente.").push("ai");
+        AI_PROVIDER = b
+                .comment("AUTO usa todos los proveedores que tengan clave, en el orden de providerOrder,",
+                         "y salta al siguiente si uno falla. Elegi uno solo si queres forzarlo.")
+                .defineEnum("provider", AiProviderChoice.AUTO);
+        AI_PROVIDER_ORDER = b
+                .comment("Orden en que se prueban los proveedores con AUTO, separados por coma.",
+                         "custom va primero: si pagas una IA mejor y la configuras, se usa esa.",
+                         "Opciones: custom, groq, gemini, openrouter, ollama.")
+                .define("providerOrder", "custom,groq,gemini,openrouter,ollama");
+        AI_OFFLINE_FALLBACK = b
+                .comment("Si ninguna IA responde (o no hay claves), Rocco contesta con frases propias",
+                         "y entiende ordenes simples: plantar, cosechar, seguir, esperar, dormir...")
+                .define("offlineFallback", true);
         GEMINI_API_KEY = b
-                .comment("Clave de Gemini, desde Google AI Studio.",
+                .comment("Clave de Gemini, gratis desde aistudio.google.com/app/apikey.",
                          "Si queda vacia se usa la variable de entorno ROCCO_GEMINI_API_KEY.")
                 .define("geminiApiKey", "");
         GEMINI_MODEL = b
-                .comment("Modelo a usar. Los 'flash' responden mas rapido y gastan menos.")
-                .define("geminiModel", "gemini-2.5-flash");
+                .comment("Modelo de Gemini. 'auto' le pregunta a Google cuales hay hoy y elige el mejor",
+                         "flash disponible: asi no se rompe cuando Google retira modelos.",
+                         "gemini-2.5-flash ya no esta disponible para claves nuevas (da error 404).")
+                .define("geminiModel", DEFAULT_GEMINI_MODEL);
         GEMINI_ENDPOINT = b
                 .comment("URL base de la API. Cambiala solo si sabes lo que haces.")
                 .define("geminiEndpoint", "https://generativelanguage.googleapis.com/v1beta");
         AI_TEMPERATURE = b
-                .comment("Cuanto varia la respuesta. Bajo = predecible, alto = creativo.")
+                .comment("Cuanto varia la respuesta. Bajo = predecible, alto = creativo.",
+                         "Solo para modelos Gemini 2.x: en los 3.x se ignora (Google pide no mandarlo).")
                 .defineInRange("temperature", 0.9D, 0.0D, 2.0D);
         AI_TOP_P = b
-                .comment("Filtro de probabilidad acumulada (nucleus sampling).")
+                .comment("Filtro de probabilidad acumulada (nucleus sampling).",
+                         "Solo para modelos Gemini 2.x: en los 3.x se ignora.")
                 .defineInRange("topP", 0.95D, 0.0D, 1.0D);
         AI_TOP_K = b
-                .comment("Cantidad de opciones que considera por palabra. 0 lo desactiva.")
+                .comment("Cantidad de opciones que considera por palabra. 0 lo desactiva.",
+                         "Solo para modelos Gemini 2.x: en los 3.x se ignora.")
                 .defineInRange("topK", 40, 0, 1000);
         AI_MAX_OUTPUT_TOKENS = b
-                .comment("Largo maximo de la respuesta, en tokens.")
-                .defineInRange("maxOutputTokens", 220, 16, 8192);
+                .comment("Largo maximo de la respuesta, en tokens.",
+                         "En los Gemini 3.x los tokens de razonamiento cuentan contra este tope:",
+                         "con menos de 400 la respuesta puede cortarse antes de escribir nada.")
+                .defineInRange("maxOutputTokens", 400, 16, 8192);
         AI_THINKING_BUDGET = b
                 .comment("Tokens que puede gastar razonando antes de responder.",
-                         "0 = sin razonamiento, la opcion mas rapida para charlar.")
+                         "0 = sin razonamiento, la opcion mas rapida para charlar.",
+                         "Solo para modelos Gemini 2.x: los 3.x usan thinkingLevel.")
                 .defineInRange("thinkingBudget", 0, 0, 24576);
+        AI_THINKING_LEVEL = b
+                .comment("Cuanto razona antes de responder. Mas bajo = responde mas rapido.",
+                         "No todos los modelos aceptan todos los niveles (gemini-3.8-flash rechaza MINIMAL).",
+                         "Si el modelo rechaza el nivel, Rocco prueba solo el siguiente mas alto.",
+                         "Solo para modelos Gemini 3.x: los 2.x usan thinkingBudget.")
+                .defineEnum("thinkingLevel", ThinkingLevel.LOW);
         AI_TIMEOUT_SECONDS = b
                 .comment("Tiempo maximo de espera por una respuesta.")
                 .defineInRange("timeoutSeconds", 20, 1, 120);
@@ -169,8 +216,56 @@ public final class RoccoCommonConfig
                 .comment("Reintentos cuando la peticion falla por red o limite de uso.")
                 .defineInRange("maxRetries", 2, 0, 5);
         AI_SAFETY_LEVEL = b
-                .comment("Filtros de contenido de Gemini.")
-                .defineEnum("safetyLevel", SafetyLevel.MEDIUM);
+                .comment("Filtros de contenido de Gemini.",
+                         "OFF deja que Rocco bromee e insulte en joda, que es parte de su personalidad.",
+                         "Con MEDIUM, Gemini 3.x llega a bloquear hasta saludos: el tono engreido de Rocco",
+                         "cae en la categoria de acoso. Google mantiene igual sus protecciones basicas.")
+                .defineEnum("safetyLevel", SafetyLevel.OFF);
+        b.pop();
+
+        b.comment("Otros proveedores de IA. Cualquier clave que pongas aca se suma a la cola de AUTO.",
+                  "Los modelos en 'auto' se eligen solos segun lo que el proveedor ofrezca hoy.").push("providers");
+        GROQ_API_KEY = b
+                .comment("Groq: gratis y muy rapido. Clave en console.groq.com/keys.",
+                         "Si queda vacia se usa la variable de entorno ROCCO_GROQ_API_KEY.")
+                .define("groqApiKey", "");
+        GROQ_MODEL = b
+                .comment("Modelo de Groq, o 'auto'.")
+                .define("groqModel", "auto");
+        OPENROUTER_API_KEY = b
+                .comment("OpenRouter: tiene modelos gratis y tambien pagos. Clave en openrouter.ai/keys.",
+                         "Si queda vacia se usa la variable de entorno ROCCO_OPENROUTER_API_KEY.")
+                .define("openrouterApiKey", "");
+        OPENROUTER_MODEL = b
+                .comment("'openrouter/free' elige solo entre los modelos gratis del momento.",
+                         "Para uno pago, pone su id (por ejemplo openai/..., meta-llama/...).")
+                .define("openrouterModel", "openrouter/free");
+        OLLAMA_ENABLED = b
+                .comment("Ollama corre la IA en tu propia PC: gratis, sin limites y sin internet,",
+                         "pero necesita una placa de video decente. Bajalo de ollama.com.")
+                .define("ollamaEnabled", false);
+        OLLAMA_URL = b
+                .comment("Direccion de Ollama. Por defecto corre en tu misma PC.")
+                .define("ollamaUrl", "http://localhost:11434/v1");
+        OLLAMA_MODEL = b
+                .comment("Modelo de Ollama, o 'auto' para usar el primero que tengas instalado.")
+                .define("ollamaModel", "auto");
+        CUSTOM_NAME = b
+                .comment("Proveedor propio, para usar una IA paga mejor. Sirve cualquiera compatible con",
+                         "el formato de OpenAI: OpenAI, DeepSeek, Mistral, xAI, Together, LM Studio...",
+                         "Este nombre solo se usa en los mensajes.")
+                .define("customName", "");
+        CUSTOM_URL = b
+                .comment("URL base, terminando en /v1. Ejemplos: https://api.openai.com/v1,",
+                         "https://api.deepseek.com/v1, https://api.mistral.ai/v1")
+                .define("customUrl", "");
+        CUSTOM_API_KEY = b
+                .comment("Clave del proveedor propio.",
+                         "Si queda vacia se usa la variable de entorno ROCCO_CUSTOM_API_KEY.")
+                .define("customApiKey", "");
+        CUSTOM_MODEL = b
+                .comment("Modelo del proveedor propio (por ejemplo gpt-5-mini o deepseek-chat), o 'auto'.")
+                .define("customModel", "auto");
         b.pop();
 
         b.comment("Como conversa Rocco.").push("chat");
@@ -196,9 +291,6 @@ public final class RoccoCommonConfig
         CHAT_SHOW_IN_CHAT = b
                 .comment("Muestra el texto de Rocco en el chat, ademas de la voz.")
                 .define("showInChat", true);
-        CHAT_COOLDOWN_TICKS = b
-                .comment("Espera minima entre respuestas, en ticks (20 ticks = 1 segundo).")
-                .defineInRange("cooldownTicks", 20, 0, 1200);
         b.pop();
 
         b.comment("Voz de Rocco (Fish Audio, texto a voz).").push("voice");
@@ -219,11 +311,13 @@ public final class RoccoCommonConfig
         FISH_ENDPOINT = b
                 .comment("URL base de la API de Fish Audio.")
                 .define("fishEndpoint", "https://api.fish.audio");
-        VOICE_FORMAT = b
-                .comment("Formato del audio que pedimos.")
-                .defineEnum("format", AudioFormat.MP3);
+        VOICE_SAMPLE_RATE = b
+                .comment("Calidad del audio (muestras por segundo). 24000 suena bien y pesa poco;",
+                         "44100 es calidad CD. Se pide en WAV, que es lo que el juego reproduce sin mods extra.",
+                         "Valores que acepta Fish Audio: 8000, 16000, 24000, 32000, 44100.")
+                .defineInRange("sampleRate", 24000, 8000, 44100);
         VOICE_LATENCY_MODE = b
-                .comment("BALANCED prioriza calidad, NORMAL prioriza rapidez.")
+                .comment("NORMAL: la mejor calidad. BALANCED: un poco mas rapido. LOW: lo mas rapido.")
                 .defineEnum("latencyMode", LatencyMode.NORMAL);
         VOICE_SPEED = b
                 .comment("Velocidad del habla. 1.0 es normal.")
@@ -248,7 +342,8 @@ public final class RoccoCommonConfig
 
         b.comment("Escuchar al jugador por microfono (Deepgram, voz a texto).").push("stt");
         STT_ENABLED = b
-                .comment("Permite hablarle a Rocco por microfono.")
+                .comment("Permite hablarle a Rocco por microfono. La tecla (V por defecto) se cambia en",
+                         "Opciones > Controles > Asignaciones de teclas, categoria Rocco.")
                 .define("enabled", false);
         DEEPGRAM_API_KEY = b
                 .comment("Clave de Deepgram.",
@@ -265,7 +360,8 @@ public final class RoccoCommonConfig
                 .define("language", "es");
         STT_ACTIVATION = b
                 .comment("PUSH_TO_TALK graba mientras mantienes la tecla.",
-                         "VOICE_ACTIVATION graba sola cuando detecta que hablas.")
+                         "VOICE_ACTIVATION: la tecla prende o apaga la escucha, y mientras esta prendida",
+                         "graba sola cada vez que hablas y lo manda cuando te callas.")
                 .defineEnum("activation", MicActivation.PUSH_TO_TALK);
         STT_MIC_GAIN = b
                 .comment("Amplificacion del microfono antes de enviarlo.")
@@ -274,19 +370,12 @@ public final class RoccoCommonConfig
                 .comment("Silencio que corta la grabacion, en milisegundos.",
                          "Solo aplica con VOICE_ACTIVATION.")
                 .defineInRange("silenceTimeoutMs", 1200, 200, 10000);
-        STT_ENDPOINTING_MS = b
-                .comment("Pausa que Deepgram interpreta como fin de frase.")
-                .defineInRange("endpointingMs", 300, 10, 5000);
         STT_MAX_SECONDS = b
                 .comment("Duracion maxima de una grabacion.")
                 .defineInRange("maxSeconds", 30, 1, 300);
         STT_PUNCTUATE = b
                 .comment("Pide a Deepgram que agregue puntuacion.")
                 .define("punctuate", true);
-        STT_INTERIM_RESULTS = b
-                .comment("Resultados parciales mientras hablas. Da sensacion de rapidez,",
-                         "pero consume mas.")
-                .define("interimResults", false);
         b.pop();
 
         b.comment("Como se mueve y actua Rocco en el mundo.").push("behavior");
@@ -313,19 +402,12 @@ public final class RoccoCommonConfig
         LOOK_RADIUS = b
                 .comment("Distancia maxima a la que te mira.")
                 .defineInRange("lookRadius", 12.0D, 1.0D, 64.0D);
-        IDLE_LOOK_ENABLED = b
-                .comment("Cuando esta quieto alterna entre mirarte, mirar alrededor y aburrirse.")
-                .define("idleLookEnabled", true);
         ANTI_STUCK_ENABLED = b
-                .comment("Si se traba, recalcula la ruta con un salto y, si sigue trabado,",
-                         "aparece al lado del jugador.")
+                .comment("Si se traba sin poder avanzar (o se queda nadando), aparece al lado del jugador.")
                 .define("antiStuckEnabled", true);
         ANTI_STUCK_TICKS = b
                 .comment("Ticks sin avanzar antes de considerarlo trabado.")
                 .defineInRange("antiStuckTicks", 60, 10, 600);
-        MAX_FALL_DROP = b
-                .comment("Altura maxima en bloques que acepta bajar al buscar ruta.")
-                .defineInRange("maxFallDrop", 4, 1, 16);
         MAX_HEALTH = b
                 .comment("Vida maxima de Rocco. Se aplica al volver a entrar al mundo.")
                 .worldRestart()
@@ -338,41 +420,77 @@ public final class RoccoCommonConfig
                 .comment("Mas fuerte que lo anterior: directamente no recibe dano,",
                          "ni siquiera se queja.")
                 .define("invulnerable", false);
-        DEFEND_PLAYER = b
-                .comment("Ataca a lo que te este atacando.",
-                         "TODAVIA NO HACE NADA: falta el sistema de combate.")
-                .define("defendPlayer", false);
         AVOID_WATER = b
                 .comment("Evita entrar al agua cuando busca ruta.")
                 .define("avoidWater", false);
         CAN_OPEN_DOORS = b
                 .comment("Puede abrir puertas de madera para seguirte.")
                 .define("canOpenDoors", true);
+        WANDER_RADIUS = b
+                .comment("Mientras te sigue y vos estas quieto, pasea por su cuenta hasta esta",
+                         "distancia de vos. Cuando te moves, vuelve a seguirte de cerca.")
+                .defineInRange("wanderRadius", 8.0D, 2.0D, 32.0D);
+        SLEEP_WITH_PLAYER = b
+                .comment("Cuando te acostas a dormir, Rocco tambien se duerme, y se despierta con vos.")
+                .define("sleepWithPlayer", true);
+        IDLE_SIT_ENABLED = b
+                .comment("Si estas un rato quieto (en tu casa, haciendo tus cosas), a veces se sienta.")
+                .define("idleSitEnabled", true);
+        IDLE_MATE_ENABLED = b
+                .comment("Si estas un rato quieto, a veces se toma un mate solo.")
+                .define("idleMateEnabled", true);
+        IDLE_MATE_COOLDOWN_MINUTES = b
+                .comment("Minutos minimos entre un mate y el siguiente cuando lo toma por su cuenta.",
+                         "Si se lo pedis, lo toma igual.")
+                .defineInRange("idleMateCooldownMinutes", 10, 1, 240);
         b.pop();
 
-        b.comment("Lo que Rocco recuerda entre sesiones.").push("memory");
-        MEMORY_ENABLED = b
-                .comment("Guarda cosas que aprende de vos y del mundo.")
-                .define("enabled", true);
-        MEMORY_MAX_FACTS = b
-                .comment("Cantidad maxima de datos recordados. Al llenarse borra los mas viejos.")
-                .defineInRange("maxFacts", 100, 0, 1000);
-        MEMORY_PER_WORLD = b
-                .comment("Memoria separada por mundo. Si es false, recuerda todo en todos lados.")
-                .define("perWorld", true);
-        MEMORY_AUTOSAVE_SECONDS = b
-                .comment("Cada cuanto guarda la memoria a disco.")
-                .defineInRange("autosaveSeconds", 60, 5, 3600);
-        FAMILIARITY_ENABLED = b
-                .comment("Rocco va teniendo mas confianza segun el tiempo que pasan juntos,",
-                         "y eso cambia como te habla.")
-                .define("familiarityEnabled", true);
-        FAMILIARITY_HOURS_PER_STAGE = b
-                .comment("Horas de juego juntos para pasar de una etapa de confianza a la siguiente.")
-                .defineInRange("hoursPerStage", 2, 1, 100);
+        b.comment("El poder que le dio la Madre Naturaleza: encantar tus cosas.").push("magic");
+        ENCHANT_COOLDOWN_MINUTES = b
+                .comment("Minutos que tiene que descansar despues de encantar algo. 20 es un dia",
+                         "entero de Minecraft. Se cuenta con el juego abierto, no con la vida real.")
+                .defineInRange("enchantCooldownMinutes", 20, 0, 10080);
+        ENCHANT_POWER = b
+                .comment("Que tan fuerte encanta, como el nivel de una mesa de encantamientos.",
+                         "30 es lo maximo de una mesa con todas las bibliotecas.")
+                .defineInRange("enchantPower", 30, 1, 50);
+        ENCHANT_TREASURE = b
+                .comment("Puede dar encantamientos de tesoro (Reparacion, Paso helado...), que en una mesa",
+                         "normal no salen: al azar pueden tocar, y a pedido se pueden elegir.")
+                .define("allowTreasure", false);
         b.pop();
 
-        b.comment("Personalidad y de que habla por su cuenta.").push("personality");
+        b.comment("Trabajos de Rocco: craftear, cofres, horno, herramientas y huerta.").push("work");
+        WORK_WAIT_FOR_ITEMS_SECONDS = b
+                .comment("Cuando le faltan materiales, cuanto espera a que se los des antes de ir",
+                         "a buscarlos el solo a los cofres de alrededor.")
+                .defineInRange("waitForItemsSeconds", 30, 5, 600);
+        WORK_SEARCH_RADIUS = b
+                .comment("Hasta que distancia busca cofres, hornos y mesas de crafteo.")
+                .defineInRange("searchRadius", 16, 4, 48);
+        WORK_GIVE_RESULTS = b
+                .comment("Lo que craftea, cocina o trae te lo da en la mano (te lo tira cerca).",
+                         "Si es false, se lo queda en su inventario.")
+                .define("giveResultsToPlayer", true);
+        WORK_PICK_UP_GIFTS = b
+                .comment("Agarra lo que le tires cerca (tecla Q). Asi se le dan cosas.",
+                         "Solo levanta lo que tiro un jugador, no lo que anda suelto.")
+                .define("pickUpGifts", true);
+        WORK_GATHER_FROM_NATURE = b
+                .comment("Si le falta madera o piedra y no hay en los cofres, puede talar un arbol",
+                         "o picar piedra de alrededor por su cuenta. Nunca rompe construcciones:",
+                         "solo arboles naturales y piedra, tierra, arena o minerales del terreno.")
+                .define("gatherFromNature", true);
+        WORK_PROTECT_ENCHANTED = b
+                .comment("No termina de romper herramientas encantadas: las deja con 1 de",
+                         "durabilidad para que las repares.")
+                .define("protectEnchantedTools", true);
+        WORK_MAX_MINING_SECONDS = b
+                .comment("Si romper un bloque le llevaria mas que esto, no lo intenta.")
+                .defineInRange("maxMiningSeconds", 20, 1, 120);
+        b.pop();
+
+        b.comment("Personalidad y que le cuenta el mod a la IA sobre lo que pasa.").push("personality");
         PROMPT_FILE = b
                 .comment("Archivo con la personalidad, dentro de la carpeta config/rocco/.",
                          "Si no existe, Rocco crea uno con su personalidad por defecto.")
@@ -392,22 +510,6 @@ public final class RoccoCommonConfig
         MOOD_ENABLED = b
                 .comment("Ajusta el tono segun la situacion: de noche, en una cueva, con poca vida...")
                 .define("moodEnabled", true);
-        CHATTER_ENABLED = b
-                .comment("Habla solo de vez en cuando, sin que le preguntes.")
-                .define("chatterEnabled", true);
-        CHATTER_MIN_SECONDS = b
-                .comment("Espera minima entre comentarios espontaneos.")
-                .defineInRange("chatterMinSeconds", 120, 10, 3600);
-        CHATTER_MAX_SECONDS = b
-                .comment("Espera maxima entre comentarios espontaneos.")
-                .defineInRange("chatterMaxSeconds", 420, 10, 7200);
-        CHATTER_CHANCE = b
-                .comment("Probabilidad de que efectivamente diga algo cuando le toca el turno.")
-                .defineInRange("chatterChance", 0.6D, 0.0D, 1.0D);
-        REACT_TO_EVENTS = b
-                .comment("Comenta cosas que pasan: te lastimaste, encontraste diamantes,",
-                         "se hizo de noche, murio un mob.")
-                .define("reactToEvents", true);
         b.pop();
 
         b.comment("Limites para que el mod no trabe el juego ni gaste de mas.").push("performance");
@@ -417,10 +519,6 @@ public final class RoccoCommonConfig
         RATE_LIMIT_PER_MINUTE = b
                 .comment("Tope de peticiones por minuto. 0 lo desactiva.")
                 .defineInRange("rateLimitPerMinute", 20, 0, 600);
-        AI_TICK_INTERVAL = b
-                .comment("Cada cuantos ticks revisa si tiene algo que decir o hacer.",
-                         "Mas alto = menos carga.")
-                .defineInRange("tickInterval", 20, 1, 200);
         b.pop();
 
         SPEC = b.build();
@@ -428,13 +526,13 @@ public final class RoccoCommonConfig
 
     private RoccoCommonConfig() {}
 
-    public enum Language { SPANISH, ENGLISH }
-
     public enum SafetyLevel { OFF, LOW, MEDIUM, HIGH }
 
-    public enum AudioFormat { MP3, WAV, OPUS }
+    public enum AiProviderChoice { AUTO, GEMINI, GROQ, OPENROUTER, OLLAMA, CUSTOM }
 
-    public enum LatencyMode { NORMAL, BALANCED }
+    public enum ThinkingLevel { MINIMAL, LOW, MEDIUM, HIGH }
+
+    public enum LatencyMode { NORMAL, BALANCED, LOW }
 
     public enum MicActivation { PUSH_TO_TALK, VOICE_ACTIVATION }
 }

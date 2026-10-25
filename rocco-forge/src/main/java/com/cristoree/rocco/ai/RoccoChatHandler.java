@@ -34,33 +34,95 @@ public final class RoccoChatHandler
             return;
         }
 
+        String name = RoccoCommonConfig.COMPANION_NAME.get().toLowerCase(Locale.ROOT);
+        boolean named = message.toLowerCase(Locale.ROOT).contains(name);
+
         RoccoEntity rocco = findListening(player);
         if (rocco == null)
         {
+            // Lejos no te escucha, pero si lo llamas por su nombre para que venga, viene igual.
+            if (named && OfflineRocco.isCall(message))
+            {
+                callFromAfar(player);
+            }
             return;
         }
-
-        String name = RoccoCommonConfig.COMPANION_NAME.get().toLowerCase(Locale.ROOT);
-        boolean named = message.toLowerCase(Locale.ROOT).contains(name);
 
         if (RoccoCommonConfig.CHAT_REQUIRE_NAME_MENTION.get() && !named)
         {
             return;
         }
 
+        // Solo pasa si no hay ninguna IA y ademas se apagaron las frases propias.
         if (!RoccoConfig.chatReady())
         {
             // Solo avisa si le hablaron a el, para no spamear en cada mensaje del chat.
             if (named)
             {
                 player.sendSystemMessage(Component.literal(
-                        "[Rocco] Falta tu clave de Gemini. Ponela en Mods > Rocco > Config, en la seccion ai.")
+                        "[Rocco] No tengo IA configurada y las frases propias estan apagadas (ai.offlineFallback).")
                         .withStyle(ChatFormatting.RED));
             }
             return;
         }
 
         rocco.brain().ask(player, message);
+    }
+
+    // Lo que el jugador le dijo por microfono. Se muestra como chat (asi los demas lo ven) y le
+    // llega a Rocco sin necesidad de nombrarlo.
+    public static void onVoice(ServerPlayer player, String text)
+    {
+        Component line = Component.literal("<" + player.getGameProfile().getName() + "> ")
+                .append(Component.literal(text))
+                .append(Component.literal(" (voz)").withStyle(ChatFormatting.DARK_GRAY));
+        double radius = RoccoCommonConfig.CHAT_HEARING_RADIUS.get();
+        for (ServerPlayer nearby : player.serverLevel().players())
+        {
+            if (nearby.distanceToSqr(player) <= radius * radius * 4.0D)
+            {
+                nearby.sendSystemMessage(line);
+            }
+        }
+
+        RoccoEntity rocco = findListening(player);
+        if (rocco == null)
+        {
+            if (OfflineRocco.isCall(text))
+            {
+                callFromAfar(player);
+            }
+            else
+            {
+                player.displayClientMessage(Component.literal("Rocco esta muy lejos para escucharte. "
+                        + "Decile \"Rocco, veni\" y aparece.").withStyle(ChatFormatting.GRAY), true);
+            }
+            return;
+        }
+
+        if (RoccoConfig.chatReady())
+        {
+            rocco.brain().ask(player, text);
+        }
+    }
+
+    // "Rocco, veni" desde lejos: lo trae aunque su zona del mundo este descargada.
+    private static void callFromAfar(ServerPlayer player)
+    {
+        boolean arrived = com.cristoree.rocco.RoccoCompanionTracker.recall(player, true);
+        if (arrived)
+        {
+            RoccoEntity rocco = com.cristoree.rocco.RoccoCompanionTracker.find(player);
+            if (rocco != null)
+            {
+                rocco.setFollowing(true);
+                rocco.sayLine("teleport_arrived");
+            }
+        }
+        else
+        {
+            player.displayClientMessage(Component.literal("Buscando a Rocco...").withStyle(ChatFormatting.GRAY), true);
+        }
     }
 
     private static RoccoEntity findListening(ServerPlayer player)

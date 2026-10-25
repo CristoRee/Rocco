@@ -79,11 +79,15 @@ public final class RoccoSpawner
         rocco.setYBodyRot(player.getYRot() + 180.0F);
 
         level.addFreshEntity(rocco);
+
+        // Queda anotado de quien es, para poder encontrarlo despues aunque cambie de dimension.
+        RoccoCompanionTracker.remember(player, rocco);
+
         RoccoMod.LOGGER.info("[Rocco] Brotado en {} para {}", spot, player.getGameProfile().getName());
         return true;
     }
 
-    private static BlockPos findGround(ServerLevel level, BlockPos origin)
+    static BlockPos findGround(ServerLevel level, BlockPos origin)
     {
         for (int[] offset : OFFSETS)
         {

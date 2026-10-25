@@ -8,8 +8,9 @@ plugins {
 version = mod_version
 group = mod_group_id
 
+// Nombre del jar como lo esperan CurseForge y los launchers: rocco-forge-1.20.1-1.0.0.jar
 base {
-    archivesName = mod_id
+    archivesName = "${mod_id}-forge-${minecraft_version}"
 }
 
 // Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
@@ -73,6 +74,12 @@ minecraft {
             // You can set various levels here.
             // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
             property 'forge.logging.console.level', 'debug'
+
+            // GeckoLib trae mixins con nombres SRG: en el entorno de desarrollo hay que traducirlos
+            // a los nombres oficiales, si no el cliente de prueba se cae al arrancar. El jar final
+            // no lo necesita (el juego real usa SRG).
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
 
             mods {
                 "${mod_id}" {
@@ -168,7 +175,7 @@ tasks.named('processResources', ProcessResources).configure {
             forge_version: forge_version, forge_version_range: forge_version_range,
             loader_version_range: loader_version_range,
             mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
-            mod_authors: mod_authors, mod_description: mod_description,
+            mod_authors: mod_authors, mod_description: mod_description, geckolib_version: geckolib_version,
     ]
     inputs.properties replaceProperties
 

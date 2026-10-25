@@ -1,4 +1,29 @@
 {
   "entity.rocco.rocco": "Rocco",
-  "item.rocco.rocco_spawn_egg": "Rocco Spawn Egg"
+  "item.rocco.rocco_spawn_egg": "Rocco Spawn Egg",
+
+  "key.categories.rocco": "Rocco",
+  "key.rocco.talk": "Talk to Rocco (microphone)",
+
+  "subtitles.rocco.awaken_pop": "Rocco pops out of the soil",
+  "subtitles.rocco.chew": "Rocco chews",
+  "subtitles.rocco.dirt": "Soil shifts",
+  "subtitles.rocco.goo": "Goo squelches",
+  "subtitles.rocco.gulp": "Rocco swallows",
+  "subtitles.rocco.gulp_big": "Rocco swallows something huge",
+  "subtitles.rocco.harvest_pop": "Rocco pulls up a crop",
+  "subtitles.rocco.hurt": "Rocco hurts",
+  "subtitles.rocco.leaves": "Leaves rustle",
+  "subtitles.rocco.lid_close": "Rocco's lid shuts",
+  "subtitles.rocco.lid_open": "Rocco's lid opens",
+  "subtitles.rocco.step": "Rocco's footsteps",
+  "subtitles.rocco.snore": "Rocco breathes in his sleep",
+  "subtitles.rocco.bubble_pop": "Bubble pops",
+  "subtitles.rocco.sit_plop": "Rocco sits down",
+  "subtitles.rocco.mate_pour": "Rocco pours a mate",
+  "subtitles.rocco.mate_sip": "Rocco sips mate",
+  "subtitles.rocco.mate_slurp": "The bombilla gurgles",
+  "subtitles.rocco.magic_hum": "Rocco gathers magic",
+  "subtitles.rocco.magic_burst": "Rocco enchants something",
+  "subtitles.rocco.voice": "Rocco speaks"
 }

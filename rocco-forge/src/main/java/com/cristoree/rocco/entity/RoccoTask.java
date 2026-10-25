@@ -11,7 +11,15 @@ public enum RoccoTask
     // eat dura 3,25 s y swallowterror 3,2 s. El tick de impacto es estimado: es cuando la
     // mandibula se cierra. Si no coincide con la animacion, se ajusta aca.
     EATING(65, 40),
-    SWALLOWING(64, 40);
+    SWALLOWING(64, 40),
+    // tool_swing es un bucle de 12 ticks con el golpe en el 5. Picar dura lo que diga el bloque
+    // (el trabajo trae su duracion) y el efecto cae al final, cuando el bloque se rompe.
+    MINING(12, 12),
+    // animation.rocco.mate dura 30,6 s y no tiene "impacto": todo pasa en los ticks de caras y
+    // sonidos. Siempre al final: el ordinal viaja por red.
+    MATE(612, 612),
+    // animation.rocco.enchant dura 5,6 s; el encantamiento se aplica en el empujon del tick 89.
+    ENCHANTING(112, 89);
 
     private static final RoccoTask[] VALUES = values();
 

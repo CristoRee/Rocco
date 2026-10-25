@@ -2,10 +2,14 @@ package com.cristoree.rocco.ai;
 
 import com.cristoree.rocco.RoccoMod;
 import com.cristoree.rocco.config.RoccoCommonConfig;
+import com.cristoree.rocco.config.RoccoConfig;
 import com.cristoree.rocco.entity.RoccoEntity;
 import com.cristoree.rocco.entity.RoccoExpression;
 import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -14,6 +18,9 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,25 +31,77 @@ public class RoccoBrain
 {
     private static final Pattern EXPRESSION_TAG = Pattern.compile("^\\s*\\[(\\w+)]\\s*");
     private static final int SHORT_HISTORY_CHARS = 140;
+    private static final long PROBLEM_NOTE_EVERY_MS = 60_000L;
+    private static final long STUCK_REQUEST_MS = 120_000L;
+
+    private static final String GREET_PROMPT = "(Acabas de brotar de la tierra. Es la primera vez que ves al "
+            + "jugador que la Madre Tierra te encargo cuidar. Presentate en una frase.)";
 
     private static ExecutorService executor;
     private static final AtomicInteger IN_FLIGHT = new AtomicInteger();
     private static final Deque<Long> RECENT_CALLS = new ArrayDeque<>();
+    // A quien ya se le explico como conseguir una clave gratis en esta sesion.
+    private static final Set<UUID> ONBOARDED = ConcurrentHashMap.newKeySet();
 
     private final RoccoEntity rocco;
-    private final List<GeminiClient.Turn> history = new ArrayList<>();
+    private final List<ChatTurn> history = new ArrayList<>();
 
     private boolean waiting;
+    private long waitingSince;
+    private boolean warnedRetiredModel;
+    private long lastProblemNote;
 
     public RoccoBrain(RoccoEntity rocco)
     {
         this.rocco = rocco;
     }
 
+    // Saludo al brotar: con IA lo inventa ella, sin IA usa una frase propia.
+    public void greet(ServerPlayer player)
+    {
+        if (RoccoConfig.aiConfigured())
+        {
+            ask(player, GREET_PROMPT);
+        }
+        else if (RoccoCommonConfig.AI_OFFLINE_FALLBACK.get())
+        {
+            deliverOffline(player, OfflineRocco.greeting());
+            offerFreeAi(player);
+        }
+    }
+
     public void ask(ServerPlayer player, String question)
     {
+        // Si una respuesta anterior quedo colgada (una IA que nunca contesto), no lo deja sordo.
+        if (this.waiting && System.currentTimeMillis() - this.waitingSince < STUCK_REQUEST_MS)
+        {
+            // Mientras piensa la respuesta anterior, una orden clara ("quedate quieto",
+            // "seguime") se cumple igual, al toque, en vez de perderse.
+            OfflineRocco.Answer order = OfflineRocco.reply(this.rocco, question);
+            if (order.verb() != null)
+            {
+                deliverOffline(player, order);
+            }
+            return;
+        }
         if (this.waiting)
         {
+            RoccoMod.LOGGER.warn("[Rocco] La respuesta anterior nunca llego; sigo escuchando.");
+            this.waiting = false;
+        }
+
+        // Sin IA: contesta al toque con sus frases y entiende las ordenes simples.
+        if (!RoccoConfig.aiConfigured())
+        {
+            if (RoccoCommonConfig.AI_OFFLINE_FALLBACK.get())
+            {
+                deliverOffline(player, OfflineRocco.reply(this.rocco, question));
+                offerFreeAi(player);
+            }
+            else
+            {
+                tell(player, "no tengo ninguna IA configurada (Mods > Rocco > Config).", true);
+            }
             return;
         }
 
@@ -64,19 +123,38 @@ public class RoccoBrain
             return;
         }
 
-        String systemPrompt = RoccoPersonality.load()
-                + RoccoContextBuilder.build(this.rocco, player);
-        List<GeminiClient.Turn> snapshot = trimmedHistory();
+        // Una vez por sesion: el modelo de Gemini configurado fue retirado.
+        String retired = RoccoConfig.retiredModelWarning();
+        if (retired != null && !this.warnedRetiredModel)
+        {
+            this.warnedRetiredModel = true;
+            tell(player, retired, true);
+        }
+
+        String systemPrompt = RoccoPersonality.load() + RoccoContextBuilder.build(this.rocco, player);
+        List<ChatTurn> snapshot = trimmedHistory();
 
         this.waiting = true;
+        this.waitingSince = System.currentTimeMillis();
         IN_FLIGHT.incrementAndGet();
 
-        // Rocco "piensa" mientras espera: mueve la boca y despues dice lo que llego.
+        // Rocco "piensa" mientras espera.
         this.rocco.setExpression(RoccoExpression.SERIOUS);
 
         executor().execute(() ->
         {
-            GeminiClient.Reply reply = GeminiClient.ask(systemPrompt, snapshot, question);
+            ChatReply reply;
+            try
+            {
+                reply = AiRouter.ask(systemPrompt, snapshot, question);
+            }
+            catch (Throwable e)
+            {
+                RoccoMod.LOGGER.error("[Rocco] Error inesperado consultando la IA", e);
+                reply = ChatReply.fail(ChatReply.Failure.UNREADABLE, e.toString(), null, null);
+            }
+
+            ChatReply result = reply;
 
             // Volver al hilo del servidor antes de tocar la entidad o el chat.
             server.execute(() ->
@@ -84,20 +162,32 @@ public class RoccoBrain
                 IN_FLIGHT.decrementAndGet();
                 this.waiting = false;
 
-                // Pudo morir o descargarse mientras esperabamos a Gemini.
+                // Pudo morir o descargarse mientras esperabamos.
                 if (!this.rocco.isAlive())
                 {
                     return;
                 }
 
-                if (!reply.ok())
+                if (result.ok())
                 {
-                    this.rocco.setExpression(RoccoExpression.SAD);
-                    tell(player, "no pude responder: " + reply.error(), true);
+                    deliver(player, question, result.text());
                     return;
                 }
 
-                deliver(player, question, reply.text());
+                // Ninguna IA contesto: Rocco igual responde con lo suyo, y avisa por que.
+                if (RoccoCommonConfig.AI_OFFLINE_FALLBACK.get())
+                {
+                    OfflineRocco.Answer fallback = question.equals(GREET_PROMPT)
+                            ? OfflineRocco.greeting()
+                            : OfflineRocco.reply(this.rocco, question);
+                    deliverOffline(player, fallback);
+                    noteProblem(player, result.error());
+                }
+                else
+                {
+                    this.rocco.setExpression(RoccoExpression.SAD);
+                    tell(player, "no pude responder: " + result.error(), true);
+                }
             });
         });
     }
@@ -109,19 +199,16 @@ public class RoccoBrain
         String answer = parsed.cleanText();
         boolean chose = false;
 
-        RoccoActions.Outcome outcome = parsed.verb() == null
-                ? null
-                : RoccoActions.run(this.rocco, parsed.verb(), parsed.argument());
-
         Matcher tag = EXPRESSION_TAG.matcher(answer);
         if (tag.find())
         {
             String id = tag.group(1).toLowerCase(Locale.ROOT);
-            for (RoccoExpression expression : RoccoExpression.all())
+            // Solo las emocionales: hurt y sleep las pone el mod, no la IA.
+            for (RoccoExpression expression : RoccoExpression.selectable())
             {
                 if (expression.id().equals(id))
                 {
-                    this.rocco.setExpression(expression);
+                    this.rocco.setExpressionFromAi(expression);
                     answer = answer.substring(tag.end());
                     chose = true;
                     break;
@@ -130,43 +217,88 @@ public class RoccoBrain
         }
 
         // Si no eligio cara, se saca la de "pensando" que le puse al mandar la peticion.
-        // Una etiqueta desconocida se deja tal cual en el texto.
         if (!chose)
         {
-            this.rocco.setExpression(RoccoExpression.HAPPY);
+            this.rocco.setExpressionFromAi(RoccoExpression.HAPPY);
         }
 
-        // Una sola linea y sin espacios dobles: el chat no muestra saltos de linea.
-        answer = answer.replaceAll("\\s+", " ").trim();
-
-        int limit = RoccoCommonConfig.CHAT_MAX_RESPONSE_CHARS.get();
-        if (answer.length() > limit)
+        answer = clean(answer);
+        if (!answer.isEmpty())
         {
-            answer = answer.substring(0, limit).trim() + "...";
+            this.history.add(new ChatTurn(true, question));
+            this.history.add(new ChatTurn(false, answer));
+            speak(player, answer);
         }
 
-        if (answer.isEmpty())
+        // Despues de hablar: si la accion dice algo al toque (una receta), sale en orden.
+        String verb = parsed.verb();
+        String argument = parsed.argument();
+
+        // Las IAs a veces contestan "dale, me quedo quieto" y se olvidan la linea #accion (o
+        // inventan un verbo). Si lo que pidio el jugador es una orden clara, se hace igual.
+        if (!RoccoActions.knows(verb))
+        {
+            OfflineRocco.Answer understood = OfflineRocco.reply(this.rocco, question);
+            if (understood.verb() != null)
+            {
+                RoccoMod.LOGGER.debug("[Rocco] La IA no puso la orden; uso la del jugador: {} {}",
+                        understood.verb(), understood.argument());
+                verb = understood.verb();
+                argument = understood.argument() == null ? "" : understood.argument();
+            }
+            else
+            {
+                verb = null;
+            }
+        }
+
+        RoccoActions.Outcome outcome = verb == null ? null : RoccoActions.run(this.rocco, player, verb, argument);
+        reportOutcome(player, outcome);
+    }
+
+    private void deliverOffline(ServerPlayer player, OfflineRocco.Answer answer)
+    {
+        this.rocco.setExpressionFromAi(answer.face());
+        // Algunas ordenes (la receta, el cofre de la cosecha) las contesta la accion misma.
+        if (!answer.text().isBlank())
+        {
+            speak(player, clean(answer.text()));
+        }
+
+        RoccoActions.Outcome outcome = answer.verb() == null
+                ? null
+                : RoccoActions.run(this.rocco, player, answer.verb(), answer.argument() == null ? "" : answer.argument());
+        reportOutcome(player, outcome);
+    }
+
+    // Rocco habla por su cuenta mientras trabaja ("me faltan 3 de roca"). Lo escuchan los que
+    // esten cerca, y queda en la charla para que la IA sepa que ya lo dijo.
+    public void announce(String text, RoccoExpression face)
+    {
+        String message = clean(text);
+        if (message.isEmpty())
         {
             return;
         }
 
-        this.history.add(new GeminiClient.Turn(true, question));
-        this.history.add(new GeminiClient.Turn(false, answer));
-
-        // La boca se mueve un rato proporcional a lo que dijo.
-        this.rocco.talkFor(Math.min(200, 20 + answer.length()));
-
-        tell(player, answer, false);
-
-        // Si dijo que iba a hacer algo y no pudo, lo aclara en vez de quedarse quieto sin mas.
-        if (outcome != null && !outcome.ok() && outcome.note() != null)
+        if (face != null)
         {
-            this.rocco.setExpression(RoccoExpression.SAD);
-            tell(player, outcome.note() + ".", false);
+            this.rocco.setExpressionFromAi(face);
         }
+        this.rocco.talkFor(Math.min(200, 20 + message.length()));
+
+        // Se suma a la ultima respuesta suya: algunas IAs no aceptan dos turnos seguidos de Rocco.
+        if (!this.history.isEmpty() && !this.history.get(this.history.size() - 1).fromPlayer())
+        {
+            ChatTurn last = this.history.remove(this.history.size() - 1);
+            this.history.add(new ChatTurn(false, last.text() + " " + message));
+        }
+
+        broadcast(message, false);
+        com.cristoree.rocco.voice.RoccoVoice.speak(this.rocco, message);
     }
 
-    private void tell(ServerPlayer player, String message, boolean problem)
+    private void broadcast(String message, boolean problem)
     {
         if (!RoccoCommonConfig.CHAT_SHOW_IN_CHAT.get() && !problem)
         {
@@ -179,7 +311,11 @@ public class RoccoBrain
                 .append(Component.literal(message).withStyle(ChatFormatting.WHITE));
 
         double radius = RoccoCommonConfig.CHAT_HEARING_RADIUS.get();
-        for (ServerPlayer nearby : player.serverLevel().players())
+        if (!(this.rocco.level() instanceof net.minecraft.server.level.ServerLevel level))
+        {
+            return;
+        }
+        for (ServerPlayer nearby : level.players())
         {
             if (nearby.distanceToSqr(this.rocco) <= radius * radius)
             {
@@ -188,30 +324,126 @@ public class RoccoBrain
         }
     }
 
+    private void speak(ServerPlayer player, String answer)
+    {
+        // La boca se mueve un rato proporcional a lo que dijo.
+        this.rocco.talkFor(Math.min(200, 20 + answer.length()));
+        tell(player, answer, false);
+        // Y en voz alta, si Fish Audio esta configurado.
+        com.cristoree.rocco.voice.RoccoVoice.speak(this.rocco, answer);
+    }
+
+    // Si dijo que iba a hacer algo y no pudo, lo aclara en vez de quedarse quieto sin mas.
+    private void reportOutcome(ServerPlayer player, RoccoActions.Outcome outcome)
+    {
+        if (outcome != null && !outcome.ok() && outcome.note() != null)
+        {
+            this.rocco.setExpression(RoccoExpression.SAD);
+            tell(player, outcome.note() + ".", false);
+        }
+    }
+
+    private String clean(String answer)
+    {
+        // Una sola linea y sin espacios dobles: el chat no muestra saltos de linea. Las etiquetas
+        // de cara que la IA deja en el medio del texto tampoco se muestran.
+        String out = answer.replaceAll("(?i)\\[(happy|bored|serious|scared|sad|angry|smug|psycho|dizzy)]", " ")
+                .replaceAll("\\s+", " ").trim();
+
+        int limit = RoccoCommonConfig.CHAT_MAX_RESPONSE_CHARS.get();
+        if (out.length() > limit)
+        {
+            out = out.substring(0, limit).trim() + "...";
+        }
+        return out;
+    }
+
+    // Avisa por que no hubo IA, como mucho una vez por minuto para no llenar el chat.
+    private void noteProblem(ServerPlayer player, String error)
+    {
+        long now = System.currentTimeMillis();
+        if (now - this.lastProblemNote < PROBLEM_NOTE_EVERY_MS)
+        {
+            return;
+        }
+        this.lastProblemNote = now;
+
+        player.sendSystemMessage(Component.literal("[Rocco] Sin IA por ahora (" + error
+                + "). Uso mis frases de fabrica. /rocco ia para ver el detalle.").withStyle(ChatFormatting.GRAY));
+    }
+
+    // La primera vez que alguien le habla sin IA configurada, le explica como tener una gratis.
+    private void offerFreeAi(ServerPlayer player)
+    {
+        if (!ONBOARDED.add(player.getUUID()))
+        {
+            return;
+        }
+
+        player.sendSystemMessage(freeAiMessage());
+    }
+
+    public static Component freeAiMessage()
+    {
+        MutableComponent line = Component.literal("[Rocco] Esta usando sus frases de fabrica. Para que charle de verdad, "
+                + "consegui una clave GRATIS (2 minutos) en ").withStyle(ChatFormatting.GRAY);
+
+        boolean first = true;
+        for (AiProvider provider : AiProvider.values())
+        {
+            if (!provider.freeHosted())
+            {
+                continue;
+            }
+            if (!first)
+            {
+                line.append(Component.literal(", ").withStyle(ChatFormatting.GRAY));
+            }
+            first = false;
+            line.append(link(provider.label(), provider.signupUrl()));
+        }
+
+        return line.append(Component.literal(" y pegala en Mods > Rocco > Config. Con mas de una, si una se queda "
+                + "sin cupo usa la otra.").withStyle(ChatFormatting.GRAY));
+    }
+
+    public static MutableComponent link(String text, String url)
+    {
+        return Component.literal(text).withStyle(style -> style
+                .withColor(ChatFormatting.AQUA)
+                .withUnderlined(true)
+                .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, url))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(url))));
+    }
+
+    private void tell(ServerPlayer player, String message, boolean problem)
+    {
+        broadcast(message, problem);
+    }
+
     // Los turnos viejos van recortados y los ultimos completos: acelera y abarata la peticion.
-    private List<GeminiClient.Turn> trimmedHistory()
+    private List<ChatTurn> trimmedHistory()
     {
         int maxTurns = RoccoCommonConfig.CHAT_HISTORY_TURNS.get() * 2;
         int fullMessages = RoccoCommonConfig.CHAT_FULL_DETAIL_TURNS.get() * 2;
 
-        List<GeminiClient.Turn> recent = this.history.size() > maxTurns
+        List<ChatTurn> recent = this.history.size() > maxTurns
                 ? this.history.subList(this.history.size() - maxTurns, this.history.size())
                 : this.history;
 
-        List<GeminiClient.Turn> out = new ArrayList<>(recent.size());
+        List<ChatTurn> out = new ArrayList<>(recent.size());
         int firstFull = Math.max(0, recent.size() - fullMessages);
 
         for (int i = 0; i < recent.size(); i++)
         {
-            GeminiClient.Turn turn = recent.get(i);
+            ChatTurn turn = recent.get(i);
             if (i >= firstFull || turn.text().length() <= SHORT_HISTORY_CHARS)
             {
                 out.add(turn);
             }
             else
             {
-                out.add(new GeminiClient.Turn(turn.fromPlayer(),
-                        turn.text().substring(0, SHORT_HISTORY_CHARS) + "..."));
+                out.add(new ChatTurn(turn.fromPlayer(), turn.text().substring(0, SHORT_HISTORY_CHARS) + "..."));
             }
         }
 
