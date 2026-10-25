@@ -104,6 +104,15 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Que trabajo esta haciendo: el cliente lo necesita para mostrar el mate o la magia.
     private static final EntityDataAccessor<Integer> DATA_TASK =
             SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
+    // El agua donde cayo la boya mientras pesca (ZERO = caña recogida) y si ya pico algo. El
+    // anzuelo del juego solo existe para jugadores, asi que la boya y el hilo los dibuja el cliente.
+    private static final EntityDataAccessor<BlockPos> DATA_BOBBER =
+            SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.BLOCK_POS);
+    private static final EntityDataAccessor<Boolean> DATA_BOBBER_BITE =
+            SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.BOOLEAN);
+
+    // Lo que tarda la boya en volar de la caña al agua.
+    public static final int BOBBER_FLIGHT_TICKS = 10;
 
     private static final RawAnimation PLANT_IDLE = RawAnimation.begin().thenLoop("animation.rocco.plant_idle");
     private static final RawAnimation AWAKEN = RawAnimation.begin().thenPlayAndHold("animation.rocco.awaken");
@@ -276,6 +285,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.entityData.define(DATA_WORKING, false);
         this.entityData.define(DATA_POSE, RoccoPose.STANDING.ordinal());
         this.entityData.define(DATA_TASK, RoccoTask.NONE.ordinal());
+        this.entityData.define(DATA_BOBBER, BlockPos.ZERO);
+        this.entityData.define(DATA_BOBBER_BITE, false);
     }
 
     // ---------- estado sincronizado ----------
@@ -360,6 +371,37 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         BlockPos pos = this.entityData.get(DATA_WORK_TARGET);
         return pos.equals(BlockPos.ZERO) ? null : pos;
+    }
+
+    // ---------- la boya de pescar ----------
+
+    @Nullable
+    public BlockPos getBobber()
+    {
+        BlockPos pos = this.entityData.get(DATA_BOBBER);
+        return pos.equals(BlockPos.ZERO) ? null : pos;
+    }
+
+    public boolean isBobberBiting()
+    {
+        return this.entityData.get(DATA_BOBBER_BITE);
+    }
+
+    public void castBobber(BlockPos water)
+    {
+        this.entityData.set(DATA_BOBBER_BITE, false);
+        this.entityData.set(DATA_BOBBER, water.immutable());
+    }
+
+    public void setBobberBite(boolean biting)
+    {
+        this.entityData.set(DATA_BOBBER_BITE, biting);
+    }
+
+    public void reelInBobber()
+    {
+        this.entityData.set(DATA_BOBBER_BITE, false);
+        this.entityData.set(DATA_BOBBER, BlockPos.ZERO);
     }
 
     public void talkFor(int ticks)
@@ -1374,7 +1416,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         playSound(sound, volume, 0.9F + this.random.nextFloat() * 0.2F);
     }
 
-    private void lookAtBlock(BlockPos pos)
+    // Gira todo el cuerpo (no solo la cabeza) hacia ese bloque, de una.
+    public void lookAtBlock(BlockPos pos)
     {
         double dx = pos.getX() + 0.5D - getX();
         double dz = pos.getZ() + 0.5D - getZ();
@@ -1603,12 +1646,22 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             tickCompanionship();
         }
 
+        // Si dejo de pescar por cualquier lado (otra orden, un teleport), la boya no queda colgando.
+        BlockPos bobber = getBobber();
+        if (bobber != null && (!(this.errand instanceof com.cristoree.rocco.work.FishErrand)
+                || distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(bobber)) > 12.0D * 12.0D))
+        {
+            reelInBobber();
+        }
+
         // Un solo lugar gira la cabeza, siempre en el servidor: dos sistemas peleandose la trabarian.
-        // Mientras camina manda la navegacion, y mientras trabaja manda el bloque.
+        // Mientras camina manda la navegacion, mientras trabaja manda el bloque, y en un encargo
+        // que lo tiene ocupado (pescando, por ejemplo) manda el encargo.
         if (getRoccoState() == RoccoState.ACTIVE
                 && RoccoCommonConfig.LOOK_AT_PLAYER.get()
                 && !isWorking()
                 && this.jobs.isEmpty()
+                && (this.errand == null || this.errand.allowsFollowing())
                 && getNavigation().isDone())
         {
             Player nearest = level().getNearestPlayer(this, RoccoCommonConfig.LOOK_RADIUS.get());

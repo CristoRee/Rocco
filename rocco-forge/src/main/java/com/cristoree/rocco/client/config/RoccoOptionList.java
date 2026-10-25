@@ -1,8 +1,10 @@
 package com.cristoree.rocco.client.config;
 
-import com.electronwill.nightconfig.core.UnmodifiableConfig;
+import com.cristoree.rocco.client.config.RoccoConfigCategories.Group;
+import com.cristoree.rocco.client.config.RoccoConfigCategories.Option;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
@@ -12,6 +14,7 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -21,10 +24,33 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+// La lista de opciones de una pantalla de la configuracion. Cada fila edita una copia del valor:
+// recien al aplicar (al salir de la pantalla o al cambiar la busqueda) se escribe en la config.
 public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionList.Row>
 {
-    private static final int WIDGET_WIDTH = 120;
+    private static final int WIDGET_WIDTH = 110;
+    private static final int RESET_WIDTH = 20;
     private static final int ROW_HEIGHT = 24;
+    private static final int MAX_ROW_WIDTH = 340;
+
+    // Los valores de las listas desplegables, en castellano. El .toml guarda el nombre de siempre.
+    private static final Map<String, String> ENUM_NAMES = Map.ofEntries(
+            Map.entry("AUTO", "Automático"),
+            Map.entry("GEMINI", "Gemini"),
+            Map.entry("GROQ", "Groq"),
+            Map.entry("OPENROUTER", "OpenRouter"),
+            Map.entry("OLLAMA", "Ollama"),
+            Map.entry("CUSTOM", "Propio"),
+            Map.entry("OFF", "Apagado"),
+            Map.entry("MINIMAL", "Mínimo"),
+            Map.entry("LOW", "Bajo"),
+            Map.entry("MEDIUM", "Medio"),
+            Map.entry("HIGH", "Alto"),
+            Map.entry("LatencyMode.NORMAL", "Mejor calidad"),
+            Map.entry("LatencyMode.BALANCED", "Equilibrado"),
+            Map.entry("LatencyMode.LOW", "Lo más rápido"),
+            Map.entry("PUSH_TO_TALK", "Mantener tecla"),
+            Map.entry("VOICE_ACTIVATION", "Por voz"));
 
     private final List<Runnable> applyActions = new ArrayList<>();
 
@@ -33,10 +59,40 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         super(minecraft, width, height, top, bottom, ROW_HEIGHT);
     }
 
-    public void addSpec(Component heading, ForgeConfigSpec spec)
+    // Cambia lo que muestra. Lo que se habia tocado en la vista anterior queda aplicado antes.
+    public void show(List<Group> groups, Component emptyText)
     {
-        addEntry(new HeadingRow(heading, true));
-        walk(spec.getValues(), spec.getSpec());
+        applyAll();
+        this.applyActions.clear();
+        clearEntries();
+        setScrollAmount(0.0D);
+
+        for (Group group : groups)
+        {
+            List<Row> rows = new ArrayList<>();
+            for (Option option : group.options())
+            {
+                Row row = option.loaded() ? buildRow(option) : null;
+                if (row != null)
+                {
+                    rows.add(row);
+                }
+            }
+            if (rows.isEmpty())
+            {
+                continue;
+            }
+            if (group.title() != null)
+            {
+                addEntry(new HeadingRow(Component.literal(group.title())));
+            }
+            rows.forEach(this::addEntry);
+        }
+
+        if (children().isEmpty())
+        {
+            addEntry(new HeadingRow(emptyText.copy().withStyle(ChatFormatting.GRAY)));
+        }
     }
 
     public void applyAll()
@@ -47,67 +103,37 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
     @Override
     public int getRowWidth()
     {
-        return 310;
+        return Math.min(MAX_ROW_WIDTH, this.width - 24);
     }
 
     @Override
     protected int getScrollbarPosition()
     {
-        return this.width / 2 + 160;
+        return this.width / 2 + getRowWidth() / 2 + 6;
     }
 
-    private void walk(UnmodifiableConfig values, UnmodifiableConfig specs)
+    private Row buildRow(Option option)
     {
-        Map<String, Object> specMap = specs.valueMap();
-
-        for (Map.Entry<String, Object> entry : values.valueMap().entrySet())
-        {
-            Object value = entry.getValue();
-            Object valueSpec = specMap.get(entry.getKey());
-
-            if (value instanceof UnmodifiableConfig childValues && valueSpec instanceof UnmodifiableConfig childSpecs)
-            {
-                addEntry(new HeadingRow(Component.literal(prettify(entry.getKey())), false));
-                walk(childValues, childSpecs);
-            }
-            else if (value instanceof ForgeConfigSpec.ConfigValue<?> configValue
-                    && valueSpec instanceof ForgeConfigSpec.ValueSpec typeSpec)
-            {
-                // Es de uso interno: editarlo a mano romperia las migraciones.
-                if (entry.getKey().equals("configVersion"))
-                {
-                    continue;
-                }
-
-                Row row = buildRow(configValue, typeSpec, entry.getKey());
-                if (row != null)
-                {
-                    addEntry(row);
-                }
-            }
-        }
-    }
-
-    private Row buildRow(ForgeConfigSpec.ConfigValue<?> configValue, ForgeConfigSpec.ValueSpec typeSpec, String key)
-    {
-        Component label = Component.literal(prettify(key));
-        Class<?> type = resolveType(typeSpec);
+        ForgeConfigSpec.ValueSpec spec = option.valueSpec();
+        ForgeConfigSpec.ConfigValue<?> value = option.value();
+        Component label = Component.literal(option.label());
+        Class<?> type = resolveType(spec);
 
         if (type == Boolean.class)
         {
-            return new BooleanRow(label, typeSpec, cast(configValue));
+            return new BooleanRow(label, spec, cast(value));
         }
         if (type.isEnum())
         {
-            return new EnumRow(label, typeSpec, cast(configValue), type);
+            return new EnumRow(label, spec, cast(value), type);
         }
-        if (type == Integer.class || type == Long.class || type == Double.class || type == Float.class)
+        if (type == Integer.class || type == Long.class || type == Double.class)
         {
-            return new NumberRow(label, typeSpec, configValue, type);
+            return new NumberRow(label, spec, value, type);
         }
         if (CharSequence.class.isAssignableFrom(type))
         {
-            return new TextRow(label, typeSpec, cast(configValue), isSecret(key));
+            return new TextRow(label, spec, cast(value), isSecret(value.getPath().get(value.getPath().size() - 1)));
         }
 
         // Tipo que esta pantalla no sabe editar (una lista, por ejemplo): mejor no mostrar
@@ -143,27 +169,15 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         return (ForgeConfigSpec.ConfigValue<T>) value;
     }
 
-    // thinkingBudget -> "Thinking budget"; followStartDistance -> "Follow start distance"
-    private static String prettify(String key)
+    static String enumName(Object value)
     {
-        StringBuilder out = new StringBuilder();
-        for (int i = 0; i < key.length(); i++)
+        Enum<?> constant = (Enum<?>) value;
+        String specific = ENUM_NAMES.get(constant.getDeclaringClass().getSimpleName() + "." + constant.name());
+        if (specific != null)
         {
-            char c = key.charAt(i);
-            if (i == 0)
-            {
-                out.append(Character.toUpperCase(c));
-            }
-            else if (Character.isUpperCase(c))
-            {
-                out.append(' ').append(Character.toLowerCase(c));
-            }
-            else
-            {
-                out.append(c);
-            }
+            return specific;
         }
-        return out.toString();
+        return ENUM_NAMES.getOrDefault(constant.name(), constant.name());
     }
 
     private void onApply(Runnable action)
@@ -178,12 +192,10 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
     public static class HeadingRow extends Row
     {
         private final Component text;
-        private final boolean major;
 
-        HeadingRow(Component text, boolean major)
+        HeadingRow(Component text)
         {
             this.text = text;
-            this.major = major;
         }
 
         @Override
@@ -191,11 +203,17 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
                            int mouseX, int mouseY, boolean hovering, float partialTick)
         {
             Minecraft mc = Minecraft.getInstance();
-            Component shown = this.major
-                    ? this.text.copy().withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
-                    : this.text.copy().withStyle(ChatFormatting.YELLOW);
+            Component shown = this.text.getStyle().getColor() == null
+                    ? this.text.copy().withStyle(ChatFormatting.YELLOW)
+                    : this.text;
+            int y = top + height - 14;
+            graphics.drawCenteredString(mc.font, shown, left + width / 2, y, 0xFFFFFF);
 
-            graphics.drawCenteredString(mc.font, shown, left + width / 2, top + height - 14, 0xFFFFFF);
+            // Una rayita a cada lado del titulo, como separador.
+            int half = mc.font.width(shown) / 2 + 6;
+            int mid = y + 4;
+            graphics.fill(left + 4, mid, left + width / 2 - half, mid + 1, 0x40FFFFFF);
+            graphics.fill(left + width / 2 + half, mid, left + width - 4, mid + 1, 0x40FFFFFF);
         }
 
         @Override
@@ -211,25 +229,60 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         }
     }
 
+    // Una fila con el nombre a la izquierda, el control a la derecha y el boton para volver al
+    // valor por defecto. Pasar el mouse por el nombre o el control muestra que hace la opcion.
     public abstract class WidgetRow extends Row
     {
         private final Component label;
-        private final String comment;
+        private final Tooltip help;
+        private final Button reset;
+        protected final ForgeConfigSpec.ValueSpec spec;
 
-        WidgetRow(Component label, ForgeConfigSpec.ValueSpec typeSpec)
+        WidgetRow(Component label, ForgeConfigSpec.ValueSpec spec)
         {
             this.label = label;
-            this.comment = typeSpec.getComment();
+            this.spec = spec;
+            this.help = Tooltip.create(helpText(label, spec));
+            this.reset = Button.builder(Component.literal("↺"), b -> resetToDefault())
+                    .bounds(0, 0, RESET_WIDTH, 20)
+                    .tooltip(Tooltip.create(Component.literal("Volver al valor por defecto")))
+                    .build();
         }
 
         protected abstract AbstractWidget widget();
 
+        protected abstract boolean isDefault();
+
+        protected abstract void resetToDefault();
+
+        protected abstract String describe(Object value);
+
         protected void attachTooltip()
         {
-            if (this.comment != null && !this.comment.isBlank())
+            widget().setTooltip(this.help);
+        }
+
+        private Component helpText(Component label, ForgeConfigSpec.ValueSpec spec)
+        {
+            MutableComponent text = label.copy().withStyle(ChatFormatting.YELLOW);
+            String comment = spec.getComment();
+            if (comment != null && !comment.isBlank())
             {
-                widget().setTooltip(Tooltip.create(Component.literal(this.comment)));
+                // Los comentarios del .toml vienen cortados en renglones; aca se acomodan solos.
+                text.append(Component.literal("\n" + comment.replace('\n', ' ')).withStyle(ChatFormatting.WHITE));
             }
+            ForgeConfigSpec.Range<?> range = spec.getRange();
+            if (range != null)
+            {
+                text.append(Component.literal("\nEntre " + range.getMin() + " y " + range.getMax())
+                        .withStyle(ChatFormatting.GRAY));
+            }
+            text.append(Component.literal("\nPor defecto: " + describe(spec.getDefault())).withStyle(ChatFormatting.GRAY));
+            if (spec.needsWorldRestart())
+            {
+                text.append(Component.literal("\nSe aplica al volver a entrar al mundo.").withStyle(ChatFormatting.GOLD));
+            }
+            return text;
         }
 
         @Override
@@ -237,25 +290,45 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
                            int mouseX, int mouseY, boolean hovering, float partialTick)
         {
             Minecraft mc = Minecraft.getInstance();
+            Font font = mc.font;
             AbstractWidget widget = widget();
 
-            graphics.drawString(mc.font, this.label, left + 4, top + 6, 0xFFFFFF);
+            int resetX = left + width - RESET_WIDTH - 2;
+            int widgetX = resetX - WIDGET_WIDTH - 4;
+            int labelSpace = widgetX - left - 10;
 
-            widget.setX(left + width - WIDGET_WIDTH - 4);
+            String text = this.label.getString();
+            if (font.width(text) > labelSpace)
+            {
+                text = font.plainSubstrByWidth(text, labelSpace - font.width("...")) + "...";
+            }
+            graphics.drawString(font, text, left + 4, top + 6, 0xFFFFFF);
+
+            widget.setX(widgetX);
             widget.setY(top + 1);
             widget.render(graphics, mouseX, mouseY, partialTick);
+
+            this.reset.active = !isDefault();
+            this.reset.setX(resetX);
+            this.reset.setY(top + 1);
+            this.reset.render(graphics, mouseX, mouseY, partialTick);
+
+            if (hovering && mouseX < widgetX && mc.screen != null)
+            {
+                mc.screen.setTooltipForNextRenderPass(this.help.toCharSequence(mc));
+            }
         }
 
         @Override
         public List<? extends GuiEventListener> children()
         {
-            return List.of(widget());
+            return List.of(widget(), this.reset);
         }
 
         @Override
         public List<? extends NarratableEntry> narratables()
         {
-            return List.of(widget());
+            return List.of(widget(), this.reset);
         }
     }
 
@@ -264,24 +337,27 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         private final Button button;
         private boolean value;
 
-        BooleanRow(Component label, ForgeConfigSpec.ValueSpec typeSpec, ForgeConfigSpec.ConfigValue<Boolean> configValue)
+        BooleanRow(Component label, ForgeConfigSpec.ValueSpec spec, ForgeConfigSpec.ConfigValue<Boolean> configValue)
         {
-            super(label, typeSpec);
+            super(label, spec);
             this.value = configValue.get();
-            this.button = Button.builder(text(this.value), b ->
-            {
-                this.value = !this.value;
-                b.setMessage(text(this.value));
-            }).bounds(0, 0, WIDGET_WIDTH, 20).build();
+            this.button = Button.builder(text(this.value), b -> set(!this.value))
+                    .bounds(0, 0, WIDGET_WIDTH, 20).build();
 
             attachTooltip();
             onApply(() -> configValue.set(this.value));
         }
 
+        private void set(boolean on)
+        {
+            this.value = on;
+            this.button.setMessage(text(on));
+        }
+
         private static Component text(boolean on)
         {
             return on
-                    ? Component.literal("Si").withStyle(ChatFormatting.GREEN)
+                    ? Component.literal("Sí").withStyle(ChatFormatting.GREEN)
                     : Component.literal("No").withStyle(ChatFormatting.RED);
         }
 
@@ -289,6 +365,24 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         protected AbstractWidget widget()
         {
             return this.button;
+        }
+
+        @Override
+        protected boolean isDefault()
+        {
+            return Boolean.valueOf(this.value).equals(this.spec.getDefault());
+        }
+
+        @Override
+        protected void resetToDefault()
+        {
+            set(Boolean.TRUE.equals(this.spec.getDefault()));
+        }
+
+        @Override
+        protected String describe(Object value)
+        {
+            return Boolean.TRUE.equals(value) ? "Sí" : "No";
         }
     }
 
@@ -298,35 +392,37 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         private final Object[] options;
         private int index;
 
-        EnumRow(Component label, ForgeConfigSpec.ValueSpec typeSpec,
+        EnumRow(Component label, ForgeConfigSpec.ValueSpec spec,
                 ForgeConfigSpec.ConfigValue<Object> configValue, Class<?> enumType)
         {
-            super(label, typeSpec);
+            super(label, spec);
             this.options = enumType.getEnumConstants();
+            this.index = indexOf(configValue.get());
 
-            Object current = configValue.get();
-            for (int i = 0; i < this.options.length; i++)
-            {
-                if (this.options[i] == current)
-                {
-                    this.index = i;
-                    break;
-                }
-            }
-
-            this.button = Button.builder(Component.literal(name(this.options[this.index])), b ->
-            {
-                this.index = (this.index + 1) % this.options.length;
-                b.setMessage(Component.literal(name(this.options[this.index])));
-            }).bounds(0, 0, WIDGET_WIDTH, 20).build();
+            this.button = Button.builder(Component.literal(enumName(this.options[this.index])), b ->
+                    select((this.index + 1) % this.options.length))
+                    .bounds(0, 0, WIDGET_WIDTH, 20).build();
 
             attachTooltip();
             onApply(() -> configValue.set(this.options[this.index]));
         }
 
-        private static String name(Object value)
+        private int indexOf(Object value)
         {
-            return ((Enum<?>) value).name();
+            for (int i = 0; i < this.options.length; i++)
+            {
+                if (this.options[i] == value)
+                {
+                    return i;
+                }
+            }
+            return 0;
+        }
+
+        private void select(int index)
+        {
+            this.index = index;
+            this.button.setMessage(Component.literal(enumName(this.options[index])));
         }
 
         @Override
@@ -334,16 +430,34 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         {
             return this.button;
         }
+
+        @Override
+        protected boolean isDefault()
+        {
+            return this.options[this.index] == this.spec.getDefault();
+        }
+
+        @Override
+        protected void resetToDefault()
+        {
+            select(indexOf(this.spec.getDefault()));
+        }
+
+        @Override
+        protected String describe(Object value)
+        {
+            return value instanceof Enum<?> ? enumName(value) : String.valueOf(value);
+        }
     }
 
     public class TextRow extends WidgetRow
     {
         private final EditBox box;
 
-        TextRow(Component label, ForgeConfigSpec.ValueSpec typeSpec,
+        TextRow(Component label, ForgeConfigSpec.ValueSpec spec,
                 ForgeConfigSpec.ConfigValue<String> configValue, boolean secret)
         {
-            super(label, typeSpec);
+            super(label, spec);
 
             this.box = new EditBox(Minecraft.getInstance().font, 0, 0, WIDGET_WIDTH, 20, label);
             this.box.setMaxLength(512);
@@ -355,6 +469,7 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
                 this.box.setFormatter((text, cursor) -> this.box.isFocused()
                         ? FormattedCharSequence.forward(text, Style.EMPTY)
                         : FormattedCharSequence.forward("*".repeat(text.length()), Style.EMPTY));
+                this.box.setHint(Component.literal("Pegá tu clave").withStyle(ChatFormatting.DARK_GRAY));
             }
 
             attachTooltip();
@@ -366,27 +481,53 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         {
             return this.box;
         }
+
+        @Override
+        protected boolean isDefault()
+        {
+            return this.box.getValue().trim().equals(this.spec.getDefault());
+        }
+
+        @Override
+        protected void resetToDefault()
+        {
+            this.box.setValue(String.valueOf(this.spec.getDefault()));
+        }
+
+        @Override
+        protected String describe(Object value)
+        {
+            String text = String.valueOf(value);
+            return text.isEmpty() ? "(vacío)" : text;
+        }
     }
 
     public class NumberRow extends WidgetRow
     {
         private final EditBox box;
+        private final Class<?> type;
 
-        NumberRow(Component label, ForgeConfigSpec.ValueSpec typeSpec,
+        NumberRow(Component label, ForgeConfigSpec.ValueSpec spec,
                   ForgeConfigSpec.ConfigValue<?> configValue, Class<?> type)
         {
-            super(label, typeSpec);
+            super(label, spec);
+            this.type = type;
 
             this.box = new EditBox(Minecraft.getInstance().font, 0, 0, WIDGET_WIDTH, 20, label);
+            this.box.setResponder(text ->
+            {
+                Object parsed = parse(text, type);
+                boolean valid = parsed != null && spec.test(parsed);
+                this.box.setTextColor(valid ? 0xE0E0E0 : 0xFF5555);
+            });
             this.box.setValue(String.valueOf(configValue.get()));
-            this.box.setResponder(text -> this.box.setTextColor(parse(text, type) == null ? 0xFF5555 : 0xE0E0E0));
 
             attachTooltip();
             onApply(() ->
             {
                 Object parsed = parse(this.box.getValue(), type);
                 // Un valor invalido o fuera de rango se descarta: queda el que ya estaba.
-                if (parsed != null && typeSpec.test(parsed))
+                if (parsed != null && spec.test(parsed))
                 {
                     cast(configValue).set(parsed);
                 }
@@ -397,7 +538,7 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         {
             try
             {
-                String trimmed = text.trim();
+                String trimmed = text.trim().replace(',', '.');
                 if (type == Integer.class)
                 {
                     return Integer.valueOf(trimmed);
@@ -422,6 +563,26 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         protected AbstractWidget widget()
         {
             return this.box;
+        }
+
+        @Override
+        protected boolean isDefault()
+        {
+            Object parsed = parse(this.box.getValue(), this.type);
+            return parsed instanceof Number number && this.spec.getDefault() instanceof Number fallback
+                    && Double.compare(number.doubleValue(), fallback.doubleValue()) == 0;
+        }
+
+        @Override
+        protected void resetToDefault()
+        {
+            this.box.setValue(String.valueOf(this.spec.getDefault()));
+        }
+
+        @Override
+        protected String describe(Object value)
+        {
+            return String.valueOf(value);
         }
     }
 }

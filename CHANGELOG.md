@@ -1,5 +1,18 @@
 # Cambios
 
+## 1.1.0
+
+### Nuevo
+- **Configuración por temas:** el menú del juego ahora se divide en General, IA y claves, IA avanzada, Charla, Voz, Micrófono, Movimiento, Vida y rutina, Trabajo y Magia, cada uno con su ícono.
+  - Buscador que encuentra cualquier opción por nombre o por lo que hace, sin importar tildes.
+  - Nombres en castellano, explicación y valor por defecto al pasar el mouse, y un botón ↺ para volver cada opción a su valor original.
+  - Acceso directo a las teclas (la del micrófono incluida).
+- **Pesca con boya y cuerda:** al pescar se ve la boya volar desde la punta de la caña, flotar en el agua y hundirse cuando pica, con la estela del pez acercándose. Al recoger, la boya vuelve y Rocco muestra lo que sacó.
+
+### Arreglado
+- Mientras pescaba, Rocco giraba hacia el jugador en vez de mirar el agua.
+- Al comerciar con Rocco, los aldeanos no subían de nivel. Ahora el trato cuenta igual que uno hecho por el jugador: el aldeano gana experiencia, sube de nivel y recuerda al jugador.
+
 ## 1.0.0: primera versión pública
 
 ### Nuevo

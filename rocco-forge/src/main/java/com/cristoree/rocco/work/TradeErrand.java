@@ -3,6 +3,7 @@ package com.cristoree.rocco.work;
 import com.cristoree.rocco.config.RoccoCommonConfig;
 import com.cristoree.rocco.entity.RoccoEntity;
 import com.cristoree.rocco.entity.RoccoTask;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.ExperienceOrb;
@@ -114,8 +115,15 @@ public final class TradeErrand extends Errand
     {
         Villager villager = deal.villager();
         MerchantOffer offer = deal.offer();
+        ServerPlayer player = requester();
         if (!villager.isAlive() || villager.distanceTo(this.rocco) > 5.0F || villager.isSleeping())
         {
+            return;
+        }
+        // Si otro jugador esta comerciando con el, no se mete en el medio.
+        if (villager.isTrading() && villager.getTradingPlayer() != player)
+        {
+            villager.playSound(SoundEvents.VILLAGER_NO, 1.0F, villager.getVoicePitch());
             return;
         }
 
@@ -124,17 +132,11 @@ public final class TradeErrand extends Errand
             pay(offer.getCostA());
             pay(offer.getCostB());
             ItemStack result = offer.assemble();
-            offer.increaseUses();
             this.got.add(result.copy());
             this.rocco.keep(result);
             this.done++;
 
-            villager.setVillagerXp(villager.getVillagerXp() + offer.getXp());
-            if (offer.shouldRewardExp())
-            {
-                this.level.addFreshEntity(new ExperienceOrb(this.level, villager.getX(), villager.getY() + 0.5D,
-                        villager.getZ(), 3 + this.rocco.getRandom().nextInt(4)));
-            }
+            reward(villager, offer, player);
         }
 
         if (this.done > 0)
@@ -145,6 +147,36 @@ public final class TradeErrand extends Errand
         else
         {
             villager.playSound(SoundEvents.VILLAGER_NO, 1.0F, villager.getVoicePitch());
+        }
+    }
+
+    // Lo mismo que cuando comercia un jugador: gasta un uso, el aldeano gana experiencia (y sube de
+    // nivel cuando le toca), suelta su bolita de experiencia y recuerda al jugador que se lo pidio.
+    // notifyTrade avisa a otros mods con un evento que espera un jugador, asi que se lo pone como
+    // comprador solo durante el trato. Sin jugador se hace a mano, sin subir de nivel.
+    private void reward(Villager villager, MerchantOffer offer, @Nullable ServerPlayer player)
+    {
+        if (player == null)
+        {
+            offer.increaseUses();
+            villager.setVillagerXp(villager.getVillagerXp() + offer.getXp());
+            if (offer.shouldRewardExp())
+            {
+                this.level.addFreshEntity(new ExperienceOrb(this.level, villager.getX(), villager.getY() + 0.5D,
+                        villager.getZ(), 3 + this.rocco.getRandom().nextInt(4)));
+            }
+            return;
+        }
+
+        boolean borrowed = !villager.isTrading();
+        if (borrowed)
+        {
+            villager.setTradingPlayer(player);
+        }
+        villager.notifyTrade(offer);
+        if (borrowed)
+        {
+            villager.setTradingPlayer(null);
         }
     }
 

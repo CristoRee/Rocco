@@ -1,17 +1,42 @@
 package com.cristoree.rocco.client.config;
 
+import com.cristoree.rocco.client.config.RoccoConfigCategories.Category;
+import com.cristoree.rocco.client.config.RoccoConfigCategories.Group;
+import com.cristoree.rocco.client.config.RoccoConfigCategories.Option;
 import com.cristoree.rocco.config.RoccoClientConfig;
 import com.cristoree.rocco.config.RoccoCommonConfig;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.controls.KeyBindsScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
+
+// La entrada a la configuracion: un boton por tema y un buscador que encuentra cualquier opcion
+// de cualquier tema. Los cambios se guardan solos al salir, como en las opciones del juego.
 public class RoccoConfigScreen extends Screen
 {
+    private static final int BUTTON_WIDTH = 124;
+    private static final int BUTTON_HEIGHT = 20;
+    private static final int GAP = 4;
+    private static final int SEARCH_TOP = 40;
+    private static final int GRID_TOP = 66;
+
     private final Screen parent;
-    private RoccoOptionList list;
+    private final List<Button> categoryButtons = new ArrayList<>();
+    private EditBox search;
+    private RoccoOptionList results;
+    private boolean showingResults;
+    private String lastQuery = "";
 
     public RoccoConfigScreen(Screen parent)
     {
@@ -22,43 +47,94 @@ public class RoccoConfigScreen extends Screen
     @Override
     protected void init()
     {
-        this.list = new RoccoOptionList(this.minecraft, this.width, this.height, 44, this.height - 36);
-
-        if (RoccoCommonConfig.SPEC.isLoaded())
+        // Si la ventana cambia de tamaño, init vuelve a correr: lo tocado en la busqueda no se pierde.
+        if (this.results != null && this.showingResults)
         {
-            this.list.addSpec(Component.literal("Juego, IA, voz y microfono"), RoccoCommonConfig.SPEC);
+            this.results.applyAll();
+        }
+        this.categoryButtons.clear();
+        this.showingResults = false;
+
+        this.search = new EditBox(this.font, this.width / 2 - 110, SEARCH_TOP, 220, 18, Component.literal("Buscar"));
+        this.search.setHint(Component.literal("Buscar una opción... (clave, voz, seguir...)").withStyle(ChatFormatting.DARK_GRAY));
+        this.search.setValue(this.lastQuery);
+        this.search.setResponder(this::onSearch);
+        addRenderableWidget(this.search);
+
+        this.results = new RoccoOptionList(this.minecraft, this.width, this.height, GRID_TOP - 4, this.height - 36);
+        // Sin las franjas de arriba y abajo: taparian el buscador y el boton Listo.
+        this.results.setRenderTopAndBottom(false);
+
+        List<Category> categories = RoccoConfigCategories.all();
+        int total = categories.size() + 1;
+        int columns = this.width >= 3 * BUTTON_WIDTH + 2 * GAP + 20 ? 3 : 2;
+        int rowWidth = columns * BUTTON_WIDTH + (columns - 1) * GAP;
+        int left = (this.width - rowWidth) / 2;
+
+        for (int i = 0; i < total; i++)
+        {
+            int x = left + (i % columns) * (BUTTON_WIDTH + GAP);
+            int y = GRID_TOP + (i / columns) * (BUTTON_HEIGHT + GAP);
+            Button button;
+            if (i < categories.size())
+            {
+                Category category = categories.get(i);
+                boolean available = category.groups().stream()
+                        .flatMap(group -> group.options().stream())
+                        .anyMatch(Option::loaded);
+                button = new IconButton(x, y, Component.literal(category.name()), category.icon(),
+                        b -> this.minecraft.setScreen(new RoccoCategoryScreen(this, category)));
+                button.setTooltip(Tooltip.create(Component.literal(category.description())));
+                button.active = available;
+            }
+            else
+            {
+                button = new IconButton(x, y, Component.literal("Teclas"), () -> new ItemStack(Items.LEVER),
+                        b -> this.minecraft.setScreen(new KeyBindsScreen(this, this.minecraft.options)));
+                button.setTooltip(Tooltip.create(Component.literal(
+                        "La tecla para hablarle por micrófono (V por defecto) y las demás teclas del juego.")));
+            }
+            this.categoryButtons.add(addRenderableWidget(button));
         }
 
-        if (RoccoClientConfig.SPEC.isLoaded())
+        addRenderableWidget(Button.builder(Component.literal("Listo"), b -> onClose())
+                .bounds(this.width / 2 - 100, this.height - 28, 200, 20)
+                .build());
+
+        if (!this.lastQuery.isBlank())
         {
-            this.list.addSpec(Component.literal("Pantalla y audio (solo tu)"), RoccoClientConfig.SPEC);
+            onSearch(this.lastQuery);
         }
-
-        addRenderableWidget(this.list);
-
-        addRenderableWidget(Button.builder(Component.literal("Guardar"), b -> saveAndClose())
-                .bounds(this.width / 2 - 154, this.height - 28, 150, 20)
-                .build());
-
-        addRenderableWidget(Button.builder(Component.literal("Cancelar"), b -> onClose())
-                .bounds(this.width / 2 + 4, this.height - 28, 150, 20)
-                .build());
+        setInitialFocus(this.search);
     }
 
-    private void saveAndClose()
+    // Con texto en el buscador se esconden los temas y aparece la lista de lo que coincide.
+    private void onSearch(String query)
     {
-        this.list.applyAll();
+        this.lastQuery = query;
+        boolean searching = !query.isBlank();
 
-        if (RoccoCommonConfig.SPEC.isLoaded())
+        if (searching)
         {
-            RoccoCommonConfig.SPEC.save();
+            List<Group> found = RoccoConfigCategories.search(query);
+            this.results.show(found, Component.literal("Ninguna opción coincide con \"" + query.trim() + "\""));
+            if (!this.showingResults)
+            {
+                addRenderableWidget(this.results);
+                this.showingResults = true;
+            }
         }
-        if (RoccoClientConfig.SPEC.isLoaded())
+        else if (this.showingResults)
         {
-            RoccoClientConfig.SPEC.save();
+            this.results.applyAll();
+            removeWidget(this.results);
+            this.showingResults = false;
         }
 
-        onClose();
+        for (Button button : this.categoryButtons)
+        {
+            button.visible = !searching;
+        }
     }
 
     @Override
@@ -67,21 +143,66 @@ public class RoccoConfigScreen extends Screen
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
 
-        graphics.drawCenteredString(this.font, this.title, this.width / 2, 12, 0xFFFFFF);
+        graphics.drawCenteredString(this.font, this.title.copy().withStyle(ChatFormatting.BOLD), this.width / 2, 12, 0xFFFFFF);
+        graphics.drawCenteredString(this.font, hint(), this.width / 2, 26, 0xFFFFFF);
+    }
 
-        boolean loaded = RoccoCommonConfig.SPEC.isLoaded();
-        Component hint = loaded
-                ? Component.literal("Pasa el mouse por una opcion para ver que hace")
-                        .withStyle(ChatFormatting.GRAY)
-                : Component.literal("La configuracion todavia no esta cargada")
-                        .withStyle(ChatFormatting.RED);
-
-        graphics.drawCenteredString(this.font, hint, this.width / 2, 28, 0xFFFFFF);
+    private Component hint()
+    {
+        if (!RoccoCommonConfig.SPEC.isLoaded())
+        {
+            return Component.literal("La configuración todavía no está cargada").withStyle(ChatFormatting.RED);
+        }
+        return Component.literal("Elegí un tema o buscá una opción. Los cambios se guardan al salir.")
+                .withStyle(ChatFormatting.GRAY);
     }
 
     @Override
     public void onClose()
     {
+        if (this.showingResults)
+        {
+            this.results.applyAll();
+        }
+        saveAll();
         this.minecraft.setScreen(this.parent);
+    }
+
+    static void saveAll()
+    {
+        if (RoccoCommonConfig.SPEC.isLoaded())
+        {
+            RoccoCommonConfig.SPEC.save();
+        }
+        if (RoccoClientConfig.SPEC.isLoaded())
+        {
+            RoccoClientConfig.SPEC.save();
+        }
+    }
+
+    // Boton con el icono de un item a la izquierda y el texto al lado.
+    static class IconButton extends Button
+    {
+        private final Supplier<ItemStack> icon;
+
+        IconButton(int x, int y, Component label, Supplier<ItemStack> icon, OnPress onPress)
+        {
+            super(x, y, BUTTON_WIDTH, BUTTON_HEIGHT, label, onPress, DEFAULT_NARRATION);
+            this.icon = icon;
+        }
+
+        @Override
+        public void renderString(GuiGraphics graphics, Font font, int color)
+        {
+            graphics.renderItem(this.icon.get(), getX() + 3, getY() + 2);
+            int textX = getX() + 24;
+            int room = getWidth() - 28;
+            String text = getMessage().getString();
+            if (font.width(text) > room)
+            {
+                text = font.plainSubstrByWidth(text, room - font.width("...")) + "...";
+            }
+            graphics.drawString(font, text, textX, getY() + (getHeight() - 8) / 2, color);
+        }
     }
 }

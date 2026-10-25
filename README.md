@@ -39,25 +39,29 @@ Se le habla por el chat (o por micrófono). Algunos ejemplos:
 | "esta es mi casa" / "llevame a casa" | Recuerda lugares y te guía hasta ellos. |
 | "traeme carbón", "guardá todo", "ordená los cofres" | Busca, guarda y ordena las cosas de tus cofres. |
 | "talá un árbol", "conseguime 10 de madera", "iluminá" | Junta materiales de la naturaleza y pone antorchas donde está oscuro. |
-| "criá las vacas", "andá a pescar", "comprale pan al aldeano" | Cría animales, pesca y comercia con los aldeanos. |
+| "criá las vacas", "andá a pescar", "comprale pan al aldeano" | Cría animales, pesca con su caña (con boya y todo) y comercia con los aldeanos. |
 
 Clic derecho sobre Rocco abre su tapa: un inventario de 36 lugares.
 
 ## IA gratuita (opcional)
 
-En **Mods > Rocco > Config > ai / providers** se puede poner una clave gratuita de:
+En **Mods > Rocco > Config > IA y claves** se puede poner una clave gratuita de:
 
 - **Groq**: https://console.groq.com/keys
 - **Gemini**: https://aistudio.google.com/app/apikey
 - **OpenRouter**: https://openrouter.ai/keys
 - **Ollama** (IA local en tu PC, sin internet): https://ollama.com/download
 
-Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. También se puede usar cualquier IA paga compatible con el formato de OpenAI (sección *custom*). `/rocco ia` muestra el estado de cada una.
+Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. También se puede usar cualquier IA paga compatible con el formato de OpenAI (grupo *Proveedor propio*). `/rocco ia` muestra el estado de cada una.
 
 ## Voz y micrófono (opcional)
 
-- **Voz (Fish Audio):** poné tu clave y el ID de la voz en **Config > voice**. La voz sale de la boca de Rocco y respeta el volumen "Voz/Habla" del juego.
-- **Micrófono (Deepgram):** activá **Config > stt** y poné tu clave. La tecla para hablar se cambia en **Opciones > Controles > Rocco** (por defecto, la V). Se puede usar manteniendo la tecla o en modo de detección de voz.
+- **Voz (Fish Audio):** poné tu clave y el ID de la voz en **Config > Voz**. La voz sale de la boca de Rocco y respeta el volumen "Voz/Habla" del juego.
+- **Micrófono (Deepgram):** activalo en **Config > Micrófono** y poné tu clave. La tecla para hablar se cambia en **Config > Teclas** (por defecto, la V). Se puede usar manteniendo la tecla o en modo de detección de voz.
+
+## Configuración
+
+**Mods > Rocco > Config** está dividido por temas: General, IA y claves, IA avanzada, Charla, Voz, Micrófono, Movimiento, Vida y rutina, Trabajo y Magia. Arriba hay un buscador que encuentra cualquier opción por nombre o por lo que hace. Pasando el mouse por una opción se ve qué hace y su valor por defecto, y el botón ↺ la vuelve a ese valor. Los cambios se guardan al salir.
 
 ## Comandos
 

@@ -6,11 +6,19 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.client.ForgeHooksClient;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import org.joml.Vector3d;
+import org.joml.Vector4f;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
@@ -19,6 +27,18 @@ import software.bernie.geckolib.renderer.layer.BlockAndItemGeoLayer;
 
 public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
 {
+    // La punta de la caña en la textura del juego (pixel 14,1 de fishing_rod.png), en el espacio
+    // 0..1 del modelo del item.
+    private static final float ROD_TIP_X = 14.5F / 16.0F;
+    private static final float ROD_TIP_Y = 1.0F - 1.5F / 16.0F;
+
+    // La pose al arrancar a dibujar este Rocco (antes de la escala) y donde estaba en ese cuadro:
+    // con eso se pasa la punta de la caña a coordenadas del mundo.
+    private Matrix4f renderOrigin = new Matrix4f();
+    private Vec3 renderPosition = Vec3.ZERO;
+    @Nullable
+    private Vec3 rodTip;
+
     public RoccoRenderer(EntityRendererProvider.Context context)
     {
         super(context, new RoccoModel());
@@ -27,6 +47,19 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
         // item_right e item_left son huesos vacios en las palmas: ahi se dibuja lo que sostiene.
         addRenderLayer(new BlockAndItemGeoLayer<>(this)
         {
+            @Override
+            protected void renderStackForBone(PoseStack poseStack, GeoBone bone, ItemStack stack, RoccoEntity animatable,
+                                              MultiBufferSource bufferSource, float partialTick, int packedLight,
+                                              int packedOverlay)
+            {
+                super.renderStackForBone(poseStack, bone, stack, animatable, bufferSource, partialTick, packedLight,
+                        packedOverlay);
+                if (stack.getItem() instanceof FishingRodItem && bone.getName().equals("item_right"))
+                {
+                    rememberRodTip(poseStack, stack, animatable, getTransformTypeForStack(bone, stack, animatable));
+                }
+            }
+
             @Override
             protected ItemStack getStackForBone(GeoBone bone, RoccoEntity animatable)
             {
@@ -60,6 +93,11 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
     {
         if (!isReRender)
         {
+            this.renderOrigin = new Matrix4f(poseStack.last().pose());
+            this.renderPosition = new Vec3(Mth.lerp(partialTick, animatable.xOld, animatable.getX()),
+                    Mth.lerp(partialTick, animatable.yOld, animatable.getY()),
+                    Mth.lerp(partialTick, animatable.zOld, animatable.getZ()));
+
             float scale = RoccoClientConfig.MODEL_SCALE.get().floatValue();
             poseStack.scale(scale, scale, scale);
         }
@@ -89,6 +127,36 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
                 }
             });
         }
+    }
+
+    @Override
+    public void render(RoccoEntity entity, float entityYaw, float partialTick, PoseStack poseStack,
+                       MultiBufferSource bufferSource, int packedLight)
+    {
+        this.rodTip = null;
+        super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
+        RoccoFishingLine.render(entity, this.rodTip, partialTick, poseStack, bufferSource, this.entityRenderDispatcher);
+    }
+
+    @Override
+    public boolean shouldRender(RoccoEntity entity, Frustum frustum, double camX, double camY, double camZ)
+    {
+        return super.shouldRender(entity, frustum, camX, camY, camZ) || RoccoFishingLine.isVisible(entity, frustum);
+    }
+
+    // Repite lo que hace ItemRenderer antes de dibujar el item (la pose de "en la mano" del modelo
+    // y el corrimiento al centro) para saber donde quedo la punta, y la pasa a coordenadas del mundo.
+    private void rememberRodTip(PoseStack poseStack, ItemStack stack, RoccoEntity rocco, ItemDisplayContext context)
+    {
+        poseStack.pushPose();
+        BakedModel model = Minecraft.getInstance().getItemRenderer().getModel(stack, rocco.level(), rocco, rocco.getId());
+        ForgeHooksClient.handleCameraTransforms(poseStack, model, context, false);
+        poseStack.translate(-0.5F, -0.5F, -0.5F);
+        Vector4f tip = poseStack.last().pose().transform(new Vector4f(ROD_TIP_X, ROD_TIP_Y, 0.5F, 1.0F));
+        poseStack.popPose();
+
+        Vector4f local = new Matrix4f(this.renderOrigin).invert().transform(tip);
+        this.rodTip = this.renderPosition.add(local.x, local.y, local.z);
     }
 
     @Override

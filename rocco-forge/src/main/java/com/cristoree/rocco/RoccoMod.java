@@ -93,6 +93,8 @@ public class RoccoMod
         static void onClientSetup(final net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent event)
         {
             com.cristoree.rocco.client.RoccoParticleFx.install();
+            // El registro de propiedades de items no es seguro desde varios hilos.
+            event.enqueueWork(com.cristoree.rocco.client.RoccoFishingLine::installRodModel);
         }
 
         @SubscribeEvent
@@ -128,8 +130,7 @@ public class RoccoMod
             if (event.phase == net.minecraftforge.event.TickEvent.Phase.END)
             {
                 com.cristoree.rocco.client.voice.MicRecorder.tick();
-                com.cristoree.rocco.client.voice.VoicePlayback.tick();
-            }
+                com.cristoree.rocco.client.voice.VoicePlayback.tick();            }
         }
     }
 }

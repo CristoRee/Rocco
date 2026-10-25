@@ -157,7 +157,7 @@ public final class RoccoCommonConfig
                   "Con una clave gratis (Groq, Gemini u OpenRouter) charla de verdad. Con mas de una,",
                   "si una falla o se queda sin cupo, pasa sola a la siguiente.").push("ai");
         AI_PROVIDER = b
-                .comment("AUTO usa todos los proveedores que tengan clave, en el orden de providerOrder,",
+                .comment("AUTO (Automatico) usa todos los proveedores que tengan clave, en el orden de providerOrder,",
                          "y salta al siguiente si uno falla. Elegi uno solo si queres forzarlo.")
                 .defineEnum("provider", AiProviderChoice.AUTO);
         AI_PROVIDER_ORDER = b
@@ -217,8 +217,8 @@ public final class RoccoCommonConfig
                 .defineInRange("maxRetries", 2, 0, 5);
         AI_SAFETY_LEVEL = b
                 .comment("Filtros de contenido de Gemini.",
-                         "OFF deja que Rocco bromee e insulte en joda, que es parte de su personalidad.",
-                         "Con MEDIUM, Gemini 3.x llega a bloquear hasta saludos: el tono engreido de Rocco",
+                         "OFF (Apagado) deja que Rocco bromee e insulte en joda, que es parte de su personalidad.",
+                         "Con MEDIUM (Medio), Gemini 3.x llega a bloquear hasta saludos: el tono engreido de Rocco",
                          "cae en la categoria de acoso. Google mantiene igual sus protecciones basicas.")
                 .defineEnum("safetyLevel", SafetyLevel.OFF);
         b.pop();
@@ -317,7 +317,8 @@ public final class RoccoCommonConfig
                          "Valores que acepta Fish Audio: 8000, 16000, 24000, 32000, 44100.")
                 .defineInRange("sampleRate", 24000, 8000, 44100);
         VOICE_LATENCY_MODE = b
-                .comment("NORMAL: la mejor calidad. BALANCED: un poco mas rapido. LOW: lo mas rapido.")
+                .comment("NORMAL (Mejor calidad): la mejor calidad. BALANCED (Equilibrado): un poco mas rapido.",
+                         "LOW (Lo mas rapido): responde antes, con algo menos de calidad.")
                 .defineEnum("latencyMode", LatencyMode.NORMAL);
         VOICE_SPEED = b
                 .comment("Velocidad del habla. 1.0 es normal.")
@@ -359,8 +360,8 @@ public final class RoccoCommonConfig
                 .comment("Idioma del microfono, en codigo corto: es, en, multi...")
                 .define("language", "es");
         STT_ACTIVATION = b
-                .comment("PUSH_TO_TALK graba mientras mantienes la tecla.",
-                         "VOICE_ACTIVATION: la tecla prende o apaga la escucha, y mientras esta prendida",
+                .comment("PUSH_TO_TALK (Mantener tecla) graba mientras mantienes la tecla.",
+                         "VOICE_ACTIVATION (Por voz): la tecla prende o apaga la escucha, y mientras esta prendida",
                          "graba sola cada vez que hablas y lo manda cuando te callas.")
                 .defineEnum("activation", MicActivation.PUSH_TO_TALK);
         STT_MIC_GAIN = b
@@ -368,7 +369,7 @@ public final class RoccoCommonConfig
                 .defineInRange("micGain", 1.0D, 0.1D, 5.0D);
         STT_SILENCE_TIMEOUT_MS = b
                 .comment("Silencio que corta la grabacion, en milisegundos.",
-                         "Solo aplica con VOICE_ACTIVATION.")
+                         "Solo aplica con VOICE_ACTIVATION (Por voz).")
                 .defineInRange("silenceTimeoutMs", 1200, 200, 10000);
         STT_MAX_SECONDS = b
                 .comment("Duracion maxima de una grabacion.")
