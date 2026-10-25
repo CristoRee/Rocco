@@ -24,3 +24,6 @@ out/
 # Volcados de crash de la JVM
 hs_err_pid*.log
 replay_pid*.log
+
+# Config local del editor
+.vscode/
