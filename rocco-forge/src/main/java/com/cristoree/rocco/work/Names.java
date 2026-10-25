@@ -9,11 +9,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -288,11 +286,7 @@ public final class Names
 
     public static String normalize(String text)
     {
-        String lower = text.toLowerCase(Locale.ROOT);
-        return Normalizer.normalize(lower, Normalizer.Form.NFD).replaceAll("\\p{M}", "")
-                .replaceAll("[^a-z0-9:_ ]", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
+        return com.cristoree.rocco.util.Text.normalize(text);
     }
 
     // "minecraft:stone_pickaxe 2", "2 palitos", "todo", "un stack de antorchas"...

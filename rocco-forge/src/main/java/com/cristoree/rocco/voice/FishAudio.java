@@ -25,8 +25,16 @@ public final class FishAudio
 
     public static Result synthesize(String text)
     {
+        return synthesize(text, null);
+    }
+
+    // voiceOverride: otra voz solo para esta frase (una imitacion). null = la de Rocco.
+    public static Result synthesize(String text, @org.jetbrains.annotations.Nullable String voiceOverride)
+    {
         String key = RoccoConfig.fishApiKey();
-        String voice = RoccoCommonConfig.FISH_VOICE_ID.get().trim();
+        String voice = voiceOverride != null && !voiceOverride.isBlank()
+                ? voiceOverride.trim()
+                : RoccoCommonConfig.FISH_VOICE_ID.get().trim();
         if (key.isEmpty() || voice.isEmpty())
         {
             return new Result(null, "falta la clave o el ID de voz de Fish Audio", true);

@@ -20,7 +20,9 @@ import java.util.function.Supplier;
 // tamaño de cada paquete (del jugador al servidor, a 32 KB).
 public final class RoccoNetwork
 {
-    private static final String PROTOCOL = "1";
+    // Sube cuando cambian los mensajes: un cliente y un servidor con versiones distintas de Rocco
+    // se avisan al conectar en vez de fallar a mitad de partida. 2: se agrego OpenSetup.
+    private static final String PROTOCOL = "2";
     public static final int CHUNK_BYTES = 30_000;
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -66,12 +68,39 @@ public final class RoccoNetwork
         }
     }
 
+    // "/rocco setup": que el jugador abra la pantalla de bienvenida (los comandos corren en el servidor).
+    public record OpenSetup()
+    {
+        static void encode(OpenSetup msg, FriendlyByteBuf buf)
+        {
+        }
+
+        static OpenSetup decode(FriendlyByteBuf buf)
+        {
+            return new OpenSetup();
+        }
+    }
+
     public static void register()
     {
         CHANNEL.registerMessage(0, VoiceChunk.class, VoiceChunk::encode, VoiceChunk::decode,
                 RoccoNetwork::onVoiceChunk, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(1, MicChunk.class, MicChunk::encode, MicChunk::decode,
                 RoccoNetwork::onMicChunk, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(2, OpenSetup.class, OpenSetup::encode, OpenSetup::decode,
+                RoccoNetwork::onOpenSetup, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+    }
+
+    public static void openSetup(ServerPlayer player)
+    {
+        CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player), new OpenSetup());
+    }
+
+    private static void onOpenSetup(OpenSetup msg, Supplier<NetworkEvent.Context> context)
+    {
+        context.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.setup.RoccoSetup.open()));
+        context.get().setPacketHandled(true);
     }
 
     private static void onVoiceChunk(VoiceChunk msg, Supplier<NetworkEvent.Context> context)

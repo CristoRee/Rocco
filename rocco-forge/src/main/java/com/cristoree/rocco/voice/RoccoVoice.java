@@ -24,7 +24,9 @@ public final class RoccoVoice
     private static ExecutorService executor;
     private static long lastProblemNote;
 
-    public static void speak(RoccoEntity rocco, String text)
+    // impression: a quien esta imitando en esta frase (null = es el). Si hay una voz para ese
+    // nombre, la frase sale con esa voz; si no, con la de Rocco.
+    public static void speak(RoccoEntity rocco, String text, @org.jetbrains.annotations.Nullable String impression)
     {
         if (!RoccoConfig.voiceReady() || !(rocco.level() instanceof ServerLevel level))
         {
@@ -42,10 +44,16 @@ public final class RoccoVoice
 
         executor().execute(() ->
         {
-            FishAudio.Result result;
+            FishAudio.Result attempt;
             try
             {
-                result = FishAudio.synthesize(line);
+                String voice = impression == null ? null : ImpressionVoices.voiceFor(impression);
+                attempt = FishAudio.synthesize(line, voice);
+                // Si la voz de la imitacion fallo, que lo diga con la suya antes que quedarse mudo.
+                if (attempt.pcm() == null && voice != null)
+                {
+                    attempt = FishAudio.synthesize(line, null);
+                }
             }
             catch (RuntimeException e)
             {
@@ -53,6 +61,7 @@ public final class RoccoVoice
                 return;
             }
 
+            FishAudio.Result result = attempt;
             server.execute(() ->
             {
                 if (result.pcm() == null)

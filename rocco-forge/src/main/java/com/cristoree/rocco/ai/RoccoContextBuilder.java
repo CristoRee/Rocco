@@ -29,8 +29,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-// El bloque variable va al final del prompt, despues de la parte fija: asi la parte estable
-// se puede cachear del lado de Gemini y la respuesta llega antes.
+// Lo que pasa en el juego ahora, como lineas "- Clave: valor" para el bloque RIGHT NOW del
+// prompt (que va al final, despues de la parte fija). Tiene que correr en el hilo del servidor:
+// mira entidades y cofres. RoccoBrain le suma las lineas de la relacion, la memoria y los permisos.
 public final class RoccoContextBuilder
 {
     public static String build(RoccoEntity rocco, Player player)
@@ -44,24 +45,31 @@ public final class RoccoContextBuilder
 
         if (RoccoCommonConfig.CONTEXT_WORLD.get())
         {
-            facts.put("Hora", timeOfDay(level));
-            facts.put("Clima", level.isThundering() ? "tormenta" : level.isRaining() ? "lluvia" : "despejado");
+            facts.put("Time of day", timeOfDay(level));
+            facts.put("Weather", level.isThundering() ? "thunderstorm" : level.isRaining() ? "rain" : "clear");
             facts.put("Dimension", level.dimension().location().getPath());
-            facts.put("Bioma", biome(level, rocco));
+            facts.put("Biome", biome(level, rocco));
+            facts.put("World day", String.valueOf(level.getDayTime() / 24000L + 1));
         }
 
         if (RoccoCommonConfig.CONTEXT_PLAYER_STATS.get())
         {
-            facts.put("Vida del jugador", Math.round(player.getHealth()) + " de "
-                    + Math.round(player.getMaxHealth()));
-            facts.put("Hambre", player.getFoodData().getFoodLevel() + " de 20");
-            facts.put("Nivel", String.valueOf(player.experienceLevel));
+            facts.put("Player health", Math.round(player.getHealth()) + " of " + Math.round(player.getMaxHealth()));
+            facts.put("Player hunger", player.getFoodData().getFoodLevel() + " of 20");
+            facts.put("Player level", String.valueOf(player.experienceLevel));
+            facts.put("Player height (Y)", String.valueOf(player.blockPosition().getY()));
+            if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer)
+            {
+                int deaths = serverPlayer.getStats().getValue(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.DEATHS));
+                facts.put("Player deaths in this world", String.valueOf(deaths));
+            }
         }
 
         if (RoccoCommonConfig.CONTEXT_INVENTORY.get())
         {
             ItemStack held = player.getMainHandItem();
-            facts.put("En la mano", held.isEmpty() ? "nada" : held.getHoverName().getString());
+            facts.put("Player is holding", held.isEmpty() ? "nothing" : describeHeld(held));
+            facts.put("Player inventory highlights", playerHighlights(player));
         }
 
         if (RoccoCommonConfig.CONTEXT_NEARBY_ENTITIES.get())
@@ -69,57 +77,56 @@ public final class RoccoContextBuilder
             String mobs = nearbyHostiles(level, rocco);
             if (!mobs.isEmpty())
             {
-                facts.put("Mobs hostiles cerca", mobs);
+                facts.put("Hostile mobs nearby", mobs);
             }
         }
 
         // Lo que sigue decide si puede aceptar una orden de trabajo, asi que va siempre:
         // con esto la IA contesta bien de una sin tener que fallar primero.
         Errand errand = rocco.currentErrand();
-        facts.put("Lo que estas haciendo", errand == null ? "nada en particular" : errand.describe());
-        facts.put("Tu inventario", inventoryOf(rocco));
-        facts.put("Tierra de cultivo libre cerca", String.valueOf(freeFarmland(level, rocco)));
-        facts.put("Cultivos maduros cerca",
-                String.valueOf(Crops.findRipe(level, rocco.blockPosition(), 8, 64).size()));
-        facts.put("Cofres cerca", chestsNear(level, rocco, player));
-        facts.put("Mesa de crafteo cerca", Storage.findBlock(level, rocco.blockPosition(), 12, 4,
-                state -> state.is(Blocks.CRAFTING_TABLE)) != null ? "si" : "no");
-        facts.put("Horno cerca", Storage.findBlockEntities(level, rocco.blockPosition(), 16,
-                entity -> entity instanceof AbstractFurnaceBlockEntity).isEmpty() ? "no" : "si");
+        facts.put("What you are doing", errand == null ? "nothing in particular" : errand.describe());
+        facts.put("Your inventory", inventoryOf(rocco));
+        facts.put("Free farmland nearby", String.valueOf(freeFarmland(level, rocco)));
+        facts.put("Ripe crops nearby", String.valueOf(Crops.findRipe(level, rocco.blockPosition(), 8, 64).size()));
+        facts.put("Chests nearby", chestsNear(level, rocco, player));
+        facts.put("Crafting table nearby", Storage.findBlock(level, rocco.blockPosition(), 12, 4,
+                state -> state.is(Blocks.CRAFTING_TABLE)) != null ? "yes" : "no");
+        facts.put("Furnace nearby", Storage.findBlockEntities(level, rocco.blockPosition(), 16,
+                entity -> entity instanceof AbstractFurnaceBlockEntity).isEmpty() ? "no" : "yes");
 
         BlockPos harvestChest = rocco.getHarvestChest();
-        facts.put("Cofre de la cosecha", harvestChest == null
-                ? "ninguno elegido todavia"
+        facts.put("Harvest chest", harvestChest == null
+                ? "none chosen yet"
                 : harvestChest.getX() + ", " + harvestChest.getY() + ", " + harvestChest.getZ());
 
         String looking = lookingAt(level, player);
         if (looking != null)
         {
-            facts.put("El jugador esta mirando", looking);
+            facts.put("The player is looking at", looking);
         }
 
         long enchantLeft = rocco.enchantCooldownLeft();
-        facts.put("Tu poder de encantar", enchantLeft <= 0
-                ? "listo para usar"
-                : "descansando, vuelve en " + Math.max(1, (enchantLeft + 1199) / 1200) + " minutos");
+        facts.put("Your enchanting power", enchantLeft <= 0
+                ? "ready to use"
+                : "resting, ready again in " + Math.max(1, (enchantLeft + 1199) / 1200) + " minutes");
 
-        facts.put("Lugares que recordas", placesOf(rocco, player));
+        facts.put("Places you remember", placesOf(rocco, player));
 
         String animals = breedable(level, rocco);
         if (!animals.isEmpty())
         {
-            facts.put("Animales adultos cerca", animals);
+            facts.put("Adult animals nearby", animals);
         }
         String villagers = villagersNear(level, rocco);
         if (!villagers.isEmpty())
         {
-            facts.put("Aldeanos cerca", villagers);
+            facts.put("Villagers nearby", villagers);
         }
 
-        facts.put("Puertas o trampillas cerca",
+        facts.put("Doors or trapdoors nearby",
                 String.valueOf(RoccoWork.findOpenables(level, rocco.blockPosition(), 8).size()));
-        facts.put("Lo estas siguiendo", rocco.isFollowing() ? "si" : "no, te pidio que esperes");
-        facts.put("Tu postura", postureOf(rocco));
+        facts.put("You are following the player", rocco.isFollowing() ? "yes" : "no, they asked you to wait");
+        facts.put("Your posture", postureOf(rocco));
 
         // Si el jugador pregunta donde murio, Rocco tiene el dato a mano.
         BlockPos death = rocco.getLastDeathPos();
@@ -129,45 +136,82 @@ public final class RoccoContextBuilder
             String dimension = rocco.getLastDeathDimension().replace("minecraft:", "");
             long day = rocco.getLastDeathDay();
 
-            facts.put("Donde murio el jugador la ultima vez",
-                    place + " (en " + dimension + (day >= 0 ? ", dia " + day : "") + ")");
+            facts.put("Where the player last died",
+                    place + " (in " + dimension + (day >= 0 ? ", day " + day : "") + ")");
         }
-
-        if (facts.isEmpty())
-        {
-            return "";
-        }
-
-        StringBuilder out = new StringBuilder("\n\nAHORA MISMO:\n");
-        facts.forEach((key, value) -> out.append("- ").append(key).append(": ").append(value).append('\n'));
 
         if (RoccoCommonConfig.MOOD_ENABLED.get())
         {
-            String mood = mood(level, player);
-            if (mood != null)
-            {
-                out.append("- Tono sugerido: ").append(mood).append('\n');
-            }
+            facts.put("Your current mood", mood(level, player, rocco));
         }
 
-        // Algunas IAs contestan "dale, me quedo" y se olvidan la orden: sin ella Rocco no hace nada.
-        out.append("\nRECORDATORIO: si el jugador te pide que hagas algo (moverte, quedarte, sentarte, ")
-                .append("levantarte, trabajar...), la ULTIMA linea de tu respuesta tiene que ser ")
-                .append("\"#accion: <verbo> <argumento>\". Sin esa linea no lo haces de verdad.\n");
-
+        StringBuilder out = new StringBuilder();
+        facts.forEach((key, value) -> out.append("- ").append(key).append(": ").append(value).append('\n'));
         return out.toString();
+    }
+
+    private static String describeHeld(ItemStack held)
+    {
+        String name = held.getHoverName().getString();
+        if (held.isDamageableItem())
+        {
+            return name + " (" + Tools.describe(held) + ")";
+        }
+        return held.getCount() > 1 ? name + " x" + held.getCount() : name;
+    }
+
+    // Lo que vale la pena comentar del inventario del jugador, sin listar los 36 lugares: lo mas
+    // valioso, la comida, las antorchas y si le falta algo basico.
+    private static String playerHighlights(Player player)
+    {
+        Map<String, Integer> totals = new LinkedHashMap<>();
+        int food = 0;
+        int torches = 0;
+        boolean bed = false;
+        for (ItemStack stack : player.getInventory().items)
+        {
+            if (stack.isEmpty())
+            {
+                continue;
+            }
+            if (stack.isEdible())
+            {
+                food += stack.getCount();
+            }
+            if (stack.is(net.minecraft.world.item.Items.TORCH))
+            {
+                torches += stack.getCount();
+            }
+            if (stack.is(net.minecraft.tags.ItemTags.BEDS))
+            {
+                bed = true;
+            }
+            totals.merge(stack.getHoverName().getString(), stack.getCount(), Integer::sum);
+        }
+        if (totals.isEmpty())
+        {
+            return "empty";
+        }
+
+        String top = totals.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(8)
+                .map(entry -> entry.getKey() + " x" + entry.getValue())
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("");
+        return top + "; food items: " + food + "; torches: " + torches + "; carries a bed: " + (bed ? "yes" : "no");
     }
 
     private static String postureOf(RoccoEntity rocco)
     {
         return switch (rocco.getRoccoPose())
         {
-            case STANDING -> "de pie";
-            case SITTING_DOWN, SITTING -> "sentado";
-            case STANDING_UP -> "levantandote";
-            case FALLING_ASLEEP -> "acostandote a dormir";
-            case SLEEPING -> "dormido";
-            case WAKING_UP -> "despertandote";
+            case STANDING -> "standing";
+            case SITTING_DOWN, SITTING -> "sitting";
+            case STANDING_UP -> "getting up";
+            case FALLING_ASLEEP -> "lying down to sleep";
+            case SLEEPING -> "asleep";
+            case WAKING_UP -> "waking up";
         };
     }
 
@@ -192,7 +236,7 @@ public final class RoccoContextBuilder
 
         if (totals.isEmpty() && tools.isEmpty())
         {
-            return "vacio";
+            return "empty";
         }
 
         List<String> parts = new java.util.ArrayList<>(tools);
@@ -212,7 +256,7 @@ public final class RoccoContextBuilder
         List<BlockPos> chests = Storage.find(level, rocco.blockPosition(), RoccoCommonConfig.WORK_SEARCH_RADIUS.get());
         if (chests.isEmpty())
         {
-            return "ninguno";
+            return "none";
         }
 
         Map<String, Integer> totals = new LinkedHashMap<>();
@@ -230,8 +274,8 @@ public final class RoccoContextBuilder
                 .limit(15)
                 .map(entry -> entry.getKey() + " x" + entry.getValue())
                 .reduce((a, b) -> a + ", " + b)
-                .orElse("vacios");
-        return chests.size() + " (con: " + contents + ")";
+                .orElse("empty");
+        return chests.size() + " (with: " + contents + ")";
     }
 
     // "casa (a 120 bloques al norte), mina (en el nether)".
@@ -239,7 +283,7 @@ public final class RoccoContextBuilder
     {
         if (rocco.places().isEmpty())
         {
-            return "ninguno todavia";
+            return "none yet";
         }
         String here = player.level().dimension().location().toString();
         List<String> parts = new java.util.ArrayList<>();
@@ -284,7 +328,7 @@ public final class RoccoContextBuilder
         }
         BlockState state = level.getBlockState(hit.getBlockPos());
         String id = String.valueOf(ForgeRegistries.BLOCKS.getKey(state.getBlock()));
-        String extra = Storage.isStorage(level, hit.getBlockPos()) ? " (es un cofre)" : "";
+        String extra = Storage.isStorage(level, hit.getBlockPos()) ? " (it is a chest)" : "";
         return Names.name(state.getBlock().asItem()) + " (" + id + ")" + extra;
     }
 
@@ -292,11 +336,11 @@ public final class RoccoContextBuilder
     {
         long time = level.getDayTime() % 24000L;
 
-        if (time < 5000L) return "manana";
-        if (time < 11000L) return "mediodia";
-        if (time < 13000L) return "atardecer";
-        if (time < 22000L) return "noche";
-        return "amanecer";
+        if (time < 5000L) return "morning";
+        if (time < 11000L) return "midday";
+        if (time < 13000L) return "sunset";
+        if (time < 22000L) return "night";
+        return "dawn";
     }
 
     private static String biome(ServerLevel level, RoccoEntity rocco)
@@ -305,7 +349,7 @@ public final class RoccoContextBuilder
                 .registryOrThrow(Registries.BIOME)
                 .getKey(level.getBiome(rocco.blockPosition()).value());
 
-        return key == null ? "desconocido" : key.getPath();
+        return key == null ? "unknown" : key.getPath();
     }
 
     private static String nearbyHostiles(ServerLevel level, RoccoEntity rocco)
@@ -327,25 +371,29 @@ public final class RoccoContextBuilder
                 .orElse("");
     }
 
-    private static String mood(ServerLevel level, Player player)
+    private static String mood(ServerLevel level, Player player, RoccoEntity rocco)
     {
         if (player.getHealth() <= player.getMaxHealth() * 0.3F)
         {
-            return "preocupado, el jugador esta muy lastimado";
+            return "worried, the player is badly hurt";
+        }
+        if (rocco.getHealth() < rocco.getMaxHealth() * 0.5F)
+        {
+            return "sore and a bit offended, someone has been hitting you";
         }
         if (player.blockPosition().getY() < 30)
         {
-            return "algo inquieto, estan bajo tierra";
+            return "a little uneasy, you are underground";
         }
         if (level.isThundering())
         {
-            return "impresionado por la tormenta";
+            return "impressed by the storm";
         }
         if (!level.isDay())
         {
-            return "un poco alerta, es de noche";
+            return "a bit alert, it is night";
         }
-        return null;
+        return "relaxed and in a good mood";
     }
 
     private RoccoContextBuilder() {}

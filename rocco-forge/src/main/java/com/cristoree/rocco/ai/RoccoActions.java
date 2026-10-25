@@ -107,6 +107,46 @@ public final class RoccoActions
         return verb != null && KNOWN_VERBS.contains(verb);
     }
 
+    // Los verbos que se le ofrecen a la IA, en el orden en que se listan en YOUR ACTIONS. Los
+    // alias (sembrar, fabricar, venir...) se entienden igual pero no se ofrecen. La explicacion de
+    // cada uno esta en rocco/personality/<version>/actions.txt; un verbo nuevo agregado aca
+    // aparece solo en el prompt (y avisa en el log si le falta la explicacion).
+    public static final List<String> OFFERED_VERBS = List.of(
+            "plantar", "cosechar", "arar", "cuidar_huerta", "cofre_cosecha", "craftear", "buscar", "receta",
+            "cocinar", "agarrar", "traer", "guardar", "dar", "tirar", "juntar", "poner", "iluminar", "romper",
+            "talar", "conseguir", "encantar", "mate", "recordar_lugar", "olvidar_lugar", "ir_a", "criar", "pescar",
+            "comprar", "vender", "ordenar", "teletransportarse", "abrir", "comer", "seguir", "esperar",
+            "sentarse", "dormir", "levantarse", "parar");
+
+    private static final java.util.Set<String> UNDOCUMENTED_WARNED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    // El bloque YOUR ACTIONS del prompt: formato, cada verbo con su explicacion y las reglas.
+    public static String describeForAi()
+    {
+        StringBuilder out = new StringBuilder(com.cristoree.rocco.ai.personality.PersonalityTexts.actionSection("header"));
+        java.util.Map<String, String> docs = com.cristoree.rocco.ai.personality.PersonalityTexts.verbs();
+        for (String verb : OFFERED_VERBS)
+        {
+            String doc = docs.get(verb);
+            if (doc == null)
+            {
+                if (UNDOCUMENTED_WARNED.add(verb))
+                {
+                    RoccoMod.LOGGER.warn("[Rocco] El verbo '{}' no tiene explicacion en actions.txt", verb);
+                }
+                out.append("\n- ").append(verb);
+                continue;
+            }
+            // " | " separa el uso de la explicacion; un "|" pegado es parte del uso (<id|todo>).
+            int bar = doc.indexOf(" | ");
+            String usage = bar < 0 ? verb : doc.substring(0, bar).trim();
+            String what = bar < 0 ? doc : doc.substring(bar + 3).trim();
+            out.append("\n- ").append(usage).append(" -> ").append(what);
+        }
+        out.append('\n').append(com.cristoree.rocco.ai.personality.PersonalityTexts.actionSection("rules"));
+        return out.toString();
+    }
+
     private static final java.util.Set<String> KNOWN_VERBS = java.util.Set.of(
             "mate", "tomar_mate", "encantar", "recordar_lugar", "recordar", "olvidar_lugar", "olvidar", "ir_a", "llevar",
             "criar", "pescar", "comprar", "comerciar", "vender", "ordenar", "teletransportarse", "venir", "aparecer",
@@ -132,8 +172,12 @@ public final class RoccoActions
         {
             case "mate", "tomar_mate" -> mate(rocco);
             case "encantar" -> enchant(rocco, player, argument);
-            case "recordar_lugar", "recordar" -> rememberPlace(rocco, player, argument);
-            case "olvidar_lugar", "olvidar" -> forgetPlace(rocco, argument);
+            case "recordar_lugar" -> rememberPlace(rocco, player, argument);
+            case "olvidar_lugar" -> forgetPlace(rocco, argument);
+            // Memoria de lo que dijo o hizo el jugador. Lo normal es que la IA use las lineas
+            // "#recordar:" aparte (asi no gasta su unica #accion), pero como verbo tambien sirve.
+            case "recordar" -> remember(player, argument, false);
+            case "olvidar" -> forget(player, argument);
             case "ir_a", "llevar" -> guide(rocco, player, argument);
             case "criar" -> start(rocco, new BreedErrand(rocco, player, argument));
             case "pescar" -> start(rocco, new FishErrand(rocco, player, Names.parse(argument).count()));
@@ -218,6 +262,24 @@ public final class RoccoActions
                 || itemText.matches(".*\\b(mano|esto|eso|este|esta|lo que tengo|armadura|armor)\\b.*");
         Names.Query query = generic ? null : Names.parse(itemText);
         return start(rocco, new EnchantErrand(rocco, player, query, itemText, request.enchantment(), request.level()));
+    }
+
+    private static Outcome remember(@Nullable ServerPlayer player, String note, boolean person)
+    {
+        if (player != null && !note.isBlank())
+        {
+            RoccoMemory.remember(player, note, person);
+        }
+        return OK;
+    }
+
+    private static Outcome forget(@Nullable ServerPlayer player, String words)
+    {
+        if (player != null && !words.isBlank())
+        {
+            RoccoMemory.forget(player, words);
+        }
+        return OK;
     }
 
     // "Esta es mi casa": guarda donde esta parado el jugador.

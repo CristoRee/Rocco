@@ -72,11 +72,28 @@ Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. Tambi
 | `/rocco llamar` | Lo trae al lado tuyo esté donde esté. |
 | `/rocco lugares` | Los lugares que recuerda, con distancia y dirección. |
 | `/rocco despertar` | Hace brotar a un Rocco que todavía es una plantita. |
-| `/rocco personalidad [reset]` | Dónde está el archivo de personalidad, o lo vuelve al original. |
+| `/rocco personalidad` | El modo de personalidad actual. |
+| `/rocco personalidad chill \| sin_filtro \| personalizado` | Cambia el modo. |
+| `/rocco personalidad reset` | Escribe la personalidad actual en tu archivo, para editarla. |
+| `/rocco setup` | Abre la pantalla de bienvenida. |
 
 ## Personalidad
 
-La personalidad está en `config/rocco/personalidad.txt`. Se puede editar con el juego abierto: Rocco la vuelve a leer sola.
+Rocco es tu compañero de aventuras: te toma el pelo, se acuerda de lo que dijiste y de lo que prometiste, y te lo saca en cara cuando menos te lo esperás ("¿No que tu bebida favorita era el café?"). Cuando hay silencio un rato, comenta solo lo que estás haciendo, lo que llevás encima o lo que hay alrededor, y trata de no repetirse.
+
+En **Mods > Rocco > Config > Personalidad** hay tres modos:
+
+- **Chill** (el de fábrica): amigable y respetuoso, aunque un poco creído.
+- **Sin filtro**: Rocco completo. Burlón, con malas palabras y humor negro.
+- **Personalizado**: elegís cada rasgo (cómo te trata, el sarcasmo, el ego, los celos, cuánto habla, sus miedos, su historia...). También se le puede escribir una historia propia, notas extra o usar un archivo de personalidad entero (`config/rocco/personalidad.txt`).
+
+El dialecto (latino neutro, rioplatense, España o automático) y el apodo con el que te llama valen en los tres modos. Los cambios se notan desde la próxima respuesta, sin reiniciar.
+
+También imita voces de personajes y famosos si se lo pedís ("hablá como Vegeta"). La voz real de cada personaje la elegís vos en **Config > Voz > Imitaciones**: el mod no trae voces de personas reales.
+
+## Bienvenida
+
+La primera vez que abrís el juego aparece una pantalla para dejar a Rocco listo: la clave de IA (con un botón para probarla), la voz, el micrófono, la tecla para hablarle y la personalidad. Se puede volver a abrir con `/rocco setup` o desde la config.
 
 ## Privacidad
 

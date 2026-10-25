@@ -5,6 +5,7 @@ import com.cristoree.rocco.ai.AiRouter;
 import com.cristoree.rocco.ai.ModelResolver;
 import com.cristoree.rocco.ai.RoccoBrain;
 import com.cristoree.rocco.ai.RoccoPersonality;
+import com.cristoree.rocco.ai.personality.Traits;
 import com.cristoree.rocco.config.RoccoCommonConfig;
 import com.cristoree.rocco.config.RoccoConfig;
 import com.cristoree.rocco.entity.RoccoEntity;
@@ -22,6 +23,9 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 // /rocco estado  -> dice si las claves estan puestas y como esta Rocco
@@ -61,10 +65,18 @@ public final class RoccoCommand
                             showPersonality(context.getSource());
                             return 1;
                         })
+                        .then(Commands.literal("chill").requires(RoccoCommand::mayConfigure)
+                                .executes(context -> setMode(context.getSource(), Traits.Mode.CHILL)))
+                        .then(Commands.literal("sin_filtro").requires(RoccoCommand::mayConfigure)
+                                .executes(context -> setMode(context.getSource(), Traits.Mode.SIN_FILTRO)))
+                        .then(Commands.literal("personalizado").requires(RoccoCommand::mayConfigure)
+                                .executes(context -> setMode(context.getSource(), Traits.Mode.PERSONALIZADO)))
+                        .then(Commands.literal("ver").executes(context -> dumpPrompt(context.getSource())))
                         .then(Commands.literal("reset").executes(context ->
                         {
                             return resetPersonality(context.getSource());
-                        })));
+                        })))
+                .then(Commands.literal("setup").executes(context -> openSetup(context.getSource())));
 
         event.getDispatcher().register(root);
     }
@@ -183,20 +195,86 @@ public final class RoccoCommand
 
     private static void showPersonality(CommandSourceStack source)
     {
-        source.sendSuccess(() -> Component.literal("Archivo: " + RoccoPersonality.file())
-                .withStyle(ChatFormatting.GRAY), false);
+        Traits.Mode mode = RoccoCommonConfig.PERSONALITY_MODE.get();
+        source.sendSuccess(() -> Component.translatable("rocco.command.personality.mode",
+                Component.translatable("rocco.personality.mode." + mode.name().toLowerCase(java.util.Locale.ROOT)))
+                .withStyle(ChatFormatting.AQUA), false);
+        source.sendSuccess(() -> Component.translatable("rocco.command.personality.modes").withStyle(ChatFormatting.GRAY), false);
 
-        boolean outdated = RoccoPersonality.isOutdated();
-        source.sendSuccess(() -> Component.literal(outdated
-                ? "Es de una version anterior: no tiene la identidad nueva de Rocco."
-                : "Al dia (" + RoccoPersonality.VERSION + ").")
-                .withStyle(outdated ? ChatFormatting.YELLOW : ChatFormatting.GREEN), false);
-
-        if (outdated)
+        if (mode == Traits.Mode.PERSONALIZADO && RoccoCommonConfig.USE_OWN_FILE.get())
         {
-            source.sendSuccess(() -> Component.literal("Usa /rocco personalidad reset para actualizarla.")
+            source.sendSuccess(() -> Component.translatable("rocco.command.personality.file", RoccoPersonality.file().toString())
                     .withStyle(ChatFormatting.GRAY), false);
+            if (RoccoPersonality.isOutdated())
+            {
+                source.sendSuccess(() -> Component.translatable("rocco.command.personality.outdated")
+                        .withStyle(ChatFormatting.YELLOW), false);
+            }
         }
+    }
+
+    // En un mundo propio, cualquiera; en un servidor, solo un operador (cambia la config de todos).
+    private static boolean mayConfigure(CommandSourceStack source)
+    {
+        return source.hasPermission(2) || source.getServer().isSingleplayer();
+    }
+
+    private static int setMode(CommandSourceStack source, Traits.Mode mode)
+    {
+        RoccoCommonConfig.PERSONALITY_MODE.set(mode);
+        RoccoCommonConfig.SPEC.save();
+        source.sendSuccess(() -> Component.translatable("rocco.command.personality.changed",
+                Component.translatable("rocco.personality.mode." + mode.name().toLowerCase(java.util.Locale.ROOT)))
+                .withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    // Guarda el prompt armado completo, tal como se le mandaria a la IA, para revisarlo.
+    private static int dumpPrompt(CommandSourceStack source)
+    {
+        if (!RoccoCommonConfig.DEBUG_LOGGING.get())
+        {
+            source.sendFailure(Component.translatable("rocco.command.personality.needs_debug"));
+            return 0;
+        }
+        if (!(source.getEntity() instanceof ServerPlayer player))
+        {
+            source.sendFailure(Component.literal("Este comando lo tiene que usar un jugador."));
+            return 0;
+        }
+        RoccoEntity rocco = nearest(player);
+        if (rocco == null)
+        {
+            source.sendFailure(Component.literal("No hay ningun Rocco en 32 bloques."));
+            return 0;
+        }
+
+        Path file = net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get().resolve("rocco").resolve("prompt-generado.txt");
+        try
+        {
+            String prompt = rocco.brain().debugPrompt(player);
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, prompt, StandardCharsets.UTF_8);
+            source.sendSuccess(() -> Component.translatable("rocco.command.personality.dumped", file.toString(),
+                    String.valueOf(prompt.length()), String.valueOf(prompt.length() / 4)).withStyle(ChatFormatting.GREEN), false);
+            return 1;
+        }
+        catch (IOException e)
+        {
+            source.sendFailure(Component.literal("No se pudo escribir el archivo: " + e.getMessage()));
+            return 0;
+        }
+    }
+
+    private static int openSetup(CommandSourceStack source)
+    {
+        if (!(source.getEntity() instanceof ServerPlayer player))
+        {
+            source.sendFailure(Component.literal("Este comando lo tiene que usar un jugador."));
+            return 0;
+        }
+        com.cristoree.rocco.voice.RoccoNetwork.openSetup(player);
+        return 1;
     }
 
     private static int resetPersonality(CommandSourceStack source)
@@ -204,8 +282,7 @@ public final class RoccoCommand
         try
         {
             RoccoPersonality.reset();
-            source.sendSuccess(() -> Component.literal(
-                    "Personalidad regenerada. Rocco ya se acuerda de quien es.")
+            source.sendSuccess(() -> Component.translatable("rocco.command.personality.reset", RoccoPersonality.file().toString())
                     .withStyle(ChatFormatting.GREEN), false);
             return 1;
         }

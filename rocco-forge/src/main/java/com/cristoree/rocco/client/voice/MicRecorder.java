@@ -255,6 +255,40 @@ public final class MicRecorder
         });
     }
 
+    // Graba unos segundos para probar el microfono (la pantalla de bienvenida). Devuelve un WAV de
+    // 16 kHz mono, listo para Deepgram. Corre en su propio hilo; falla si no hay microfono.
+    public static java.util.concurrent.CompletableFuture<byte[]> recordSample(int seconds)
+    {
+        return java.util.concurrent.CompletableFuture.supplyAsync(() ->
+        {
+            MicSource source;
+            try
+            {
+                source = openSource();
+            }
+            catch (LineUnavailableException | IllegalArgumentException | SecurityException e)
+            {
+                throw new java.util.concurrent.CompletionException(e);
+            }
+            ByteArrayOutputStream pcm = new ByteArrayOutputStream();
+            try
+            {
+                for (int i = 0; i < seconds * 10; i++)
+                {
+                    byte[] frame = source.read();
+                    amplify(frame, frame.length);
+                    pcm.writeBytes(frame);
+                }
+            }
+            finally
+            {
+                source.line().stop();
+                source.line().close();
+            }
+            return com.cristoree.rocco.voice.Wav.write(pcm.toByteArray(), MicReceiver.SAMPLE_RATE);
+        });
+    }
+
     // No todos los microfonos graban a 16 kHz mono: se prueba eso primero y despues lo que suelen
     // aceptar todos (48 o 44,1 kHz, mono o estereo). Lo que se grabe se pasa a 16 kHz mono.
     private static final float[] RATES = {MicReceiver.SAMPLE_RATE, 48000.0F, 44100.0F, 32000.0F, 22050.0F};

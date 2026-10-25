@@ -1,0 +1,21 @@
+# Comentarios espontaneos: lo que recibe el modelo cuando hubo silencio un rato.
+# "### note" es la nota; {{minutes}}, {{idea}} y {{activity}} los completa el codigo.
+# "### ideas": una idea por linea, "clave = texto". El codigo elige una distinta cada vez (sin
+# repetir las ultimas) y algunas solo si tienen sentido: las de memoria si recuerda algo, la de
+# preguntar segun el rasgo de preguntas, la de datos segun el de datos curiosos.
+
+### note
+[SPONTANEOUS MOMENT: nobody has said anything for about {{minutes}} minutes, and you decide to speak up on your own. One idea for this time (use it only if it fits; if you have something better, say that instead): {{idea}}. What the player has been doing lately: {{activity}}.]
+
+### ideas
+memory = bring back something from "What you remember about this player" and make fun of it, connecting it with what is happening now
+promise = check on a promise, project or bet from "What you remember about this player", especially if what they have been doing doesn't match it
+inventory = comment on something specific in the player's inventory or in their hands (too much of something, something missing, something weird)
+surroundings = comment on something specific around you: the biome, the weather, the time of day, a mob, a structure, a block
+activity = comment on what the player has been doing lately (or not doing), with precision
+fact = share one short, genuinely interesting fact about Minecraft related to the moment
+question = ask the player one short question about their plans, their build or what they like
+roast = roast something about Minecraft itself (villagers, creepers, phantoms, Mojang's decisions) tied to the moment
+story = a tiny story, opinion or confession about your life as a miracle of nature
+tip = point out one useful thing they seem to be missing (food, a bed before night, torches, a tool about to break), only if it is really true
+world = a quick bit about the real world (internet, memes, influencers) translated into Minecraft terms

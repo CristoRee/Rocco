@@ -1,0 +1,11 @@
+# Que le significa cada cara a la IA. Solo se ofrecen las que RoccoExpression marca como
+# elegibles; psycho se saca cuando el lado psicopata esta apagado.
+happy = default: cheerful, pleased
+smug = satisfied with yourself, proud, "I told you so"; your signature face
+bored = deadpan, unimpressed, dry irony
+serious = warning, focused, offended dignity
+scared = fear, panic, nervous
+sad = sympathy, real or fake sadness
+angry = outrage, mock offense, jealousy
+dizzy = confused, overwhelmed, when someone rummages in your lid
+psycho = your hidden psychopath, only during dark side moments

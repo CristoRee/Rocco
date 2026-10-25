@@ -20,6 +20,14 @@ public final class RoccoClientConfig
     public static final ForgeConfigSpec.ConfigValue<String> MIC_DEVICE;
     public static final ForgeConfigSpec.BooleanValue MIC_FEEDBACK_SOUND;
 
+    // setup
+    public static final ForgeConfigSpec.BooleanValue SETUP_COMPLETED;
+    public static final ForgeConfigSpec.IntValue SETUP_VERSION;
+
+    // Sube cuando una actualizacion trae algo que hay que configurar: la pantalla de bienvenida
+    // vuelve a aparecer una vez, con lo nuevo.
+    public static final int CURRENT_SETUP_VERSION = 1;
+
     static
     {
         ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
@@ -56,6 +64,16 @@ public final class RoccoClientConfig
         MIC_FEEDBACK_SOUND = b
                 .comment("Suena un clic al empezar y terminar de grabar.")
                 .define("micFeedbackSound", true);
+        b.pop();
+
+        b.comment("Pantalla de bienvenida (claves, voz, microfono y personalidad).").push("setup");
+        SETUP_COMPLETED = b
+                .comment("Ya se vio la pantalla de bienvenida. En false vuelve a aparecer en el menu principal.",
+                         "Se abre cuando quieras con /rocco setup o desde Mods > Rocco > Config.")
+                .define("setupCompleted", false);
+        SETUP_VERSION = b
+                .comment("Uso interno: hasta que version de la bienvenida se vio.")
+                .defineInRange("setupVersion", 0, 0, 1000);
         b.pop();
 
         SPEC = b.build();

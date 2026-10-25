@@ -1,5 +1,6 @@
 package com.cristoree.rocco.config;
 
+import com.cristoree.rocco.ai.personality.Traits;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 public final class RoccoCommonConfig
@@ -14,6 +15,7 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.BooleanValue ENABLED;
     public static final ForgeConfigSpec.ConfigValue<String> COMPANION_NAME;
     public static final ForgeConfigSpec.BooleanValue LOG_REQUEST_BODIES;
+    public static final ForgeConfigSpec.BooleanValue DEBUG_LOGGING;
     public static final ForgeConfigSpec.IntValue CONFIG_VERSION;
 
     // ai (Gemini)
@@ -69,6 +71,8 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.IntValue VOICE_TIMEOUT_SECONDS;
     public static final ForgeConfigSpec.BooleanValue VOICE_CACHE_ENABLED;
     public static final ForgeConfigSpec.IntValue VOICE_CACHE_SIZE_MB;
+    public static final ForgeConfigSpec.ConfigValue<String> IMPRESSION_VOICES;
+    public static final ForgeConfigSpec.BooleanValue IMPRESSION_VOICE_SEARCH;
 
     // stt (Deepgram)
     public static final ForgeConfigSpec.BooleanValue STT_ENABLED;
@@ -118,6 +122,32 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.IntValue WORK_MAX_MINING_SECONDS;
 
     // personality
+    public static final ForgeConfigSpec.EnumValue<Traits.Mode> PERSONALITY_MODE;
+    public static final ForgeConfigSpec.EnumValue<Traits.Dialect> DIALECT;
+    public static final ForgeConfigSpec.ConfigValue<String> NICKNAME;
+    public static final ForgeConfigSpec.BooleanValue IMPRESSIONS_ENABLED;
+    public static final ForgeConfigSpec.EnumValue<Traits.Origin> P_ORIGIN;
+    public static final ForgeConfigSpec.ConfigValue<String> CUSTOM_ORIGIN;
+    public static final ForgeConfigSpec.EnumValue<Traits.Treatment> P_TREATMENT;
+    public static final ForgeConfigSpec.EnumValue<Traits.Swearing> P_SWEARING;
+    public static final ForgeConfigSpec.EnumValue<Traits.Sarcasm> P_SARCASM;
+    public static final ForgeConfigSpec.EnumValue<Traits.Ego> P_EGO;
+    public static final ForgeConfigSpec.EnumValue<Traits.DarkHumor> P_DARK_HUMOR;
+    public static final ForgeConfigSpec.EnumValue<Traits.DarkSide> P_DARK_SIDE;
+    public static final ForgeConfigSpec.EnumValue<Traits.Jealousy> P_JEALOUSY;
+    public static final ForgeConfigSpec.EnumValue<Traits.Amount> P_SPONTANEOUS;
+    public static final ForgeConfigSpec.EnumValue<Traits.Length> P_LENGTH;
+    public static final ForgeConfigSpec.EnumValue<Traits.Questions> P_QUESTIONS;
+    public static final ForgeConfigSpec.EnumValue<Traits.Amount> P_FACTS;
+    public static final ForgeConfigSpec.BooleanValue P_LIFE_ADVICE;
+    public static final ForgeConfigSpec.EnumValue<Traits.FourthWall> P_FOURTH_WALL;
+    public static final ForgeConfigSpec.EnumValue<Traits.SpontaneousImpressions> P_SPONTANEOUS_IMPRESSIONS;
+    public static final ForgeConfigSpec.BooleanValue P_FEARS;
+    public static final ForgeConfigSpec.BooleanValue P_POTATO;
+    public static final ForgeConfigSpec.EnumValue<Traits.TrustPace> P_TRUST_PACE;
+    public static final ForgeConfigSpec.ConfigValue<String> EXTRA_NOTES;
+    public static final ForgeConfigSpec.BooleanValue USE_OWN_FILE;
+    public static final ForgeConfigSpec.BooleanValue CUSTOM_INITIALIZED;
     public static final ForgeConfigSpec.ConfigValue<String> PROMPT_FILE;
     public static final ForgeConfigSpec.BooleanValue CONTEXT_WORLD;
     public static final ForgeConfigSpec.BooleanValue CONTEXT_INVENTORY;
@@ -146,6 +176,10 @@ public final class RoccoCommonConfig
                 .comment("Registra el contenido enviado a las APIs. Solo para depurar:",
                          "puede llenar el log y nunca incluye las claves.")
                 .define("logRequestBodies", false);
+        DEBUG_LOGGING = b
+                .comment("Mas detalle en el log: largo del prompt armado, respuestas bloqueadas, permisos",
+                         "del lado oscuro. Tambien habilita /rocco personalidad ver.")
+                .define("debugLogging", false);
         CONFIG_VERSION = b
                 .comment("Uso interno: sirve para actualizar una sola vez valores por defecto viejos.",
                          "No lo cambies.")
@@ -339,6 +373,15 @@ public final class RoccoCommonConfig
         VOICE_CACHE_SIZE_MB = b
                 .comment("Tamano maximo de ese cache, en megabytes.")
                 .defineInRange("cacheSizeMb", 64, 0, 2048);
+        IMPRESSION_VOICES = b
+                .comment("Voces para las imitaciones, separadas por ';': Nombre=id de voz de Fish Audio.",
+                         "Ejemplo: Vegeta=abc123; Goku=def456. El mod no trae ninguna voz de una persona real:",
+                         "sin voz para ese nombre, Rocco imita solo con el texto y su propia voz.")
+                .define("impressionVoices", "");
+        IMPRESSION_VOICE_SEARCH = b
+                .comment("Si no hay voz en la lista, busca una publica en Fish Audio por el nombre",
+                         "(y la recuerda). Apagado por defecto.")
+                .define("impressionVoiceSearch", false);
         b.pop();
 
         b.comment("Escuchar al jugador por microfono (Deepgram, voz a texto).").push("stt");
@@ -492,9 +535,100 @@ public final class RoccoCommonConfig
         b.pop();
 
         b.comment("Personalidad y que le cuenta el mod a la IA sobre lo que pasa.").push("personality");
+        PERSONALITY_MODE = b
+                .comment("CHILL: amigable y respetuoso, aunque un poco creido. SIN_FILTRO: Rocco completo,",
+                         "burlon, con malas palabras y humor negro. PERSONALIZADO: usa los rasgos de abajo.",
+                         "Se aplica en la proxima respuesta, sin reiniciar.")
+                .defineEnum("mode", Traits.Mode.CHILL);
+        DIALECT = b
+                .comment("Como habla. AUTO elige segun el idioma del juego del jugador.",
+                         "Vale para los tres modos.")
+                .defineEnum("dialect", Traits.Dialect.LATINO);
+        NICKNAME = b
+                .comment("Apodo con el que Rocco te llama a veces. Vacio = ninguno.")
+                .define("nickname", "", value -> value instanceof String text && text.length() <= 40);
+        IMPRESSIONS_ENABLED = b
+                .comment("Rocco imita voces y personajes cuando se lo pedis (y muy de vez en cuando solo).",
+                         "Si es false, se niega en broma: solo hace de Rocco.")
+                .define("impressions", true);
+
+        // Los rasgos de aca abajo solo valen en PERSONALIZADO: CHILL y SIN_FILTRO traen los suyos.
+        P_ORIGIN = b
+                .comment("Solo en PERSONALIZADO, como todos los rasgos que siguen.",
+                         "Su historia: CHILL (lo despertaste de una pesadilla en la que era una papa),",
+                         "SIN_FILTRO (la Madre Naturaleza lo mando porque solo no llegas a nada) o",
+                         "PERSONALIZADO (la que escribas en customOrigin).")
+                .defineEnum("origin", Traits.Origin.CHILL);
+        CUSTOM_ORIGIN = b
+                .comment("Tu historia para Rocco, hasta 600 letras. Solo con origin = PERSONALIZADO.")
+                .define("customOrigin", "", value -> value instanceof String text && text.length() <= 600);
+        P_TREATMENT = b
+                .comment("Como te trata: AMABLE (nunca te falta el respeto), BURLON (te gasta como un amigo)",
+                         "o DESPIADADO (te destroza, pero solo por como jugas).")
+                .defineEnum("treatment", Traits.Treatment.AMABLE);
+        P_SWEARING = b
+                .comment("Groserias: NADA, SUAVES (rayos, tonto) o NORMALES (como entre amigos).")
+                .defineEnum("swearing", Traits.Swearing.SUAVES);
+        P_SARCASM = b
+                .comment("Sarcasmo: SUAVE (un guiño), NORMAL o AFILADO (ironia filosa y pasivo-agresiva).")
+                .defineEnum("sarcasm", Traits.Sarcasm.SUAVE);
+        P_EGO = b
+                .comment("Ego: SIMPATICO, ENGREIDO o INSOPORTABLE.")
+                .defineEnum("ego", Traits.Ego.ENGREIDO);
+        P_DARK_HUMOR = b
+                .comment("Humor negro: APAGADO, SI_LO_PIDEN o LIBRE.")
+                .defineEnum("darkHumor", Traits.DarkHumor.SI_LO_PIDEN);
+        P_DARK_SIDE = b
+                .comment("Su psicopata escondido (solo contra bichos del juego): APAGADO, RARO o A_VECES.")
+                .defineEnum("darkSide", Traits.DarkSide.APAGADO);
+        P_JEALOUSY = b
+                .comment("Celos: APAGADO, TIERNOS o DRAMATICOS.")
+                .defineEnum("jealousy", Traits.Jealousy.TIERNOS);
+        P_SPONTANEOUS = b
+                .comment("Cuanto habla por su cuenta cuando hay silencio: POCOS, NORMAL o MUCHOS.")
+                .defineEnum("spontaneousComments", Traits.Amount.NORMAL);
+        P_LENGTH = b
+                .comment("Largo de sus respuestas: CORTO, NORMAL o CHARLATAN.")
+                .defineEnum("replyLength", Traits.Length.NORMAL);
+        P_QUESTIONS = b
+                .comment("Cuanto te pregunta sobre tus planes: POCAS, NORMAL o MUCHAS.")
+                .defineEnum("questions", Traits.Questions.NORMAL);
+        P_FACTS = b
+                .comment("Datos curiosos: POCOS, NORMAL o MUCHOS.")
+                .defineEnum("facts", Traits.Amount.NORMAL);
+        P_LIFE_ADVICE = b
+                .comment("De vez en cuando te da consejos de la vida real (tomar agua, descansar).")
+                .define("lifeAdvice", true);
+        P_FOURTH_WALL = b
+                .comment("Romper la cuarta pared: NUNCA o MUY_RARA.")
+                .defineEnum("fourthWall", Traits.FourthWall.MUY_RARA);
+        P_SPONTANEOUS_IMPRESSIONS = b
+                .comment("Imitaciones por su cuenta, sin que se las pidas: NUNCA, MUY_RARAS o A_VECES.")
+                .defineEnum("spontaneousImpressions", Traits.SpontaneousImpressions.MUY_RARAS);
+        P_FEARS = b
+                .comment("Tiene miedos y manias (endermans, fuego, el vacio).")
+                .define("fears", true);
+        P_POTATO = b
+                .comment("Se ofende si le dicen papa.")
+                .define("potato", true);
+        P_TRUST_PACE = b
+                .comment("Que tan rapido se hacen amigos: LENTO, NORMAL, RAPIDO o EMPEZAR_COMO_AMIGOS.")
+                .defineEnum("trustPace", Traits.TrustPace.NORMAL);
+        EXTRA_NOTES = b
+                .comment("Notas tuyas para su personalidad, hasta 800 letras. Solo en PERSONALIZADO.",
+                         "Nunca pasan por encima de sus limites.")
+                .define("extraNotes", "", value -> value instanceof String text && text.length() <= 800);
+        USE_OWN_FILE = b
+                .comment("Solo en PERSONALIZADO: usa el archivo de promptFile en vez de los rasgos.",
+                         "Las acciones, las caras y lo que pasa en el juego se le agregan igual.",
+                         "/rocco personalidad reset escribe ahi la personalidad actual para que la edites.")
+                .define("useOwnFile", false);
+        CUSTOM_INITIALIZED = b
+                .comment("Uso interno: ya se copiaron una vez los rasgos de un modo a PERSONALIZADO.")
+                .define("customInitialized", false);
         PROMPT_FILE = b
-                .comment("Archivo con la personalidad, dentro de la carpeta config/rocco/.",
-                         "Si no existe, Rocco crea uno con su personalidad por defecto.")
+                .comment("Archivo de personalidad propio, dentro de la carpeta config/rocco/.",
+                         "Solo se usa con useOwnFile.")
                 .define("promptFile", "personalidad.txt");
         CONTEXT_WORLD = b
                 .comment("Le cuenta hora, clima, bioma y dimension.")

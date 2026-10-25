@@ -18,8 +18,16 @@ import java.util.function.Supplier;
 // Una opcion nueva en RoccoCommonConfig o RoccoClientConfig tiene que sumarse aca para verse.
 public final class RoccoConfigCategories
 {
-    public record Option(ForgeConfigSpec spec, ForgeConfigSpec.ConfigValue<?> value, String label)
+    // label: el nombre que se ve, o una clave de idioma ("rocco...."). tooltip: clave de idioma con
+    // la ayuda; si es null se usa el comentario del .toml. maxLength: para los textos.
+    public record Option(ForgeConfigSpec spec, ForgeConfigSpec.ConfigValue<?> value, String label,
+                         @org.jetbrains.annotations.Nullable String tooltip, int maxLength)
     {
+        public Option(ForgeConfigSpec spec, ForgeConfigSpec.ConfigValue<?> value, String label)
+        {
+            this(spec, value, label, null, 512);
+        }
+
         public ForgeConfigSpec.ValueSpec valueSpec()
         {
             return this.spec.getSpec().get(this.value.getPath());
@@ -65,9 +73,11 @@ public final class RoccoConfigCategories
                     {
                         continue;
                     }
-                    String comment = option.valueSpec().getComment();
-                    String haystack = normalize(option.label() + " " + category.name() + " "
-                            + (group.title() == null ? "" : group.title()) + " "
+                    String comment = option.tooltip() != null
+                            ? RoccoOptionList.text(option.tooltip())
+                            : option.valueSpec().getComment();
+                    String haystack = normalize(RoccoOptionList.text(option.label()) + " " + category.name() + " "
+                            + (group.title() == null ? "" : RoccoOptionList.text(group.title())) + " "
                             + (comment == null ? "" : comment) + " " + String.join(" ", option.value().getPath()));
                     boolean all = true;
                     for (String word : words)
@@ -85,7 +95,9 @@ public final class RoccoConfigCategories
                 }
                 if (!matches.isEmpty())
                 {
-                    String title = group.title() == null ? category.name() : category.name() + ": " + group.title();
+                    String title = group.title() == null
+                            ? category.name()
+                            : category.name() + ": " + RoccoOptionList.text(group.title());
                     found.add(new Group(title, matches));
                 }
             }
@@ -159,9 +171,12 @@ public final class RoccoConfigCategories
                 group("Límites",
                         opt(common, RoccoCommonConfig.MAX_CONCURRENT_REQUESTS, "Pedidos a la vez"),
                         opt(common, RoccoCommonConfig.RATE_LIMIT_PER_MINUTE, "Pedidos por minuto"),
-                        opt(common, RoccoCommonConfig.LOG_REQUEST_BODIES, "Registrar pedidos (depurar)")))));
+                        opt(common, RoccoCommonConfig.LOG_REQUEST_BODIES, "Registrar pedidos (depurar)"),
+                        opt(common, RoccoCommonConfig.DEBUG_LOGGING, "rocco.config.opt.debug_logging")))));
 
-        list.add(new Category("Charla", "Como te escucha y te contesta, su personalidad y que le cuenta a la IA.",
+        // La personalidad (modos y rasgos) tiene su propia pantalla: RoccoPersonalityScreen. Aca
+        // quedan solo las opciones que valen en cualquier modo, asi el buscador las encuentra.
+        list.add(new Category("Charla", "Como te escucha y te contesta, como habla y que le cuenta a la IA.",
                 () -> new ItemStack(Items.WRITABLE_BOOK), List.of(
                 group("Escuchar y contestar",
                         opt(common, RoccoCommonConfig.CHAT_READ_PLAYER_CHAT, "Lee el chat"),
@@ -172,8 +187,9 @@ public final class RoccoConfigCategories
                 group("Memoria de la charla",
                         opt(common, RoccoCommonConfig.CHAT_HISTORY_TURNS, "Turnos que recuerda"),
                         opt(common, RoccoCommonConfig.CHAT_FULL_DETAIL_TURNS, "Turnos completos")),
-                group("Personalidad",
-                        opt(common, RoccoCommonConfig.PROMPT_FILE, "Archivo de personalidad"),
+                group("rocco.config.group.how_he_talks",
+                        opt(common, RoccoCommonConfig.DIALECT, "rocco.config.trait.dialect"),
+                        opt(common, RoccoCommonConfig.NICKNAME, "rocco.config.trait.nickname"),
                         opt(common, RoccoCommonConfig.MOOD_ENABLED, "Ánimo según la situación")),
                 group("Qué le cuenta a la IA",
                         opt(common, RoccoCommonConfig.CONTEXT_WORLD, "Hora, clima y bioma"),
@@ -195,6 +211,12 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.VOICE_LOUDNESS, "Volumen al generar"),
                         opt(common, RoccoCommonConfig.VOICE_SAMPLE_RATE, "Calidad (Hz)"),
                         opt(common, RoccoCommonConfig.VOICE_LATENCY_MODE, "Rapidez")),
+                group("rocco.config.group.impressions",
+                        opt(common, RoccoCommonConfig.IMPRESSIONS_ENABLED, "rocco.config.trait.impressions"),
+                        new Option(common, RoccoCommonConfig.IMPRESSION_VOICES, "rocco.config.opt.impression_voices",
+                                "rocco.config.tip.impression_voices", 2000),
+                        new Option(common, RoccoCommonConfig.IMPRESSION_VOICE_SEARCH, "rocco.config.opt.impression_search",
+                                "rocco.config.tip.impression_search", 512)),
                 group("Avanzado",
                         opt(common, RoccoCommonConfig.VOICE_MAX_CHARS, "Largo máximo (letras)"),
                         opt(common, RoccoCommonConfig.VOICE_TIMEOUT_SECONDS, "Espera máxima (s)"),

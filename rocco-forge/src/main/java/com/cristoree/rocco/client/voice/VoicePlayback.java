@@ -97,6 +97,40 @@ public final class VoicePlayback
         minecraft.getSoundManager().play(playing);
     }
 
+    // Una frase de prueba (la pantalla de bienvenida): sin mundo ni Rocco, suena "en la cabeza".
+    public static void playPreview(byte[] pcm, int sampleRate)
+    {
+        Minecraft.getInstance().getSoundManager().play(new PreviewSound(pcm, sampleRate));
+    }
+
+    private static final class PreviewSound extends net.minecraft.client.resources.sounds.AbstractSoundInstance
+    {
+        private final byte[] pcm;
+        private final int sampleRate;
+
+        PreviewSound(byte[] pcm, int sampleRate)
+        {
+            super(ModSounds.VOICE.get(), SoundSource.VOICE, RandomSource.create());
+            this.pcm = pcm;
+            this.sampleRate = sampleRate;
+            this.volume = RoccoClientConfig.VOICE_VOLUME.get().floatValue();
+            this.relative = true;
+            this.attenuation = SoundInstance.Attenuation.NONE;
+        }
+
+        @Override
+        public boolean canStartSilent()
+        {
+            return true;
+        }
+
+        @Override
+        public CompletableFuture<AudioStream> getStream(SoundBufferLibrary buffers, Sound sound, boolean looping)
+        {
+            return CompletableFuture.completedFuture(new PcmStream(this.pcm, this.sampleRate));
+        }
+    }
+
     // Sigue a Rocco mientras habla; si se va del mundo, se corta.
     private static final class VoiceSound extends AbstractTickableSoundInstance
     {

@@ -231,6 +231,9 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // El poder de encantar: una vez por "dia" (configurable). Se cuenta en tiempo de juego.
     private long lastEnchantTick = Long.MIN_VALUE / 2;
 
+    // Confianza con el dueño: un punto por minuto juntos y dos por charla (por el ritmo elegido).
+    private double trust;
+
     // Lugares que el jugador le pidio recordar ("esta es mi casa").
     public record Place(BlockPos pos, String dimension) {}
     private final java.util.Map<String, Place> places = new java.util.LinkedHashMap<>();
@@ -1738,6 +1741,15 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
         trackOwnerStillness(owner);
 
+        // Cada minuto juntos (cerca) suma confianza; tambien suma cada charla (RoccoBrain).
+        if (distanceToSqr(owner) < 32 * 32)
+        {
+            addTrust(1.0D / 60.0D);
+        }
+
+        // Si hubo silencio un buen rato, dice algo por su cuenta.
+        brain().tickChatter();
+
         // Si se puso a tomar mate y te fuiste, lo deja para seguirte.
         if (this.task == RoccoTask.MATE && this.following
                 && distanceToSqr(owner) > sqr(RoccoCommonConfig.WANDER_RADIUS.get() + 8.0D))
@@ -1845,6 +1857,26 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         this.autoRestTicks = 0;
         queueJob(Job.custom(RoccoTask.MATE, blockPosition(), ItemStack.EMPTY, level -> { }, null).reaching(64.0D));
+    }
+
+    // ---------- la confianza con el dueño ----------
+
+    public void addTrust(double points)
+    {
+        this.trust += points * com.cristoree.rocco.ai.personality.Relationship.multiplier(
+                com.cristoree.rocco.ai.personality.PersonalityProfile.current().trustPace());
+    }
+
+    public com.cristoree.rocco.ai.personality.Relationship relationship()
+    {
+        return com.cristoree.rocco.ai.personality.Relationship.of(this.trust,
+                com.cristoree.rocco.ai.personality.PersonalityProfile.current().trustPace());
+    }
+
+    // Cuantos ticks lleva el dueño sin alejarse de donde estaba (en la casa, haciendo sus cosas).
+    public int ownerStillTicks()
+    {
+        return this.ownerStillTicks;
     }
 
     // ---------- el poder de encantar ----------
@@ -2119,6 +2151,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         tag.putInt("AutoRest", this.autoRestTicks);
         tag.putLong("LastMate", this.lastMateTick);
         tag.putLong("LastEnchant", this.lastEnchantTick);
+        tag.putDouble("Trust", this.trust);
 
         net.minecraft.nbt.ListTag placeList = new net.minecraft.nbt.ListTag();
         this.places.forEach((name, place) ->
@@ -2177,6 +2210,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             this.lastEnchantTick = tag.getLong("LastEnchant");
         }
+        this.trust = tag.getDouble("Trust");
 
         this.places.clear();
         for (net.minecraft.nbt.Tag raw : tag.getList("Places", 10))

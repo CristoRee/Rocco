@@ -46,6 +46,26 @@ final class VoiceHttp
         }
     }
 
+    static Response get(String url, Map<String, String> headers, int timeoutSeconds) throws IOException
+    {
+        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        connection.setRequestMethod("GET");
+        connection.setConnectTimeout(Math.min(timeoutSeconds * 1000, 10_000));
+        connection.setReadTimeout(timeoutSeconds * 1000);
+        headers.forEach(connection::setRequestProperty);
+
+        try
+        {
+            int status = connection.getResponseCode();
+            InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
+            return new Response(status, readAll(stream));
+        }
+        finally
+        {
+            connection.disconnect();
+        }
+    }
+
     private static byte[] readAll(InputStream stream) throws IOException
     {
         if (stream == null)

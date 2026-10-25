@@ -3,6 +3,7 @@ package com.cristoree.rocco.client.config;
 import com.cristoree.rocco.client.config.RoccoConfigCategories.Category;
 import com.cristoree.rocco.client.config.RoccoConfigCategories.Group;
 import com.cristoree.rocco.client.config.RoccoConfigCategories.Option;
+import com.cristoree.rocco.client.setup.RoccoSetupScreen;
 import com.cristoree.rocco.config.RoccoClientConfig;
 import com.cristoree.rocco.config.RoccoCommonConfig;
 import net.minecraft.ChatFormatting;
@@ -65,35 +66,45 @@ public class RoccoConfigScreen extends Screen
         // Sin las franjas de arriba y abajo: taparian el buscador y el boton Listo.
         this.results.setRenderTopAndBottom(false);
 
+        // Los temas, con Personalidad (que tiene su propia pantalla) despues de General, y al final
+        // las teclas y el asistente de bienvenida.
+        List<Entry> entries = new ArrayList<>();
         List<Category> categories = RoccoConfigCategories.all();
-        int total = categories.size() + 1;
+        for (int i = 0; i < categories.size(); i++)
+        {
+            Category category = categories.get(i);
+            boolean available = category.groups().stream()
+                    .flatMap(group -> group.options().stream())
+                    .anyMatch(Option::loaded);
+            entries.add(new Entry(Component.literal(category.name()), Component.literal(category.description()),
+                    category.icon(), () -> this.minecraft.setScreen(new RoccoCategoryScreen(this, category)), available));
+            if (i == 0)
+            {
+                entries.add(new Entry(Component.translatable("rocco.personality.title"),
+                        Component.translatable("rocco.personality.button.tip"), () -> new ItemStack(Items.POPPY),
+                        () -> this.minecraft.setScreen(new RoccoPersonalityScreen(this)), RoccoCommonConfig.SPEC.isLoaded()));
+            }
+        }
+        entries.add(new Entry(Component.literal("Teclas"),
+                Component.literal("La tecla para hablarle por micrófono (V por defecto) y las demás teclas del juego."),
+                () -> new ItemStack(Items.LEVER),
+                () -> this.minecraft.setScreen(new KeyBindsScreen(this, this.minecraft.options)), true));
+        entries.add(new Entry(Component.translatable("rocco.setup.button"), Component.translatable("rocco.setup.button.tip"),
+                () -> new ItemStack(Items.WHEAT_SEEDS),
+                () -> this.minecraft.setScreen(new RoccoSetupScreen(this)), RoccoCommonConfig.SPEC.isLoaded()));
+
         int columns = this.width >= 3 * BUTTON_WIDTH + 2 * GAP + 20 ? 3 : 2;
         int rowWidth = columns * BUTTON_WIDTH + (columns - 1) * GAP;
         int left = (this.width - rowWidth) / 2;
 
-        for (int i = 0; i < total; i++)
+        for (int i = 0; i < entries.size(); i++)
         {
+            Entry entry = entries.get(i);
             int x = left + (i % columns) * (BUTTON_WIDTH + GAP);
             int y = GRID_TOP + (i / columns) * (BUTTON_HEIGHT + GAP);
-            Button button;
-            if (i < categories.size())
-            {
-                Category category = categories.get(i);
-                boolean available = category.groups().stream()
-                        .flatMap(group -> group.options().stream())
-                        .anyMatch(Option::loaded);
-                button = new IconButton(x, y, Component.literal(category.name()), category.icon(),
-                        b -> this.minecraft.setScreen(new RoccoCategoryScreen(this, category)));
-                button.setTooltip(Tooltip.create(Component.literal(category.description())));
-                button.active = available;
-            }
-            else
-            {
-                button = new IconButton(x, y, Component.literal("Teclas"), () -> new ItemStack(Items.LEVER),
-                        b -> this.minecraft.setScreen(new KeyBindsScreen(this, this.minecraft.options)));
-                button.setTooltip(Tooltip.create(Component.literal(
-                        "La tecla para hablarle por micrófono (V por defecto) y las demás teclas del juego.")));
-            }
+            Button button = new IconButton(x, y, entry.name(), entry.icon(), b -> entry.open().run());
+            button.setTooltip(Tooltip.create(entry.tip()));
+            button.active = entry.active();
             this.categoryButtons.add(addRenderableWidget(button));
         }
 
@@ -168,7 +179,7 @@ public class RoccoConfigScreen extends Screen
         this.minecraft.setScreen(this.parent);
     }
 
-    static void saveAll()
+    public static void saveAll()
     {
         if (RoccoCommonConfig.SPEC.isLoaded())
         {
@@ -179,6 +190,8 @@ public class RoccoConfigScreen extends Screen
             RoccoClientConfig.SPEC.save();
         }
     }
+
+    private record Entry(Component name, Component tip, Supplier<ItemStack> icon, Runnable open, boolean active) {}
 
     // Boton con el icono de un item a la izquierda y el texto al lado.
     static class IconButton extends Button

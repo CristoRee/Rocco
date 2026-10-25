@@ -1,5 +1,24 @@
 # Cambios
 
+## 1.2.0
+
+### Nuevo
+- **Personalidad nueva:** Rocco es un compañero de aventuras irónico y sarcástico, que se burla con cariño y lo demuestra ayudando.
+  - **Memoria:** se acuerda de lo que le contás (tus gustos, tus planes, tus promesas, tus metidas de pata) y te lo recuerda más adelante. Lo de este mundo se guarda con el mundo; lo tuyo como persona (tu bebida favorita, tu apodo) vale en todos los mundos.
+  - **Comentarios por su cuenta:** cuando hay silencio un rato, comenta lo que estás haciendo (o lo que no estás haciendo), lo que llevás encima, lo que hay alrededor, un dato curioso o te pregunta por tus planes. Con "callate un rato" se calla.
+  - **Menos repeticiones:** lleva la cuenta de las frases que viene usando y las evita.
+  - **Confianza:** de desconocidos a mejores amigos, con el tiempo juntos y las charlas. Con más confianza se anima a más.
+- **Tres modos:** Chill (de fábrica), Sin filtro y Personalizado, donde se ajusta cada rasgo. Se cambian con el juego abierto, desde la config o con `/rocco personalidad`.
+- **Imitaciones:** habla como personajes y famosos si se lo pedís. La voz de cada uno se puede elegir en la config.
+- **Voz con emociones:** con Fish Audio (modelo s1), la voz cambia de tono según lo que dice.
+- **Pantalla de bienvenida:** claves de IA, voz y micrófono, cada una con su botón para probarla, más la tecla para hablar y la personalidad. `/rocco setup` la vuelve a abrir.
+- Si al entrar a un mundo Rocco no tiene IA, avisa una vez con un cartelito.
+
+### Cambiado
+- Si un proveedor bloquea una respuesta, Rocco lo dice en personaje en vez de mostrar el error. Los problemas de la IA se avisan una sola vez.
+- `recordar` y `olvidar` ahora son para la memoria; los lugares siguen con `recordar_lugar` y `olvidar_lugar`.
+- Quien tenía la personalidad vieja editada no la pierde: se le ofrece usarla como archivo propio.
+
 ## 1.1.0
 
 ### Nuevo
