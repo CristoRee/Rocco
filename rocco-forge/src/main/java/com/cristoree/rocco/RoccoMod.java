@@ -1,6 +1,7 @@
 package com.cristoree.rocco;
 
 import com.cristoree.rocco.client.RoccoClientHooks;
+import com.cristoree.rocco.client.RoccoParticles.Look;
 import com.cristoree.rocco.client.RoccoRenderer;
 import com.cristoree.rocco.config.RoccoConfig;
 import com.cristoree.rocco.entity.RoccoEntity;
@@ -105,6 +106,26 @@ public class RoccoMod
             event.registerSpriteSet(ModParticles.MAGIC_RUNE.get(), com.cristoree.rocco.client.RoccoParticles.MagicRuneProvider::new);
             event.registerSpriteSet(ModParticles.MAGIC_SPARK.get(), com.cristoree.rocco.client.RoccoParticles.MagicSparkProvider::new);
             event.registerSpriteSet(ModParticles.MAGIC_BURST.get(), com.cristoree.rocco.client.RoccoParticles.MagicBurstProvider::new);
+            tuned(event, ModParticles.LEAF_SPARKLE.get(), Look.LEAF_SPARKLE);
+            tuned(event, ModParticles.LEAF_BURST.get(), Look.LEAF_BURST);
+            tuned(event, ModParticles.SPEED_LEAF.get(), Look.SPEED_LEAF);
+            tuned(event, ModParticles.WIND_STREAK.get(), Look.WIND_STREAK);
+            tuned(event, ModParticles.WIND_PUFF.get(), Look.WIND_PUFF);
+            tuned(event, ModParticles.WIND_TEAR.get(), Look.WIND_TEAR);
+            tuned(event, ModParticles.LAND_DUST.get(), Look.LAND_DUST);
+            tuned(event, ModParticles.DUCK_POP.get(), Look.DUCK_POP);
+            tuned(event, ModParticles.WATER_DROP.get(), Look.WATER_DROP);
+            tuned(event, ModParticles.THINK_DOT.get(), Look.THINK_DOT);
+            tuned(event, ModParticles.CLAP_SPARK.get(), Look.CLAP_SPARK);
+            tuned(event, ModParticles.CONFETTI.get(), Look.CONFETTI);
+            tuned(event, ModParticles.MUSIC_NOTE.get(), Look.MUSIC_NOTE);
+            tuned(event, ModParticles.DANCE_SPARKLE.get(), Look.DANCE_SPARKLE);
+        }
+
+        private static void tuned(net.minecraftforge.client.event.RegisterParticleProvidersEvent event,
+                                  net.minecraft.core.particles.SimpleParticleType type, Look look)
+        {
+            event.registerSpriteSet(type, sprites -> new com.cristoree.rocco.client.RoccoParticles.TunedProvider(sprites, look));
         }
 
         // La tecla del microfono queda en Opciones > Controles, categoria Rocco.

@@ -50,7 +50,7 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         return ANIMATION_FALLBACKS;
     }
 
-    // El modelo trae las catorce caras encimadas y la planta puesta: las animaciones mueven las
+    // El modelo trae las veinte caras encimadas y la planta puesta: las animaciones mueven las
     // partes, pero es aca donde se decide cuales existen en cada fotograma.
     @Override
     public void setCustomAnimations(RoccoEntity rocco, long instanceId, AnimationState<RoccoEntity> animationState)
@@ -81,15 +81,21 @@ public class RoccoModel extends GeoModel<RoccoEntity>
 
         // El mate, el termo y las esferas de magia viven escondidos adentro del cuerpo; igual se
         // tapan de verdad cuando no se usan, porque algunas animaciones abren la boca o la tapa.
-        boolean mate = rocco.getActiveTask() == RoccoTask.MATE;
-        boolean magic = rocco.getActiveTask() == RoccoTask.ENCHANTING;
+        // Se muestran si la animacion que se esta viendo es la suya, ademas de si el servidor dice
+        // que esta en esa tarea: antes dependia solo de lo segundo, y si ese dato llegaba tarde
+        // (o no llegaba) Rocco hacia todo el mate con las manos vacias.
+        String playing = playingAnimation(rocco, instanceId);
+        boolean mate = rocco.getActiveTask() == RoccoTask.MATE || playing.equals("animation.rocco.mate");
+        boolean magic = rocco.getActiveTask() == RoccoTask.ENCHANTING || playing.startsWith("animation.rocco.enchant");
         for (String bone : MATE_BONES)
         {
             hide(bone, !mate);
         }
+        // Solo los cubos de las esferas: adentro estan los localizadores de las manos, que tambien
+        // usan los aplausos y el baile para sus particulas.
         for (String bone : MAGIC_BONES)
         {
-            hide(bone, !magic);
+            getBone(bone).ifPresent(sphere -> sphere.setHidden(!magic));
         }
 
         // Los localizadores de particulas tienen que saber donde quedan en el mundo.
@@ -103,7 +109,20 @@ public class RoccoModel extends GeoModel<RoccoEntity>
 
     private static final String[] MATE_BONES = {"mate", "termo", "mate_water"};
     private static final String[] MAGIC_BONES = {"magic_right", "magic_left"};
-    public static final String[] LOCATORS = {"fx_head", "fx_mate", "fx_spout", "fx_magic_right", "fx_magic_left"};
+    // Las hojas-ala, el mechon, el patito, las antiparras, el barquito y el remo no se tocan desde
+    // aca: las animaciones los sacan y los guardan (en las demas quedan en escala 0).
+    public static final String[] LOCATORS = {"fx_head", "fx_mate", "fx_spout", "fx_magic_right", "fx_magic_left",
+            "fx_wing_right", "fx_wing_left", "fx_tear_right", "fx_tear_left", "fx_snorkel", "fx_ring", "fx_boat",
+            "fx_paddle_right", "fx_paddle_left"};
+
+    // La animacion que el controlador principal esta mostrando en este momento ("" si ninguna).
+    private static String playingAnimation(RoccoEntity rocco, long instanceId)
+    {
+        var manager = rocco.getAnimatableInstanceCache().getManagerForId(instanceId);
+        var controller = manager == null ? null : manager.getAnimationControllers().get("main");
+        var current = controller == null ? null : controller.getCurrentAnimation();
+        return current == null ? "" : current.animation().name();
+    }
 
     // El giro se SUMA al que ya trae la animacion, no lo reemplaza: en plant y harvest la mirada
     // hacia abajo viene del fotograma, asi que aca solo se corrige el costado.

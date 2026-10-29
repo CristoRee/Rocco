@@ -28,7 +28,25 @@ public final class RoccoVoice
     // nombre, la frase sale con esa voz; si no, con la de Rocco.
     public static void speak(RoccoEntity rocco, String text, @org.jetbrains.annotations.Nullable String impression)
     {
-        if (!RoccoConfig.voiceReady() || !(rocco.level() instanceof ServerLevel level))
+        if (!RoccoCommonConfig.ENABLED.get() || !RoccoCommonConfig.VOICE_ENABLED.get()
+                || !(rocco.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+
+        // Primero las frases grabadas: no necesitan clave ni gastan nada. Si la frase es de las de
+        // siempre (o varias seguidas) y estan todas grabadas, suenan esas.
+        if (impression == null && RoccoCommonConfig.VOICE_RECORDED_LINES.get())
+        {
+            java.util.List<String> recorded = recordedLines(text);
+            if (recorded != null)
+            {
+                sendLines(level, rocco, recorded);
+                return;
+            }
+        }
+
+        if (!RoccoConfig.voiceReady())
         {
             return;
         }
@@ -75,6 +93,81 @@ public final class RoccoVoice
                 }
             });
         });
+    }
+
+    // ---------- frases grabadas ----------
+
+    private static final java.util.Map<String, Boolean> RECORDED = new java.util.concurrent.ConcurrentHashMap<>();
+    private static java.util.List<String> recordable;
+
+    // Los codigos de las frases grabadas que forman este texto, en orden ("Voy. Alguien tiene que
+    // cuidarte." -> [follow_1]). Varias frases seguidas tambien valen. null si alguna parte no es
+    // una frase fija o todavia no tiene su audio.
+    @org.jetbrains.annotations.Nullable
+    static java.util.List<String> recordedLines(String text)
+    {
+        String rest = text.trim();
+        java.util.List<String> ids = new java.util.ArrayList<>();
+        while (!rest.isEmpty())
+        {
+            String found = null;
+            for (String line : recordable())
+            {
+                boolean whole = rest.length() == line.length() || Character.isWhitespace(rest.charAt(line.length()));
+                if (rest.startsWith(line) && whole && (found == null || line.length() > found.length()))
+                {
+                    found = line;
+                }
+            }
+            String id = found == null ? null : com.cristoree.rocco.ai.OfflineRocco.lineId(found);
+            if (id == null || !hasRecording(id))
+            {
+                return null;
+            }
+            ids.add(id);
+            rest = rest.substring(found.length()).trim();
+        }
+        return ids.isEmpty() ? null : ids;
+    }
+
+    private static synchronized java.util.List<String> recordable()
+    {
+        if (recordable == null)
+        {
+            java.util.List<String> lines = new java.util.ArrayList<>();
+            for (String[] category : com.cristoree.rocco.ai.OfflineRocco.allLines().values())
+            {
+                for (String line : category)
+                {
+                    if (!line.contains("{"))
+                    {
+                        lines.add(line.trim());
+                    }
+                }
+            }
+            recordable = lines;
+        }
+        return recordable;
+    }
+
+    // El audio viene adentro del mod: se mira una sola vez si existe.
+    public static boolean hasRecording(String id)
+    {
+        return RECORDED.computeIfAbsent(id, key ->
+                RoccoVoice.class.getResource("/assets/" + RoccoMod.MODID + "/voice_lines/" + key + ".ogg") != null);
+    }
+
+    private static void sendLines(ServerLevel level, RoccoEntity rocco, java.util.List<String> ids)
+    {
+        double radius = RoccoCommonConfig.CHAT_HEARING_RADIUS.get() + 8.0D;
+        RoccoNetwork.VoiceLines packet = new RoccoNetwork.VoiceLines(rocco.getId(), ids);
+        for (ServerPlayer player : level.players())
+        {
+            if (player.distanceToSqr(rocco) <= radius * radius)
+            {
+                RoccoNetwork.sendLines(player, packet);
+            }
+        }
     }
 
     // La voz no lee etiquetas de cara ni cosas que no se pronuncian.

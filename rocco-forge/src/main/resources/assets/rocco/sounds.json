@@ -142,6 +142,85 @@
       "rocco:magic_burst2"
     ]
   },
+  "mate_sigh": {
+    "subtitle": "subtitles.rocco.mate_sigh",
+    "sounds": [
+      "rocco:mate_sigh1",
+      "rocco:mate_sigh2"
+    ]
+  },
+  "leaf_fwip": {
+    "subtitle": "subtitles.rocco.leaf_fwip",
+    "sounds": [
+      "rocco:leaf_fwip1",
+      "rocco:leaf_fwip2"
+    ]
+  },
+  "leaf_grow": {
+    "subtitle": "subtitles.rocco.leaf_grow",
+    "sounds": [
+      "rocco:leaf_grow1",
+      "rocco:leaf_grow2"
+    ]
+  },
+  "leaf_flap": {
+    "subtitle": "subtitles.rocco.leaf_flap",
+    "sounds": [
+      "rocco:leaf_flap1",
+      "rocco:leaf_flap2",
+      "rocco:leaf_flap3"
+    ]
+  },
+  "duck_squeak": {
+    "subtitle": "subtitles.rocco.duck_squeak",
+    "sounds": [
+      "rocco:duck_squeak1",
+      "rocco:duck_squeak2"
+    ]
+  },
+  "duck_pop": {
+    "subtitle": "subtitles.rocco.duck_pop",
+    "sounds": [
+      "rocco:duck_pop1",
+      "rocco:duck_pop2"
+    ]
+  },
+  "clap": {
+    "subtitle": "subtitles.rocco.clap",
+    "sounds": [
+      "rocco:clap1",
+      "rocco:clap2",
+      "rocco:clap3"
+    ]
+  },
+  "hum": {
+    "subtitle": "subtitles.rocco.hum",
+    "sounds": [
+      "rocco:hum1",
+      "rocco:hum2"
+    ]
+  },
+  "cheer": {
+    "subtitle": "subtitles.rocco.cheer",
+    "sounds": [
+      "rocco:cheer1",
+      "rocco:cheer2"
+    ]
+  },
+  "giggle": {
+    "subtitle": "subtitles.rocco.giggle",
+    "sounds": [
+      "rocco:giggle1",
+      "rocco:giggle2"
+    ]
+  },
+  "think": {
+    "subtitle": "subtitles.rocco.think",
+    "sounds": [
+      "rocco:think1",
+      "rocco:think2"
+    ]
+  },
   "voice": {
     "subtitle": "subtitles.rocco.voice",
     "sounds": [

@@ -68,6 +68,37 @@ public final class OfflineRocco
     private static final Pattern HELP = Pattern.compile("\\b(ayuda|help|que podes hacer|que sabes hacer|comandos)\\b");
     private static final Pattern THANKS = Pattern.compile("\\b(gracias|thanks|genio|crack|groso|capo|bien hecho|te quiero|sos lo mas)\\b");
     private static final Pattern GREETING = Pattern.compile("\\b(hola|buenas|hey|hi|hello|que tal|como estas|como va|ey)\\b");
+    private static final Pattern GOODNIGHT = Pattern.compile("\\b(buenas noches|hasta manana|que descanses|que duermas bien)\\b");
+    private static final Pattern GOODMORNING = Pattern.compile("\\b(buen dia|buenos dias|buenas tardes)\\b");
+    private static final Pattern FAREWELL = Pattern.compile("\\b(chau|chao|adios|nos vemos|hasta luego|me voy|bye|me desconecto|me tengo que ir)\\b");
+    private static final Pattern HOW_ARE_YOU = Pattern.compile("\\b(como estas|como andas|como te va|como te sentis|todo bien|que onda|como va)\\b");
+    private static final Pattern WHAT_DOING = Pattern.compile("\\b(que haces|que estas haciendo|en que andas)\\b");
+    private static final Pattern JOKE = Pattern.compile("\\b(chiste|algo gracioso|hace(me)? reir)\\b");
+    private static final Pattern FACT = Pattern.compile("\\b(contame algo|un dato|dato curioso|curiosidad|sabias que|ensename|un tip|un consejo|dame un consejo)\\b");
+    private static final Pattern BORED_PLAYER = Pattern.compile("\\b(me aburro|estoy aburrid\\w*|que hago|que hacemos|no se que hacer|aburrido)\\b");
+    private static final Pattern HUNGRY = Pattern.compile("\\b(tengo hambre|me muero de hambre|hambre)\\b");
+    private static final Pattern TIRED = Pattern.compile("\\b(estoy cansad\\w*|tengo sueno|me caigo de sueno|agotad\\w*)\\b");
+    private static final Pattern PLAYER_SAD = Pattern.compile("\\b(estoy triste|me siento mal|tuve un mal dia|estoy mal|triste|bajon)\\b");
+    private static final Pattern PLAYER_HAPPY = Pattern.compile("\\b(estoy feliz|estoy contento|que buen dia|que lindo dia|re feliz)\\b");
+    private static final Pattern PLAYER_SCARED = Pattern.compile("\\b(tengo miedo|que miedo|me da miedo|socorro|auxilio|ayudame)\\b");
+    private static final Pattern COMPLIMENT = Pattern.compile(
+            "\\b(sos|estas) (re |muy |tan |un |el )?(lindo|tierno|hermoso|genial|amor|divino|bonito|mejor|facherito)\\b"
+            + "|\\bque (lindo|tierno|hermoso) (sos|que sos)\\b|\\bque tierno\\b|\\bte amo\\b|\\bque facha\\b");
+    private static final Pattern SORRY = Pattern.compile("\\b(perdon|perdoname|disculpa\\w*|lo siento|sorry)\\b");
+    private static final Pattern LAUGH = Pattern.compile("\\b(ja(ja)+|je(je)+|js(js)+|xd+|lol|lmao)\\b");
+    private static final Pattern SHUSH = Pattern.compile("\\b(callate|calla|silencio|shh+|no hables|deja de hablar|hablas mucho)\\b");
+    private static final Pattern CHATTY = Pattern.compile("\\b(habla mas|deci algo|di algo|estas muy callado|estas callado)\\b");
+    private static final Pattern AGREE = Pattern.compile("^(si+|dale|ok|okey|oka|bueno|listo|joya|de una|obvio|claro)[.! ]*$");
+    private static final Pattern DISAGREE = Pattern.compile("^(no|nop|nah|nunca|para nada|ni loco)[.! ]*$");
+    private static final Pattern ORIGIN = Pattern.compile("\\b(cuantos anos tenes|que edad tenes|de donde sos|madre tierra|madre naturaleza|como naciste|quien te creo|quien te hizo)\\b");
+    private static final Pattern LIKES = Pattern.compile("\\b(que te gusta|te gusta|tu favorit\\w*|lo que mas te gusta|que odias|que no te gusta)\\b");
+    private static final Pattern MATE_TALK = Pattern.compile("\\bmate(s|cito)?\\b");
+    private static final Pattern MOBS = Pattern.compile("\\b(creeper\\w*|zombi\\w*|esqueleto\\w*|enderman|aranas?|bruja\\w*|phantom\\w*|monstruos?|bichos)\\b");
+    private static final Pattern ORES = Pattern.compile("\\b(diamante\\w*|minerales|esmeralda\\w*|netherita\\w*)\\b|\\bvamos a minar\\b");
+    private static final Pattern DIMENSIONS = Pattern.compile("\\b(nether|el end|dragon|wither|portal)\\b");
+    private static final Pattern WEATHER = Pattern.compile("\\b(llueve|lluvia|tormenta|el clima|esta lloviendo|truenos?)\\b");
+    private static final Pattern TIME = Pattern.compile("\\b(que hora|hora es|es de noche|es de dia|se hace de noche)\\b");
+    private static final Pattern ROCCO_OK = Pattern.compile("\\b(estas bien|te duele|te lastime|te pegue|te hice mal)\\b");
 
     public static Answer reply(RoccoEntity rocco, String message)
     {
@@ -128,7 +159,7 @@ public final class OfflineRocco
             return act("wait", RoccoExpression.SMUG, "esperar", "");
         }
 
-        // Despues, la charla.
+        // Despues, la charla. De lo mas puntual a lo mas general.
         if (DEATH.matcher(text).find())
         {
             return death(rocco);
@@ -141,27 +172,279 @@ public final class OfflineRocco
         {
             return say("rude", RoccoExpression.SMUG);
         }
+        if (SORRY.matcher(text).find())
+        {
+            return say("sorry", RoccoExpression.SMUG);
+        }
+        if (ROCCO_OK.matcher(text).find())
+        {
+            return say("rocco_ok", RoccoExpression.HAPPY);
+        }
+        if (SHUSH.matcher(text).find())
+        {
+            return say("shush", RoccoExpression.BORED);
+        }
+        if (CHATTY.matcher(text).find())
+        {
+            return say("chatty", RoccoExpression.HAPPY);
+        }
         if (WHO.matcher(text).find())
         {
             return say("who", RoccoExpression.SMUG);
+        }
+        if (ORIGIN.matcher(text).find())
+        {
+            return say("origin", RoccoExpression.SMUG);
         }
         if (HELP.matcher(text).find())
         {
             return say("help", RoccoExpression.SERIOUS);
         }
+        if (COMPLIMENT.matcher(text).find())
+        {
+            return say("compliment", RoccoExpression.CHEER);
+        }
         if (THANKS.matcher(text).find())
         {
             return say("thanks", RoccoExpression.SMUG);
         }
+        if (PLAYER_SCARED.matcher(text).find())
+        {
+            return say("player_scared", RoccoExpression.SERIOUS);
+        }
+        if (PLAYER_SAD.matcher(text).find())
+        {
+            return say("player_sad", RoccoExpression.SAD);
+        }
+        if (PLAYER_HAPPY.matcher(text).find())
+        {
+            return say("player_happy", RoccoExpression.CHEER);
+        }
+        if (TIRED.matcher(text).find())
+        {
+            return say("player_tired", RoccoExpression.BORED);
+        }
+        if (HUNGRY.matcher(text).find())
+        {
+            return say("player_hungry", RoccoExpression.SERIOUS);
+        }
+        if (BORED_PLAYER.matcher(text).find())
+        {
+            return say("player_bored", RoccoExpression.SMUG);
+        }
+        if (JOKE.matcher(text).find())
+        {
+            return say("joke", RoccoExpression.SMUG);
+        }
+        if (FACT.matcher(text).find())
+        {
+            return say("fact", RoccoExpression.HAPPY);
+        }
+        if (WHAT_DOING.matcher(text).find())
+        {
+            return say(rocco != null && rocco.currentErrand() != null ? "what_doing_busy" : "what_doing", RoccoExpression.SMUG);
+        }
+        if (TIME.matcher(text).find())
+        {
+            boolean night = rocco != null && rocco.level().isNight();
+            return say(night ? "time_night" : "time_day", RoccoExpression.HAPPY);
+        }
+        if (WEATHER.matcher(text).find())
+        {
+            return say("weather_talk", RoccoExpression.BORED);
+        }
+        if (MOBS.matcher(text).find())
+        {
+            return say("mobs_talk", RoccoExpression.SERIOUS);
+        }
+        if (ORES.matcher(text).find())
+        {
+            return say("ores_talk", RoccoExpression.SMUG);
+        }
+        if (DIMENSIONS.matcher(text).find())
+        {
+            return say("dimension_talk", RoccoExpression.SERIOUS);
+        }
+        if (MATE_TALK.matcher(text).find())
+        {
+            return say("mate_talk", RoccoExpression.HAPPY);
+        }
+        if (LIKES.matcher(text).find())
+        {
+            return say("likes", RoccoExpression.HAPPY);
+        }
+        if (GOODNIGHT.matcher(text).find())
+        {
+            return say("goodnight", RoccoExpression.HAPPY);
+        }
+        if (GOODMORNING.matcher(text).find())
+        {
+            return say("goodmorning", RoccoExpression.HAPPY);
+        }
+        if (FAREWELL.matcher(text).find())
+        {
+            return say("farewell", RoccoExpression.SAD);
+        }
+        if (HOW_ARE_YOU.matcher(text).find())
+        {
+            return say("how_are_you", RoccoExpression.HAPPY);
+        }
         if (GREETING.matcher(text).find())
         {
             return say("greeting", RoccoExpression.HAPPY);
+        }
+        if (LAUGH.matcher(text).find())
+        {
+            return say("laugh", RoccoExpression.HAPPY);
+        }
+        if (AGREE.matcher(text).find())
+        {
+            return say("agree", RoccoExpression.HAPPY);
+        }
+        if (DISAGREE.matcher(text).find())
+        {
+            return say("disagree", RoccoExpression.BORED);
         }
         if (text.contains("?"))
         {
             return say("question", RoccoExpression.SMUG);
         }
         return say("filler", RoccoExpression.BORED);
+    }
+
+    // ---------- ahorro de IA: ordenes que se resuelven solas ----------
+
+    // La frase tiene que empezar con la orden ("crafteame un pico", "porfa segui", "podes traerme
+    // carbon"), no tenerla perdida en el medio: "me encanta como cocinas" no es una orden de cocinar.
+    private static final Pattern LEADING_FILLER = Pattern.compile(
+            "^((che|dale|porfa|por favor|bueno|ahora|ya|y|ey|oye|eh|a ver|tipo|mira),?\\s+)+");
+    private static final Pattern COMMAND_START = Pattern.compile("^(no me sigas|deja de|para|basta|stop|cancela\\w*"
+            + "|segui\\w*|sigueme|veni\\w*|ven|vente|espera\\w*|quedate|quieto|senta\\w*|sientate|dormi\\w*|duerme\\w*|a mimir"
+            + "|levanta\\w*|desperta\\w*|despierta\\w*|planta\\w*|sembra\\w*|siembra\\w*|cosecha\\w*|abri\\w*|cerra\\w*"
+            + "|come\\w*|trag\\w*|craftea\\w*|fabrica\\w*|hace\\w*|haz\\w*|arma\\w*|construi\\w*|construye\\w*|cocina\\w*"
+            + "|asa\\w*|hornea\\w*|funde|fundi\\w*|derreti\\w*|guarda\\w*|deja\\w*|saca\\w*|agarra\\w*|rompe\\w*|quita\\w*"
+            + "|pone\\w*|pon|coloca\\w*|trae\\w*|alcanza\\w*|dame\\w*|pasame\\w*|tira\\w*|suelta\\w*|larga\\w*|junta\\w*"
+            + "|recoge\\w*|consegui\\w*|consigue\\w*|busca\\w*|fijate|mina\\w*|pica\\w*|tala\\w*|corta\\w*|ilumina\\w*"
+            + "|alumbra\\w*|ara\\w*|labra\\w*|prepara\\w*|cuida\\w*|atende\\w*|encanta\\w*|hechiza\\w*|toma\\w*|ceba\\w*"
+            + "|teletransport\\w*|tepea\\w*|tpea\\w*|aparece\\w*|llevame|guiame|acompaname|cria\\w*|pesca\\w*|compra\\w*"
+            + "|vende\\w*|ordena\\w*|acomoda\\w*|organiza\\w*|baila\\w*|bailemos|aplaud\\w*|festej\\w*|celebra\\w*"
+            + "|anda|andate|podes|podrias|puedes|me podes|me (hace|haces|trae|traes|das|pasa|pasas|craftea|crafteas|cocina"
+            + "|cocinas|guarda|guardas|busca|buscas|consigue|conseguis)\\w*|follow|come here|stay|wait|sit|sleep|wake up)\\b");
+    // Preguntas sobre si sabe o puede: eso es charla, no una orden ("sabes cocinar?").
+    private static final Pattern ABILITY_QUESTION = Pattern.compile("^(sabes|sabias|como|que|por que|cuando|donde|cual|te gusta)\\b");
+
+    // Una orden corta y clara que Rocco hace solo, sin preguntarle a la IA. null si conviene que la
+    // conteste la IA (charla, preguntas, frases largas o con matices).
+    public static Answer localOrder(RoccoEntity rocco, String message)
+    {
+        String text = LEADING_FILLER.matcher(normalize(message)).replaceFirst("").trim();
+        if (text.isEmpty() || text.split("\\s+").length > 10 || ABILITY_QUESTION.matcher(text).find()
+                || !COMMAND_START.matcher(text).find())
+        {
+            return null;
+        }
+        Answer answer = reply(rocco, text);
+        return answer.verb() == null ? null : answer;
+    }
+
+    // ---------- lo que dice por su cuenta sin IA ----------
+
+    private static final Map<java.util.UUID, String> LAST_SPONTANEOUS = new ConcurrentHashMap<>();
+
+    // Que comentar segun lo que pasa: poca vida, hambre, bichos cerca, la noche, la lluvia, una
+    // cueva, el agua, el jugador quieto... o algo que se le ocurra. Nunca dos veces seguidas lo mismo.
+    public static String spontaneous(RoccoEntity rocco, net.minecraft.server.level.ServerPlayer owner,
+                                     net.minecraft.util.RandomSource random)
+    {
+        java.util.List<String> pool = new java.util.ArrayList<>();
+        net.minecraft.world.level.Level level = owner.level();
+        boolean sky = level.canSeeSky(owner.blockPosition());
+        if (owner.getHealth() < 7.0F)
+        {
+            add(pool, "spont_low_health", 4);
+        }
+        if (owner.getFoodData().getFoodLevel() < 6)
+        {
+            add(pool, "spont_hungry", 3);
+        }
+        if (!level.getEntitiesOfClass(net.minecraft.world.entity.monster.Monster.class, owner.getBoundingBox().inflate(12.0D),
+                net.minecraft.world.entity.LivingEntity::isAlive).isEmpty())
+        {
+            add(pool, "spont_danger", 3);
+        }
+        if (level.isNight() && sky)
+        {
+            add(pool, "spont_night", 2);
+        }
+        if (level.isRaining() && sky)
+        {
+            add(pool, "spont_rain", 2);
+        }
+        if (!sky && owner.getY() < 40.0D)
+        {
+            add(pool, "spont_cave", 2);
+        }
+        if (owner.isInWater())
+        {
+            add(pool, "spont_water", 2);
+        }
+        if (rocco.ownerStillTicks() > 3 * 1200)
+        {
+            add(pool, "spont_idle_player", 2);
+        }
+        add(pool, "spont_musing", 3);
+        add(pool, "spont_fact", 2);
+        add(pool, "spont_question", 1);
+
+        String last = LAST_SPONTANEOUS.get(owner.getUUID());
+        if (pool.size() > 1 && last != null)
+        {
+            pool.removeIf(last::equals);
+        }
+        String chosen = pool.isEmpty() ? "spont_musing" : pool.get(random.nextInt(pool.size()));
+        LAST_SPONTANEOUS.put(owner.getUUID(), chosen);
+        return chosen;
+    }
+
+    private static void add(java.util.List<String> pool, String category, int weight)
+    {
+        for (int i = 0; i < weight; i++)
+        {
+            pool.add(category);
+        }
+    }
+
+    // ---------- frases grabadas ----------
+
+    private static Map<String, String> byText;
+
+    // El codigo de una frase fija ("follow_2", la segunda de "follow"), para buscar su audio
+    // grabado. null si no es una frase de la tabla o si tiene datos que cambian ({item}, {pos}).
+    public static synchronized String lineId(String text)
+    {
+        if (byText == null)
+        {
+            Map<String, String> map = new java.util.HashMap<>();
+            for (Map.Entry<String, String[]> entry : LINES.entrySet())
+            {
+                String[] lines = entry.getValue();
+                for (int i = 0; i < lines.length; i++)
+                {
+                    if (!lines[i].contains("{"))
+                    {
+                        map.putIfAbsent(lines[i].trim(), entry.getKey() + "_" + (i + 1));
+                    }
+                }
+            }
+            byText = map;
+        }
+        return text == null ? null : byText.get(text.trim());
+    }
+
+    // Todas las frases, por categoria (para armar la lista de grabacion).
+    public static Map<String, String[]> allLines()
+    {
+        return LINES;
     }
 
     private static final Pattern CALL = Pattern.compile("\\b(teletransport\\w*|tepea\\w*|tpea\\w*|aparece\\w*|vente|veni (aca|ya|para aca|rapido|al toque))\\b");
@@ -176,6 +459,9 @@ public final class OfflineRocco
     private static final Pattern FISH = Pattern.compile("\\b(pesca|pescar|pescame|pescate|pesquemos)\\b");
     private static final Pattern BUY = Pattern.compile("\\b(compra\\w*|comprame)\\b(.*)");
     private static final Pattern SELL = Pattern.compile("\\b(vende\\w*|vendele\\w*)\\b(.*)");
+    private static final Pattern DANCE = Pattern.compile("\\b(baila\\w*|bailemos|un bailecito|un baile)\\b");
+    private static final Pattern CLAP = Pattern.compile("\\b(aplaud\\w*|unos aplausos)\\b");
+    private static final Pattern CELEBRATE = Pattern.compile("\\b(festej\\w*|celebra\\w*)\\b");
     private static final Pattern SORT = Pattern.compile("\\b(ordena\\w*|acomoda\\w*|organiza\\w*)\\b.*\\b(cofres?|baul\\w*|barril\\w*|cosas)\\b");
 
     // "Rocco, veni" dicho desde lejos: alcanza con eso para que aparezca.
@@ -194,6 +480,18 @@ public final class OfflineRocco
         if (MATE.matcher(text).find())
         {
             return act("mate_ack", RoccoExpression.HAPPY, "mate", "");
+        }
+        if (DANCE.matcher(text).find())
+        {
+            return act("dance_ack", RoccoExpression.HAPPY, "bailar", "");
+        }
+        if (CLAP.matcher(text).find())
+        {
+            return act("clap_ack", RoccoExpression.CHEER, "aplaudir", "");
+        }
+        if (CELEBRATE.matcher(text).find())
+        {
+            return act("celebrate_ack", RoccoExpression.CHEER, "festejar", "");
         }
 
         Matcher enchant = ENCHANT.matcher(text);
@@ -478,6 +776,34 @@ public final class OfflineRocco
     // La cara que va con cada tipo de frase de trabajo.
     public static RoccoExpression faceFor(String category)
     {
+        switch (category)
+        {
+            case "cheer_small", "cheer_big", "react_fly", "react_boat" ->
+            {
+                return RoccoExpression.CHEER;
+            }
+            case "react_float", "react_dive", "spont_water", "spont_fact", "chatty" ->
+            {
+                return RoccoExpression.HAPPY;
+            }
+            case "spont_danger", "spont_low_health", "spont_cave" ->
+            {
+                return RoccoExpression.SCARED;
+            }
+            case "react_respawn", "left_behind" ->
+            {
+                return RoccoExpression.SAD;
+            }
+            case "spont_idle_player", "spont_rain", "celebrate_cant", "travel_busy" ->
+            {
+                return RoccoExpression.BORED;
+            }
+            case "spont_musing", "spont_question", "spont_night" ->
+            {
+                return RoccoExpression.SMUG;
+            }
+            default -> { }
+        }
         if (category.endsWith("_done") || category.endsWith("_found_it") || category.endsWith("_got_it")
                 || category.endsWith("_set") || category.endsWith("_arrived") || category.endsWith("_saved"))
         {
@@ -562,7 +888,8 @@ public final class OfflineRocco
             Map.entry("help", new String[]{
                     "Planto lo que sea sin semillas, cosecho y replanto, crafteo, cocino, busco en los cofres, guardo, pongo y saco bloques, talo arboles, pongo antorchas y te sigo. Clic derecho y te abro mi tapa.",
                     "Proba 'craftea un pico de piedra', 'cocina las papas', 'traeme carbon del cofre', 'guarda la cosecha en este cofre', 'cuida la huerta', 'ilumina' o 'tala un arbol'.",
-                    "Tambien encanto tus cosas una vez por dia, me tomo unos mates, recuerdo lugares ('esta es mi casa', 'llevame a casa'), crio animales, pesco, comercio con aldeanos y ordeno tus cofres."}),
+                    "Tambien encanto tus cosas una vez por dia, me tomo unos mates, recuerdo lugares ('esta es mi casa', 'llevame a casa'), crio animales, pesco, comercio con aldeanos y ordeno tus cofres.",
+                    "Si volas con elytra vuelo con vos, si nadas floto con mi patito, si buceas me pongo las antiparras y si vas en bote te sigo en mi barquito. Y si me pedis, bailo, aplaudo o festejo."}),
             Map.entry("thanks", new String[]{
                     "Ya se, soy lo mas.",
                     "De nada. Anotalo en la lista de veces que te salve.",
@@ -1012,7 +1339,254 @@ public final class OfflineRocco
             Map.entry("sort_none", new String[]{
                     "No veo cofres por aca para ordenar."}),
             Map.entry("sort_failed", new String[]{
-                    "No pude ordenarlos. No toque nada, tranqui."})
+                    "No pude ordenarlos. No toque nada, tranqui."}),
+
+            // ---------- bailar, aplaudir, festejar ----------
+
+            Map.entry("dance_ack", new String[]{
+                    "Musica, maestro! Bueno, la tarareo yo.",
+                    "A bailar! Mira y aprende estos pasos.",
+                    "Un bailecito? Siempre."}),
+            Map.entry("clap_ack", new String[]{
+                    "Bravo! Bravisimo!",
+                    "Aplausos para vos. Te los ganaste.",
+                    "Eso merece un aplauso."}),
+            Map.entry("celebrate_ack", new String[]{
+                    "A festejar! Yupi!",
+                    "Esto hay que celebrarlo como corresponde!",
+                    "Fiesta! Confeti para todos!"}),
+            Map.entry("celebrate_cant", new String[]{
+                    "Ahora no puedo, estoy en pleno viaje. Despues festejamos.",
+                    "Dejame llegar a tierra firme y festejamos."}),
+            Map.entry("travel_busy", new String[]{
+                    "Asi no puedo, estoy en el medio del viaje.",
+                    "Aca no, que me caigo. Cuando lleguemos."}),
+            Map.entry("cheer_small", new String[]{
+                    "Bien ahi!",
+                    "Eso! Asi se hace.",
+                    "Muy bien. Algo aprendiste de mi.",
+                    "Bravo! Te estas volviendo bueno."}),
+            Map.entry("cheer_big", new String[]{
+                    "Increible! Lo lograste!",
+                    "Siii! Eso fue epico!",
+                    "Que capo! Esto se lo cuento a todas las papas.",
+                    "Lo hiciste! Bueno, lo hicimos."}),
+
+            // ---------- acompañando: vuelo, agua, barco ----------
+
+            Map.entry("left_behind", new String[]{
+                    "Te fuiste muy lejos y deje lo que estaba haciendo. Ya voy.",
+                    "Me dejaste solo! Dejo esto y te alcanzo."}),
+            Map.entry("react_fly", new String[]{
+                    "Alla vamos! Agarrate fuerte.",
+                    "Volar es lo mio. Mira estas hojas!",
+                    "Wiii! Esto es vida."}),
+            Map.entry("react_float", new String[]{
+                    "Agua! Menos mal que traje mi patito.",
+                    "Al agua, patito!",
+                    "Flotar es mi deporte favorito."}),
+            Map.entry("react_dive", new String[]{
+                    "Antiparras puestas. Vamos abajo!",
+                    "A bucear! Yo respiro por el snorkel, vos arreglate."}),
+            Map.entry("react_boat", new String[]{
+                    "Yo tengo mi propio barquito. Mas lindo que el tuyo.",
+                    "A remar! Te sigo de cerca.",
+                    "Mi calabaza navega mejor que tu bote."}),
+            Map.entry("react_respawn", new String[]{
+                    "Te moriste... Pero tranqui, aca estoy. Vamos a buscar tus cosas.",
+                    "Eso dolio. Te dije que tuvieras cuidado.",
+                    "Volviste. Para la proxima, haceme caso."}),
+
+            // ---------- charla sin IA ----------
+
+            Map.entry("how_are_you", new String[]{
+                    "Yo? Impecable, como siempre. Vos como andas?",
+                    "Re bien. Brotado, regado y listo para salvarte la vida.",
+                    "Tranqui. Un poco de sol, un poco de tierra, y soy feliz.",
+                    "Bien, bien. Mejor que vos seguro, pero bien.",
+                    "Todo joya por aca. Aunque un matecito no vendria mal."}),
+            Map.entry("what_doing", new String[]{
+                    "Aca, cuidandote. Es un trabajo de tiempo completo.",
+                    "Nada, mirando como haces las cosas. Y tomando nota de los errores.",
+                    "Esperando que me pidas algo. Dale, que me aburro."}),
+            Map.entry("what_doing_busy", new String[]{
+                    "Estoy en algo. Ya termino y soy todo tuyo.",
+                    "Trabajando, como siempre. Alguien tiene que hacerlo.",
+                    "Ocupadisimo. Pero para vos siempre tengo un ratito."}),
+            Map.entry("joke", new String[]{
+                    "Por que el creeper no tiene amigos? Porque cada vez que se emociona, explota.",
+                    "Por que los esqueletos no se pelean entre ellos? Porque no tienen agallas.",
+                    "Sabes por que el enderman se enoja si lo miras? Porque es muy timido.",
+                    "Un zombie me pidio la receta del pan. Le dije que primero aprenda a no prenderse fuego.",
+                    "Que es verde, explota y te arruina la casa? Exacto. Y no, no soy yo."}),
+            Map.entry("fact", new String[]{
+                    "Dato: con lluvia los peces pican mas rapido.",
+                    "Los diamantes salen bien abajo, cerca de la capa menos 58. Lleva pico de hierro, por lo menos.",
+                    "Si dormis en el Nether, la cama explota. No lo pruebes. O si, pero lejos mio.",
+                    "Los gatos espantan a los creepers. Yo tambien, pero con mi carisma.",
+                    "Con algo de oro puesto, los piglins no te atacan. Son medio fanaticos.",
+                    "La miel cura el veneno. Y es rica. Dato de milagro.",
+                    "Si cae una tormenta sobre un aldeano, se vuelve bruja. Mejor tenerlos bajo techo."}),
+            Map.entry("player_bored", new String[]{
+                    "Aburrido? Con todo el mundo por explorar? Vamos a buscar diamantes.",
+                    "Podriamos hacer una huerta. Bah, la hago yo y vos miras, como siempre.",
+                    "Un mate y una charla? O si queres, te bailo algo.",
+                    "Construi algo lindo. Una casita para mi, por ejemplo. Con jardin.",
+                    "Pescamos un rato? Es lo mas relajante que hay."}),
+            Map.entry("player_hungry", new String[]{
+                    "Comete algo, que con la panza vacia no le ganas ni a una gallina.",
+                    "Si queres te cocino algo. Pasame carne cruda o papas.",
+                    "Hambre? Hay pan, carne, papas... Mientras no me mires a mi, todo bien."}),
+            Map.entry("player_tired", new String[]{
+                    "Anda a dormir un rato. Yo cuido que no se te acerque nada.",
+                    "Descansa, que manana seguimos. Yo me quedo de guardia.",
+                    "Si estas cansado, una cama y listo. Hasta los milagros duermen."}),
+            Map.entry("player_sad", new String[]{
+                    "Ey, aca estoy. No estas solo, tenes al mejor companero del mundo.",
+                    "Que paso? Contame. Y si no queres, nos quedamos tranquilos un rato.",
+                    "Los dias feos pasan. Las papas tambien tienen dias malos y siguen brotando.",
+                    "Veni que te cebo un mate. Eso arregla casi todo."}),
+            Map.entry("player_happy", new String[]{
+                    "Eso! Me encanta verte asi.",
+                    "Que lindo. Se nota que tenerme cerca te hace bien.",
+                    "Bien ahi! La buena onda se contagia."}),
+            Map.entry("player_scared", new String[]{
+                    "Tranqui, que estoy yo. Quedate cerca mio.",
+                    "Respira. Si hay bichos, nos alejamos juntos. Yo te cubro.",
+                    "No pasa nada. Pone antorchas y la mitad de los problemas desaparecen."}),
+            Map.entry("compliment", new String[]{
+                    "Ya lo se, pero gracias por decirlo.",
+                    "Ay, basta. Bueno, no, segui.",
+                    "Me vas a hacer sonrojar las hojitas.",
+                    "Vos tampoco estas tan mal. Para ser humano."}),
+            Map.entry("sorry", new String[]{
+                    "Esta bien, te perdono. Pero lo anoto.",
+                    "Tranqui, ya fue. Los milagros no guardamos rencor. Mucho.",
+                    "Disculpas aceptadas. Hoy estoy generoso."}),
+            Map.entry("rocco_ok", new String[]{
+                    "Estoy bien. Soy un milagro, me curo solo.",
+                    "Un raspon nada mas. La Madre Tierra me hizo resistente.",
+                    "Si, si, tranqui. Pero no te acostumbres a pegarme, eh."}),
+            Map.entry("shush", new String[]{
+                    "Bueno, me callo un rato. Si me necesitas, aca estoy.",
+                    "Ok, silencio. Igual vas a extranar mi voz.",
+                    "Me callo. Pero que conste que tenia cosas interesantes para decir."}),
+            Map.entry("chatty", new String[]{
+                    "Ah, queres charla? Tengo para toda la tarde.",
+                    "Por fin alguien que valora mi conversacion.",
+                    "Dale, hablo mas. Despues no te quejes."}),
+            Map.entry("origin", new String[]{
+                    "Me hizo la Madre Tierra, con un poco de tierra, un poco de lluvia y mucho talento.",
+                    "Edad? Brote hace poco, pero soy viejo de alma. Milenario, casi.",
+                    "Soy de la tierra. Literalmente. Sali de un pozo al lado tuyo, te acordas?"}),
+            Map.entry("likes", new String[]{
+                    "Me gusta el mate, el sol de la manana y que me hagas caso.",
+                    "Lo que mas me gusta es la tierra recien regada. Y ganarte las discusiones.",
+                    "Odio que me digan papa. Y los creepers. En ese orden.",
+                    "Me encantan las flores. Y bailar cuando nadie mira. Bah, cuando vos miras."}),
+            Map.entry("mate_talk", new String[]{
+                    "El mate es sagrado. Calentito y compartido.",
+                    "Si queres, te cebo uno. Pedimelo y listo.",
+                    "Sin mate no hay paraiso. Lo dijo alguien sabio. Yo, creo."}),
+            Map.entry("mobs_talk", new String[]{
+                    "Los creepers no avisan. Bueno, hacen ssss, pero ya es tarde.",
+                    "A los zombies no les gusta el sol. A mi me encanta. Ganamos.",
+                    "Al enderman no lo mires a los ojos. Es timido y se ofende.",
+                    "Las aranas trepan paredes. De noche son un problema, de dia ni te miran."}),
+            Map.entry("ores_talk", new String[]{
+                    "Diamantes? Abajo, bien abajo. Y con pico de hierro, que si no se pierden.",
+                    "Minar es lindo hasta que escuchas lava. Ahi, despacito.",
+                    "La netherita es lo mejor que hay, pero hay que bajar al Nether. Yo te acompano."}),
+            Map.entry("dimension_talk", new String[]{
+                    "El Nether es caliente, feo y lleno de bichos raros. Ideal para un paseo, no?",
+                    "Al End se va con ojos de ender. El dragon es grande, pero nosotros somos dos.",
+                    "Al Wither ni lo invoques cerca de casa. Haceme caso."}),
+            Map.entry("weather_talk", new String[]{
+                    "La lluvia me encanta. Para las plantas, digo. A vos te moja.",
+                    "Con tormenta salen mas bichos. Mejor nos quedamos bajo techo.",
+                    "El clima? Ideal para que yo crezca. Para vos, ni idea."}),
+            Map.entry("time_day", new String[]{
+                    "Es de dia. Buen momento para explorar, sin bichos molestando.",
+                    "Pleno dia. Aprovecha, que la noche llega rapido."}),
+            Map.entry("time_night", new String[]{
+                    "Es de noche. Ojo con los bichos, o mejor, anda a dormir.",
+                    "Noche cerrada. Si salis, lleva antorchas. Y a mi, obvio."}),
+            Map.entry("goodnight", new String[]{
+                    "Buenas noches. Que suenes con milagros.",
+                    "Que descanses. Yo cuido el fuerte.",
+                    "Hasta manana. No te olvides de mi, eh."}),
+            Map.entry("goodmorning", new String[]{
+                    "Buen dia! Arriba, que el mundo no se explora solo.",
+                    "Buenas! Hoy es un gran dia para hacerme caso.",
+                    "Buen dia. Ya tome sol, ahora un matecito y arrancamos."}),
+            Map.entry("farewell", new String[]{
+                    "Chau. Te espero aca, como siempre.",
+                    "Nos vemos. No tardes que me aburro.",
+                    "Anda tranquilo. Cuando vuelvas, aca voy a estar."}),
+            Map.entry("laugh", new String[]{
+                    "Jaja, viste que soy gracioso?",
+                    "Te reis, pero yo lo decia en serio.",
+                    "Esa risa me la gane."}),
+            Map.entry("agree", new String[]{
+                    "Eso. Me gusta cuando estamos de acuerdo.",
+                    "Dale, de una.",
+                    "Perfecto. Ves que nos entendemos?"}),
+            Map.entry("disagree", new String[]{
+                    "Bueno, como quieras. Pero yo tenia razon.",
+                    "No? Ok, ok. Despues no digas que no te avise.",
+                    "Uh, que cortante. Bueno."}),
+
+            // ---------- lo que dice por su cuenta sin IA ----------
+
+            Map.entry("spont_low_health", new String[]{
+                    "Ey, estas con poca vida. Comete algo y alejate de los bichos.",
+                    "Ojo, que te veo medio muerto. Descansa un poco.",
+                    "Tu vida esta bajita. No te hagas el heroe."}),
+            Map.entry("spont_hungry", new String[]{
+                    "Te escucho la panza desde aca. Comete algo.",
+                    "Con hambre no se puede pelear. Pan, carne, lo que sea.",
+                    "Che, comete algo antes de que te desmayes."}),
+            Map.entry("spont_danger", new String[]{
+                    "Hay bichos cerca. Ojo.",
+                    "Siento algo feo por aca. Quedate atento.",
+                    "Cuidado, que se acerca algo y no viene a saludar."}),
+            Map.entry("spont_night", new String[]{
+                    "Ya es de noche. Ojo, que salen los bichos.",
+                    "Que linda la luna. Lastima los zombies.",
+                    "Se hizo de noche. Una cama no vendria mal."}),
+            Map.entry("spont_rain", new String[]{
+                    "Llueve. Las plantas felices, vos mojado.",
+                    "Que lluvia linda. Para mi, digo.",
+                    "Con lluvia pican mas los peces. Dato."}),
+            Map.entry("spont_cave", new String[]{
+                    "Que oscuro esta aca. Pone antorchas, por favor.",
+                    "No me gustan las cuevas. Pero por vos, lo que sea.",
+                    "Escuchaste eso? Mejor no saber."}),
+            Map.entry("spont_water", new String[]{
+                    "El agua esta buenisima. Para flotar, digo.",
+                    "Nadar un rato no viene mal. Y yo tengo patito."}),
+            Map.entry("spont_idle_player", new String[]{
+                    "Vas a estar ahi parado todo el dia?",
+                    "Hace rato que no te moves. Estas bien?",
+                    "Si te quedas quieto un rato mas, te planto."}),
+            Map.entry("spont_musing", new String[]{
+                    "A veces pienso que si fuera una papa comun, la vida seria mas facil. Pero mas aburrida.",
+                    "Me pregunto si las vacas saben que son vacas.",
+                    "Que lindo dia para ser un milagro.",
+                    "Si alguna vez me pierdo, buscame donde haya sol.",
+                    "Hoy me siento particularmente fotogenico.",
+                    "Las abejas trabajan todo el dia. Yo te cuido todo el dia. Somos colegas."}),
+            Map.entry("spont_fact", new String[]{
+                    "Sabias que los ajolotes te ayudan a pelear bajo el agua?",
+                    "Las tortugas siempre vuelven a la playa donde nacieron.",
+                    "Con una calabaza en la cabeza, el enderman no se enoja si lo miras.",
+                    "Con hielo y un bote se viaja rapidisimo.",
+                    "Los zorros duermen de dia y se roban cosas de noche."}),
+            Map.entry("spont_question", new String[]{
+                    "Che, y que vamos a construir despues?",
+                    "Cual es el plan para hoy?",
+                    "Alguna vez pensaste en hacerme una casita?",
+                    "Tenes una granja de papas? Pregunto por un amigo."})
     );
 
     private OfflineRocco() {}

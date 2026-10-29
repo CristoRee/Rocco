@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 // Cada expresion existe como tres huesos en el modelo: eyes_<id>, mouth_<id> y talk_<id>.
-// El modelo trae las 14 encimadas y el codigo esconde las que no corresponden, asi que esta
+// El modelo trae las 20 encimadas y el codigo esconde las que no corresponden, asi que esta
 // lista tiene que estar COMPLETA: una cara que falte aca queda visible para siempre.
 public enum RoccoExpression
 {
@@ -24,7 +24,19 @@ public enum RoccoExpression
     SLEEP("sleep", false),
     // Siempre al final: el orden viaja por red y queda guardado en el mundo.
     BLISS("bliss", false),
-    FOCUS("focus", false);
+    FOCUS("focus", false),
+    // Yendo rapido con el elytra (ojos > <, lagrimitas por el viento).
+    WINDY("windy", false),
+    // La puede pedir la IA: cara de "mewing" para las imitaciones.
+    MEWING("mewing", true),
+    // El bostezo al ir a dormir y al despertarse.
+    YAWN("yawn", false),
+    // Mientras piensa la respuesta.
+    THINK("think", false),
+    // La puede pedir la IA: festejo, "¡bien ahi!".
+    CHEER("cheer", true),
+    // Tarareando en el baile.
+    HUM("hum", false);
 
     private static final RoccoExpression[] VALUES = values();
     private static final List<RoccoExpression> SELECTABLE =
@@ -49,10 +61,14 @@ public enum RoccoExpression
         return this.selectableByAi;
     }
 
-    // Con los ojos cerrados no tiene sentido parpadear.
+    // Con los ojos cerrados no tiene sentido parpadear (pensando si parpadea).
     public boolean eyesClosed()
     {
-        return this == SLEEP || this == BLISS || this == FOCUS;
+        return switch (this)
+        {
+            case SLEEP, BLISS, FOCUS, WINDY, MEWING, YAWN, CHEER, HUM -> true;
+            default -> false;
+        };
     }
 
     public static RoccoExpression byId(int id)

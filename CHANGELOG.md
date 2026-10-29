@@ -1,5 +1,31 @@
 # Cambios
 
+## 1.3.0
+
+### Nuevo
+- **Modelo nuevo:** textura de 1024, seis caras nuevas (viento, mewing, bostezo, pensando, festejo y tarareo) y 50 animaciones.
+- **Vuela con vos:** si planeás con elytra (o volás en creativo), agarra sus hojitas, las convierte en alas y vuela a tu derecha, inclinándose con vos. Con cohete va a toda velocidad (con el pelo al viento y lagrimitas), en picada pliega las alas y al aterrizar se pone las hojas de nuevo.
+- **En el agua:** flota con su flotador de patito y, si buceás, se pone antiparras y snorkel y bucea con vos. Al salir se sacude como un perrito. Nunca se ahoga.
+- **Su propio barquito:** si vas en bote, aparece al costado en su barquito de calabaza y rema con vos.
+- **Pensando:** si la IA tarda, se lleva la mano al mentón hasta que llega la respuesta.
+- **Festejos:** aplaude tus logros chicos (un logro común, cada 5 niveles, domesticar un animal) y salta con confeti en los grandes (logros de desafío, matar a un jefe). Con "bailá", "aplaudí" o "festejá" lo hace cuando se lo pedís, y cuando estás tranquilo a veces baila tarareando.
+- **Mucho más sin IA:** cientos de frases nuevas para charlar (cómo está, chistes, datos, consejos, el clima, los bichos, si estás triste o aburrido...), comentarios por su cuenta según lo que pasa (la noche, una cueva, poca vida, bichos cerca) y reacciones al volar, nadar, subirse al barquito o cuando te morís.
+- **Ahorro de IA:** con IA configurada, las órdenes simples y claras ("seguime", "guardá todo", "crafteame un pico") las resuelve Rocco solo, sin gastar un pedido. Se apaga en **IA (cerebro) > Ahorrar IA en órdenes simples**.
+- **Frases grabadas:** el mod está listo para que sus frases de siempre suenen con audios grabados, sin clave y sin gastar crédito de voz. Lo que no esté grabado sigue saliendo con Fish Audio.
+
+### Cambiado
+- **Configuración más clara:** arriba de todo, juntos, lo que hay que conectar (IA, Voz y Micrófono), cada uno con una luz que dice si ya está listo. Abajo, el resto de los ajustes.
+- Los sonidos de mate, magia, ronquido y golpes se rehicieron, y se suman 11 sonidos nuevos (hojas, patito, aplausos, festejo, tarareo, pensar, suspiro del mate).
+- Al dormirse y al despertarse bosteza con la boquita en "O".
+
+### Arreglado
+- **El mate y el termo** a veces no aparecían en la animación del mate: ahora se muestran según la animación que se está viendo.
+- **Que nunca se pierda:**
+  - si te alejás mucho mientras está sentado, dormido o con un encargo, lo deja y te alcanza;
+  - si cae al vacío, aparece al lado tuyo;
+  - si estás nadando lejos de la costa, cae al agua junto a vos;
+  - si morís o cruzás un portal con su zona descargada, lo va a buscar igual.
+
 ## 1.2.1
 
 ### Arreglado

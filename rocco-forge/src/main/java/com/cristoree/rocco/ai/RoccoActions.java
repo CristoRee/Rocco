@@ -114,7 +114,7 @@ public final class RoccoActions
     public static final List<String> OFFERED_VERBS = List.of(
             "plantar", "cosechar", "arar", "cuidar_huerta", "cofre_cosecha", "craftear", "buscar", "receta",
             "cocinar", "agarrar", "traer", "guardar", "dar", "tirar", "juntar", "poner", "iluminar", "romper",
-            "talar", "conseguir", "encantar", "mate", "recordar_lugar", "olvidar_lugar", "ir_a", "criar", "pescar",
+            "talar", "conseguir", "encantar", "mate", "aplaudir", "festejar", "bailar", "recordar_lugar", "olvidar_lugar", "ir_a", "criar", "pescar",
             "comprar", "vender", "ordenar", "teletransportarse", "abrir", "comer", "seguir", "esperar",
             "sentarse", "dormir", "levantarse", "parar");
 
@@ -148,7 +148,7 @@ public final class RoccoActions
     }
 
     private static final java.util.Set<String> KNOWN_VERBS = java.util.Set.of(
-            "mate", "tomar_mate", "encantar", "recordar_lugar", "recordar", "olvidar_lugar", "olvidar", "ir_a", "llevar",
+            "mate", "tomar_mate", "aplaudir", "festejar", "bailar", "encantar", "recordar_lugar", "recordar", "olvidar_lugar", "olvidar", "ir_a", "llevar",
             "criar", "pescar", "comprar", "comerciar", "vender", "ordenar", "teletransportarse", "venir", "aparecer",
             "plantar", "sembrar", "cosechar", "cuidar_huerta", "cuidar", "arar", "cofre_cosecha", "craftear", "fabricar",
             "buscar", "receta", "cocinar", "agarrar", "sacar", "traer", "guardar", "dar", "tirar", "soltar", "juntar",
@@ -162,7 +162,7 @@ public final class RoccoActions
             return new Outcome(false, "no estoy en el mundo");
         }
 
-        // Una orden nueva corta el mate o el encantamiento que estuviera haciendo.
+        // Una orden nueva corta el mate, el encantamiento o el baile que estuviera haciendo.
         if (!verb.equals("mate") || rocco.getActiveTask() != RoccoTask.MATE)
         {
             rocco.interruptActivity();
@@ -171,6 +171,9 @@ public final class RoccoActions
         return switch (verb)
         {
             case "mate", "tomar_mate" -> mate(rocco);
+            case "aplaudir" -> celebrate(rocco, player, RoccoTask.CLAPPING);
+            case "festejar" -> celebrate(rocco, player, RoccoTask.CELEBRATING);
+            case "bailar" -> celebrate(rocco, player, RoccoTask.DANCING);
             case "encantar" -> enchant(rocco, player, argument);
             case "recordar_lugar" -> rememberPlace(rocco, player, argument);
             case "olvidar_lugar" -> forgetPlace(rocco, argument);
@@ -251,6 +254,20 @@ public final class RoccoActions
         }
         rocco.cancelErrand();
         rocco.startMate();
+        return OK;
+    }
+
+    // Aplaudir, festejar o bailar cuando se lo piden (o cuando la IA lo decide). Volando, en el
+    // agua o en el barquito no puede: se lo dice con una frase.
+    private static Outcome celebrate(RoccoEntity rocco, @Nullable ServerPlayer player, RoccoTask kind)
+    {
+        if (rocco.isTravelling())
+        {
+            rocco.sayLine("celebrate_cant");
+            return SAID;
+        }
+        rocco.cancelErrand();
+        rocco.perform(kind, player);
         return OK;
     }
 
@@ -890,6 +907,12 @@ public final class RoccoActions
 
     private static Outcome sit(RoccoEntity rocco)
     {
+        // Volando, nadando o en el barquito no se puede sentar ni dormir.
+        if (rocco.isTravelling())
+        {
+            rocco.sayLine("travel_busy");
+            return SAID;
+        }
         rocco.clearAutoRest();
         rocco.cancelErrand();
         rocco.setFollowing(false);
@@ -899,6 +922,11 @@ public final class RoccoActions
 
     private static Outcome sleep(RoccoEntity rocco)
     {
+        if (rocco.isTravelling())
+        {
+            rocco.sayLine("travel_busy");
+            return SAID;
+        }
         rocco.clearAutoRest();
         rocco.cancelErrand();
         rocco.setFollowing(false);

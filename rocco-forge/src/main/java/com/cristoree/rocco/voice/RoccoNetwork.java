@@ -22,7 +22,8 @@ public final class RoccoNetwork
 {
     // Sube cuando cambian los mensajes: un cliente y un servidor con versiones distintas de Rocco
     // se avisan al conectar en vez de fallar a mitad de partida. 2: se agrego OpenSetup.
-    private static final String PROTOCOL = "2";
+    // 3: se agrego VoiceLines (las frases grabadas).
+    private static final String PROTOCOL = "3";
     public static final int CHUNK_BYTES = 30_000;
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -68,6 +69,22 @@ public final class RoccoNetwork
         }
     }
 
+    // Frases grabadas que Rocco dice en voz alta, en orden: el audio ya esta en el mod de cada
+    // jugador (assets/rocco/voice_lines/<codigo>.ogg), asi que solo viajan los codigos.
+    public record VoiceLines(int entityId, java.util.List<String> ids)
+    {
+        static void encode(VoiceLines msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeCollection(msg.ids, (out, id) -> out.writeUtf(id, 96));
+        }
+
+        static VoiceLines decode(FriendlyByteBuf buf)
+        {
+            return new VoiceLines(buf.readVarInt(), buf.readList(in -> in.readUtf(96)));
+        }
+    }
+
     // "/rocco setup": que el jugador abra la pantalla de bienvenida (los comandos corren en el servidor).
     public record OpenSetup()
     {
@@ -89,6 +106,20 @@ public final class RoccoNetwork
                 RoccoNetwork::onMicChunk, Optional.of(NetworkDirection.PLAY_TO_SERVER));
         CHANNEL.registerMessage(2, OpenSetup.class, OpenSetup::encode, OpenSetup::decode,
                 RoccoNetwork::onOpenSetup, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(3, VoiceLines.class, VoiceLines::encode, VoiceLines::decode,
+                RoccoNetwork::onVoiceLines, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+    }
+
+    public static void sendLines(ServerPlayer player, VoiceLines lines)
+    {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), lines);
+    }
+
+    private static void onVoiceLines(VoiceLines msg, Supplier<NetworkEvent.Context> context)
+    {
+        context.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.voice.VoicePlayback.playLines(msg.entityId(), msg.ids())));
+        context.get().setPacketHandled(true);
     }
 
     public static void openSetup(ServerPlayer player)

@@ -19,7 +19,12 @@ public enum RoccoTask
     // sonidos. Siempre al final: el ordinal viaja por red.
     MATE(612, 612),
     // animation.rocco.enchant dura 5,6 s; el encantamiento se aplica en el empujon del tick 89.
-    ENCHANTING(112, 89);
+    ENCHANTING(112, 89),
+    // dance dura 6,6 s, clap 1,4 s y celebrate 2,6 s. Son festejos: no tienen efecto, solo la
+    // animacion con sus caras y sonidos.
+    DANCING(132, 132),
+    CLAPPING(28, 28),
+    CELEBRATING(52, 52);
 
     private static final RoccoTask[] VALUES = values();
 

@@ -49,8 +49,8 @@ public class RoccoFollowGoal extends Goal
         }
 
         // Mientras tiene trabajo pendiente, seguir al jugador lo sacaria del cultivo.
-        // Sentado o dormido tampoco se mueve.
-        if (rocco.isBusy() || rocco.isLidOpen() || rocco.isResting())
+        // Sentado o dormido tampoco se mueve. Volando, buceando o en el barquito lo lleva RoccoTravel.
+        if (rocco.isBusy() || rocco.isLidOpen() || rocco.isResting() || !rocco.canWalkFollow())
         {
             return false;
         }
@@ -89,6 +89,7 @@ public class RoccoFollowGoal extends Goal
                 && rocco.isFollowing()
                 && !rocco.isBusy()
                 && !rocco.isResting()
+                && rocco.canWalkFollow()
                 && rocco.distanceToSqr(this.target) > sqr(rocco.isGivingSpace()
                         ? Math.max(3.0D, RoccoCommonConfig.FOLLOW_STOP_DISTANCE.get())
                         : RoccoCommonConfig.FOLLOW_STOP_DISTANCE.get());
@@ -190,7 +191,8 @@ public class RoccoFollowGoal extends Goal
         }
     }
 
-    // Lo pone al lado del jugador si hay un lugar firme y seguro. false si por ahora no hay.
+    // Lo pone al lado del jugador si hay un lugar firme y seguro. Si estas nadando lejos de la
+    // costa, cae al agua al lado tuyo con su patito. false si por ahora no hay donde.
     public static boolean teleportNear(RoccoEntity rocco, Player player)
     {
         if (!(rocco.level() instanceof ServerLevel level) || player.level() != level)
@@ -199,15 +201,21 @@ public class RoccoFollowGoal extends Goal
         }
 
         BlockPos spot = findSpotNear(level, player);
-        if (spot == null)
+        Vec3 water = spot == null && player instanceof net.minecraft.server.level.ServerPlayer swimmer && player.isInWater()
+                ? RoccoTravel.waterSpotNear(level, swimmer)
+                : null;
+        if (spot == null && water == null)
         {
             return false;
         }
 
         rocco.getNavigation().stop();
-        rocco.teleportTo(spot.getX() + 0.5D, spot.getY(), spot.getZ() + 0.5D);
+        rocco.stopTravelling();
+        rocco.allowSafeFall();
+        Vec3 at = water != null ? water : new Vec3(spot.getX() + 0.5D, spot.getY(), spot.getZ() + 0.5D);
+        rocco.teleportTo(at.x, at.y, at.z);
         rocco.getNavigation().stop();
-        level.playSound(null, spot, net.minecraft.sounds.SoundEvents.CHORUS_FRUIT_TELEPORT,
+        level.playSound(null, BlockPos.containing(at), net.minecraft.sounds.SoundEvents.CHORUS_FRUIT_TELEPORT,
                 net.minecraft.sounds.SoundSource.NEUTRAL, 0.4F, 1.4F);
         return true;
     }
@@ -215,7 +223,7 @@ public class RoccoFollowGoal extends Goal
     // De lo mas cerca a lo mas lejos alrededor del jugador, primero a su altura. Nunca adentro de
     // una pared, en el aire, en lava o en fuego.
     @Nullable
-    private static BlockPos findSpotNear(ServerLevel level, Player player)
+    public static BlockPos findSpotNear(ServerLevel level, Player player)
     {
         BlockPos base = player.blockPosition();
         Vec3 look = player.getLookAngle();

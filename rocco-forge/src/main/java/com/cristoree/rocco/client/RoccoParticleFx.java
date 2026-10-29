@@ -3,10 +3,12 @@ package com.cristoree.rocco.client;
 import com.cristoree.rocco.entity.RoccoEntity;
 import com.cristoree.rocco.registry.ModParticles;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,9 +36,15 @@ public final class RoccoParticleFx
         LOCATORS.computeIfAbsent(rocco, key -> new HashMap<>()).put(name, new Located(position, level.getGameTime()));
     }
 
-    private static void spawn(RoccoEntity rocco, String effect, String locator)
+    private static void spawn(RoccoEntity rocco, String effect, @Nullable String rawLocator)
     {
+        // land_dust viene sin localizador (sale de los pies).
+        String locator = rawLocator == null ? "" : rawLocator;
         Level level = rocco.level();
+        if (effect == null)
+        {
+            return;
+        }
         if (!level.isClientSide || Minecraft.getInstance().options.particles().get().getId() == 2)
         {
             // "Particulas: minimas" en las opciones del jugador: se respeta.
@@ -76,11 +84,111 @@ public final class RoccoParticleFx
             }
             case "rocco:magic_burst" ->
                     add(level, ModParticles.MAGIC_BURST.get(), at.add(forward.scale(0.3D)), Vec3.ZERO);
+
+            // Vuelo: "hacia atras" es contra el sentido en que va volando.
+            case "rocco:leaf_sparkle" -> add(level, ModParticles.LEAF_SPARKLE.get(), at, new Vec3(spread(random, 0.01D), 0.02D, spread(random, 0.01D)));
+            case "rocco:leaf_burst" ->
+            {
+                int count = 4 + random.nextInt(3);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.LEAF_BURST.get(), at, new Vec3(spread(random, 0.12D), 0.05D + random.nextDouble() * 0.1D, spread(random, 0.12D)));
+                }
+            }
+            case "rocco:speed_leaf" -> add(level, ModParticles.SPEED_LEAF.get(), at.add(spread(random, 0.2D), spread(random, 0.2D), spread(random, 0.2D)), heading(rocco).scale(-0.45D));
+            case "rocco:wind_streak" ->
+            {
+                Vec3 side = sideOf(rocco).scale(random.nextBoolean() ? 0.6D : -0.6D);
+                add(level, ModParticles.WIND_STREAK.get(), at.add(side).add(heading(rocco).scale(0.6D)), heading(rocco).scale(-0.5D));
+            }
+            case "rocco:wind_puff" -> add(level, ModParticles.WIND_PUFF.get(), at, new Vec3(spread(random, 0.03D), spread(random, 0.02D), spread(random, 0.03D)));
+            case "rocco:wind_tear" ->
+            {
+                Vec3 out = sideOf(rocco).scale(locator.endsWith("left") ? 0.04D : -0.04D);
+                add(level, ModParticles.WIND_TEAR.get(), at, heading(rocco).scale(-0.25D).add(out));
+            }
+            case "rocco:land_dust" ->
+            {
+                for (int i = 0; i < 6; i++)
+                {
+                    double angle = i * Mth.TWO_PI / 6.0D + random.nextDouble() * 0.5D;
+                    add(level, ModParticles.LAND_DUST.get(), rocco.position().add(0.0D, 0.05D, 0.0D),
+                            new Vec3(Math.cos(angle) * 0.06D, 0.01D, Math.sin(angle) * 0.06D));
+                }
+            }
+
+            // Agua y barco.
+            case "rocco:duck_pop" ->
+            {
+                for (int i = 0; i < 6; i++)
+                {
+                    add(level, ModParticles.DUCK_POP.get(), at, new Vec3(spread(random, 0.12D), spread(random, 0.1D), spread(random, 0.12D)));
+                }
+            }
+            case "rocco:water_drop" ->
+            {
+                int count = 2 + random.nextInt(2);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.WATER_DROP.get(), at, new Vec3(spread(random, 0.14D), 0.06D + random.nextDouble() * 0.06D, spread(random, 0.14D)));
+                }
+            }
+            case "minecraft:splash" ->
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    add(level, ParticleTypes.SPLASH, at.add(spread(random, 0.4D), 0.0D, spread(random, 0.4D)), new Vec3(0.0D, 0.1D, 0.0D));
+                }
+            }
+            case "minecraft:bubble" ->
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    add(level, ParticleTypes.BUBBLE, at.add(spread(random, 0.05D), 0.0D, spread(random, 0.05D)), new Vec3(0.0D, 0.06D, 0.0D));
+                }
+            }
+
+            // Pensar, aplaudir, festejar y bailar.
+            case "rocco:think_dot" -> add(level, ModParticles.THINK_DOT.get(), at, new Vec3(spread(random, 0.005D), 0.02D, spread(random, 0.005D)));
+            case "rocco:clap_spark" ->
+            {
+                int count = 3 + random.nextInt(2);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.CLAP_SPARK.get(), at, new Vec3(spread(random, 0.06D), spread(random, 0.04D), spread(random, 0.06D)));
+                }
+            }
+            case "rocco:confetti" ->
+            {
+                for (int i = 0; i < 14; i++)
+                {
+                    add(level, ModParticles.CONFETTI.get(), at, new Vec3(spread(random, 0.12D), 0.18D + random.nextDouble() * 0.12D, spread(random, 0.12D)));
+                }
+            }
+            case "rocco:music_note" -> add(level, ModParticles.MUSIC_NOTE.get(), at, new Vec3(0.0D, 0.03D, 0.0D));
+            case "rocco:dance_sparkle" ->
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    add(level, ModParticles.DANCE_SPARKLE.get(), at.add(spread(random, 0.1D), spread(random, 0.1D), spread(random, 0.1D)), new Vec3(0.0D, 0.005D, 0.0D));
+                }
+            }
             default -> { }
         }
     }
 
-    private static void add(Level level, SimpleParticleType type, Vec3 at, Vec3 speed)
+    // Para donde va: mientras vuela es hacia donde mira (con la inclinacion), si no, el frente.
+    private static Vec3 heading(RoccoEntity rocco)
+    {
+        return Vec3.directionFromRotation(rocco.getXRot(), rocco.getYRot());
+    }
+
+    private static Vec3 sideOf(RoccoEntity rocco)
+    {
+        return Vec3.directionFromRotation(0.0F, rocco.getYRot() + 90.0F);
+    }
+
+    private static void add(Level level, ParticleOptions type, Vec3 at, Vec3 speed)
     {
         level.addParticle(type, at.x, at.y, at.z, speed.x, speed.y, speed.z);
     }
@@ -109,6 +217,14 @@ public final class RoccoParticleFx
             case "fx_mate", "fx_spout" -> { side = 0.2D; up = 0.55D; ahead = 0.3D; }
             case "fx_magic_right" -> { side = -0.2D; up = 0.5D; ahead = 0.45D; }
             case "fx_magic_left" -> { side = 0.2D; up = 0.5D; ahead = 0.45D; }
+            case "fx_wing_right" -> { side = -0.8D; up = 0.6D; ahead = 0.0D; }
+            case "fx_wing_left" -> { side = 0.8D; up = 0.6D; ahead = 0.0D; }
+            case "fx_tear_right" -> { side = -0.2D; up = 0.85D; ahead = 0.25D; }
+            case "fx_tear_left" -> { side = 0.2D; up = 0.85D; ahead = 0.25D; }
+            case "fx_snorkel" -> { side = 0.15D; up = 1.15D; ahead = 0.1D; }
+            case "fx_ring", "fx_boat" -> { side = 0.0D; up = 0.3D; ahead = 0.0D; }
+            case "fx_paddle_right" -> { side = -0.7D; up = 0.2D; ahead = 0.2D; }
+            case "fx_paddle_left" -> { side = 0.7D; up = 0.2D; ahead = 0.2D; }
             default -> { side = 0.0D; up = 0.6D; ahead = 0.2D; }
         }
 

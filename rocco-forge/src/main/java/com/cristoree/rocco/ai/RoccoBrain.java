@@ -128,6 +128,8 @@ public class RoccoBrain
     @Nullable
     private String lastSaid;
     private long lastSaidAt;
+    // Mientras esperaba a la IA llego una orden y la resolvio solo: esa respuesta ya no va.
+    private boolean answeredMeanwhile;
 
     public RoccoBrain(RoccoEntity rocco)
     {
@@ -158,11 +160,30 @@ public class RoccoBrain
         notePlayerMood(question, now);
         offerMigration(player);
 
+        // Si estaba bailando, frena para escucharte.
+        if (this.rocco.getActiveTask() == com.cristoree.rocco.entity.RoccoTask.DANCING)
+        {
+            this.rocco.interruptActivity();
+        }
+
+        // Ahorro de IA: una orden corta y clara la resuelve Rocco solo, sin gastar un pedido.
+        OfflineRocco.Answer local = RoccoConfig.aiConfigured() && RoccoCommonConfig.AI_LOCAL_ORDERS.get()
+                ? OfflineRocco.localOrder(this.rocco, question)
+                : null;
+
         // Mientras piensa otra respuesta: se contesta el mensaje nuevo cuando llegue esa (la vieja
         // se descarta, con su orden, asi nada se hace dos veces). Una orden de moverse ("quedate",
         // "seguime") igual se cumple al toque, en silencio, y la respuesta despues lo cuenta.
         if (this.waiting && System.currentTimeMillis() - this.waitingSince < STUCK_REQUEST_MS)
         {
+            if (local != null)
+            {
+                // Resuelta aca mismo: la respuesta que estaba esperando queda vieja y se descarta.
+                this.pending = null;
+                this.answeredMeanwhile = true;
+                answerLocally(player, question, local);
+                return;
+            }
             OfflineRocco.Answer order = OfflineRocco.reply(this.rocco, question);
             Started started = null;
             if (order.verb() != null && QUICK_VERBS.contains(order.verb()))
@@ -177,9 +198,27 @@ public class RoccoBrain
         {
             RoccoMod.LOGGER.warn("[Rocco] La respuesta anterior nunca llego; sigo escuchando.");
             this.waiting = false;
+            this.rocco.endThinking();
         }
 
+        if (local != null)
+        {
+            answerLocally(player, question, local);
+            return;
+        }
         answer(player, question, null);
+    }
+
+    // Una orden resuelta sin IA: se hace, se contesta una vez (lo que paso al arrancar o la frase
+    // de "dale") y queda en la charla, asi la IA despues sabe que ya lo hizo.
+    private void answerLocally(ServerPlayer player, String question, OfflineRocco.Answer order)
+    {
+        this.rocco.setExpressionFromAi(order.face());
+        String said = sayStarted(start(player, order.verb(), order.argument(), order.text()));
+        if (!said.isEmpty())
+        {
+            remember(question, said, said);
+        }
     }
 
     private void answer(ServerPlayer player, String question, @Nullable Started started)
@@ -234,8 +273,8 @@ public class RoccoBrain
         return new Started(verb, argument == null ? "" : argument, said, ack == null ? "" : ack);
     }
 
-    // Lo que paso al arrancar la orden, tal cual (sin IA, o si la IA no contesto).
-    private void sayStarted(Started started)
+    // Lo que paso al arrancar la orden, tal cual (sin IA, o si la IA no contesto). Devuelve lo dicho.
+    private String sayStarted(Started started)
     {
         String text = clean(started.said().isEmpty() ? started.ack() : String.join(" ", started.said()));
         if (!text.isEmpty())
@@ -243,6 +282,7 @@ public class RoccoBrain
             speak(text, text, null);
         }
         this.chatter.activity(gameTime(), PersonalityProfile.current(), this.rocco.getRandom());
+        return text;
     }
 
     private static String alreadyDoneNote(Started started)
@@ -263,7 +303,8 @@ public class RoccoBrain
     // Una vez por segundo desde la entidad: si hubo silencio un buen rato, dice algo solo.
     public void tickChatter()
     {
-        if (this.waiting || !RoccoCommonConfig.ENABLED.get() || !RoccoConfig.aiConfigured()
+        boolean ai = RoccoConfig.aiConfigured();
+        if (this.waiting || !RoccoCommonConfig.ENABLED.get() || (!ai && !RoccoCommonConfig.AI_OFFLINE_FALLBACK.get())
                 || this.rocco.getRoccoState() != RoccoState.ACTIVE || this.rocco.getRoccoPose().isAsleep())
         {
             return;
@@ -281,6 +322,15 @@ public class RoccoBrain
         PersonalityProfile profile = PersonalityProfile.current();
         if (!this.chatter.due(now, profile, this.rocco.getRandom()))
         {
+            return;
+        }
+
+        // Sin IA tambien comenta: con una frase propia segun lo que esta pasando (de noche, en una
+        // cueva, con poca vida, con bichos cerca, o lo que se le ocurra).
+        if (!ai)
+        {
+            this.chatter.activity(now, profile, this.rocco.getRandom());
+            this.rocco.sayLine(OfflineRocco.spontaneous(this.rocco, owner, this.rocco.getRandom()));
             return;
         }
 
@@ -338,10 +388,10 @@ public class RoccoBrain
         this.waitingSince = System.currentTimeMillis();
         IN_FLIGHT.incrementAndGet();
 
-        // Rocco "piensa" mientras espera (si ya esta haciendo algo, la cara la pone eso).
+        // Rocco "piensa" mientras espera: si tarda, se lleva la mano al menton (lo maneja la entidad).
         if (!spontaneous && turn.started() == null)
         {
-            this.rocco.setExpression(RoccoExpression.SERIOUS);
+            this.rocco.beginThinking();
         }
 
         executor().execute(() ->
@@ -371,11 +421,29 @@ public class RoccoBrain
             {
                 IN_FLIGHT.decrementAndGet();
                 this.waiting = false;
+                this.rocco.endThinking();
 
                 // Pudo morir o descargarse mientras esperabamos.
                 if (!this.rocco.isAlive())
                 {
                     this.pending = null;
+                    return;
+                }
+
+                // Mientras tanto le diste una orden y la resolvio solo: esta respuesta quedo vieja.
+                if (this.answeredMeanwhile)
+                {
+                    this.answeredMeanwhile = false;
+                    if (turn.followUp() && turn.started() != null)
+                    {
+                        sayStarted(turn.started());
+                    }
+                    Pending later = this.pending;
+                    this.pending = null;
+                    if (later != null)
+                    {
+                        answer(later.player(), later.question(), later.started());
+                    }
                     return;
                 }
 
@@ -873,7 +941,7 @@ public class RoccoBrain
     // Una sola linea, sin espacios dobles ni etiquetas sueltas: el chat no muestra saltos de linea.
     private String clean(String answer)
     {
-        String out = answer.replaceAll("(?i)(?:@|\\[)(happy|bored|serious|scared|sad|angry|smug|psycho|dizzy)]?(?=\\W|$)", " ")
+        String out = answer.replaceAll("(?i)(?:@|\\[)(happy|bored|serious|scared|sad|angry|smug|psycho|dizzy|mewing|cheer)]?(?=\\W|$)", " ")
                 .replaceAll("\\[[a-zA-Z ]{2,24}]", " ")
                 .replaceAll("\\s+", " ").trim();
 

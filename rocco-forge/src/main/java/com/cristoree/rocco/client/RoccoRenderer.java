@@ -159,6 +159,24 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
         this.rodTip = this.renderPosition.add(local.x, local.y, local.z);
     }
 
+    // Volando, las animaciones ya lo acuestan; ademas se inclina con el jugador (sube y baja con
+    // el), igual que el juego inclina al jugador con el elytra. Gira alrededor del centro del
+    // modelo para que no se despegue del lugar.
+    @Override
+    protected void applyRotations(RoccoEntity animatable, PoseStack poseStack, float ageInTicks, float rotationYaw,
+                                  float partialTick)
+    {
+        super.applyRotations(animatable, poseStack, ageInTicks, rotationYaw, partialTick);
+        if (animatable.getMotion().tiltsWithPlayer())
+        {
+            float pitch = Mth.lerp(partialTick, animatable.xRotO, animatable.getXRot());
+            float center = animatable.getBbHeight() * 0.5F;
+            poseStack.translate(0.0F, center, 0.0F);
+            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-pitch));
+            poseStack.translate(0.0F, -center, 0.0F);
+        }
+    }
+
     @Override
     public boolean shouldShowName(RoccoEntity animatable)
     {

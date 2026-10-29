@@ -4,7 +4,7 @@
 
 Rocco es un milagro de la naturaleza: brota de la tierra al lado tuyo y te acompaña a todos lados. Charla con su propia personalidad (engreído, pero querible), te sigue, trabaja la huerta, craftea, cocina, encanta tus herramientas, se toma unos mates y, si querés, te habla en voz alta y te escucha por micrófono.
 
-Funciona **sin ninguna cuenta ni clave**: trae frases propias y entiende órdenes en castellano. Con una clave de IA gratuita charla de verdad.
+Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, charla de lo que le cuentes, comenta lo que pasa y entiende órdenes en castellano. Con una clave de IA gratuita charla de verdad, y las órdenes simples las sigue resolviendo solo para no gastar la IA.
 
 ---
 
@@ -36,6 +36,7 @@ Se le habla por el chat (o por micrófono). Algunos ejemplos:
 | "cociná las papas" | Usa el mejor horno que haya, pone el combustible justo y te da el resultado. |
 | "encantame este pico" / "...con eficiencia 5" | Una vez por día: al azar como una mesa de encantamientos, o solo el encantamiento que pidas. |
 | "tomate un mate" | Ceba y se toma unos mates. También lo hace solo cuando estás tranquilo en tu casa. |
+| "bailá", "aplaudí", "festejá" | Baila tarareando, aplaude o salta con confeti. Solo, festeja tus logros y baila cuando estás tranquilo. |
 | "esta es mi casa" / "llevame a casa" | Recuerda lugares y te guía hasta ellos. |
 | "traeme carbón", "guardá todo", "ordená los cofres" | Busca, guarda y ordena las cosas de tus cofres. |
 | "talá un árbol", "conseguime 10 de madera", "iluminá" | Junta materiales de la naturaleza y pone antorchas donde está oscuro. |
@@ -43,25 +44,32 @@ Se le habla por el chat (o por micrófono). Algunos ejemplos:
 
 Clic derecho sobre Rocco abre su tapa: un inventario de 36 lugares.
 
+### Te acompaña a todos lados
+
+- **Volando:** si planeás con elytra (o volás en creativo), agarra sus hojitas, las convierte en alas y vuela a tu lado. Con cohete va a toda velocidad, en picada pliega las alas y al aterrizar se las vuelve a poner en la cabeza.
+- **En el agua:** flota con su flotador de patito y, si buceás, se pone las antiparras y el snorkel y bucea con vos. Nunca se ahoga.
+- **En bote:** no se sube al tuyo: tiene su propio barquito de calabaza y rema al costado.
+- **Nunca se pierde:** si quedó lejos, en una zona descargada, del otro lado de un portal o cayó al vacío, aparece al lado tuyo. Si estás nadando lejos de la costa, cae al agua junto a vos.
+
 ## IA gratuita (opcional)
 
-En **Mods > Rocco > Config > IA y claves** se puede poner una clave gratuita de:
+En **Mods > Rocco > Config > IA (cerebro)** se puede poner una clave gratuita de:
 
 - **Groq**: https://console.groq.com/keys
 - **Gemini**: https://aistudio.google.com/app/apikey
 - **OpenRouter**: https://openrouter.ai/keys
 - **Ollama** (IA local en tu PC, sin internet): https://ollama.com/download
 
-Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. También se puede usar cualquier IA paga compatible con el formato de OpenAI (grupo *Proveedor propio*). `/rocco ia` muestra el estado de cada una.
+Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. Las órdenes simples ("seguime", "guardá todo", "crafteame un pico") las resuelve sin preguntarle a la IA, para no gastar pedidos; se puede apagar con **Ahorrar IA en órdenes simples**. También se puede usar cualquier IA paga compatible con el formato de OpenAI (grupo *Proveedor propio*). `/rocco ia` muestra el estado de cada una.
 
 ## Voz y micrófono (opcional)
 
-- **Voz (Fish Audio):** poné tu clave y el ID de la voz en **Config > Voz**. La voz sale de la boca de Rocco y respeta el volumen "Voz/Habla" del juego.
+- **Voz:** las frases de siempre que tengan su audio grabado en el mod suenan sin clave y sin gastar crédito. Para que diga en voz alta todo lo demás (lo que inventa la IA), poné tu clave de Fish Audio y el ID de la voz en **Config > Voz**. La voz sale de la boca de Rocco y respeta el volumen "Voz/Habla" del juego.
 - **Micrófono (Deepgram):** activalo en **Config > Micrófono** y poné tu clave. La tecla para hablar se cambia en **Config > Teclas** (por defecto, la V). Se puede usar manteniendo la tecla o en modo de detección de voz.
 
 ## Configuración
 
-**Mods > Rocco > Config** está dividido por temas: General, IA y claves, IA avanzada, Charla, Voz, Micrófono, Movimiento, Vida y rutina, Trabajo y Magia. Arriba hay un buscador que encuentra cualquier opción por nombre o por lo que hace. Pasando el mouse por una opción se ve qué hace y su valor por defecto, y el botón ↺ la vuelve a ese valor. Los cambios se guardan al salir.
+**Mods > Rocco > Config** arranca con lo que hay que conectar, juntos y con una luz que dice si ya está listo: **IA (cerebro)**, **Voz** y **Micrófono**. Abajo están los demás temas: General, Personalidad, Charla, Movimiento, Vida y rutina, Trabajo, Magia e IA avanzada. Arriba hay un buscador que encuentra cualquier opción por nombre o por lo que hace. Pasando el mouse por una opción se ve qué hace y su valor por defecto, y el botón ↺ la vuelve a ese valor. Los cambios se guardan al salir.
 
 ## Comandos
 

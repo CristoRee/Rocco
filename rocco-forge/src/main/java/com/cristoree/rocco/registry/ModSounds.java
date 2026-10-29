@@ -38,6 +38,21 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> MATE_SLURP = register("mate_slurp");
     public static final RegistryObject<SoundEvent> MAGIC_HUM = register("magic_hum");
     public static final RegistryObject<SoundEvent> MAGIC_BURST = register("magic_burst");
+    public static final RegistryObject<SoundEvent> MATE_SIGH = register("mate_sigh");
+
+    // Vuelo, agua y barco.
+    public static final RegistryObject<SoundEvent> LEAF_FWIP = register("leaf_fwip");
+    public static final RegistryObject<SoundEvent> LEAF_GROW = register("leaf_grow");
+    public static final RegistryObject<SoundEvent> LEAF_FLAP = register("leaf_flap");
+    public static final RegistryObject<SoundEvent> DUCK_SQUEAK = register("duck_squeak");
+    public static final RegistryObject<SoundEvent> DUCK_POP = register("duck_pop");
+
+    // Pensar, aplaudir, festejar y bailar.
+    public static final RegistryObject<SoundEvent> THINK = register("think");
+    public static final RegistryObject<SoundEvent> CLAP = register("clap");
+    public static final RegistryObject<SoundEvent> GIGGLE = register("giggle");
+    public static final RegistryObject<SoundEvent> CHEER = register("cheer");
+    public static final RegistryObject<SoundEvent> HUM = register("hum");
 
     // La voz de Fish Audio: el audio llega por red y se reproduce con este evento como canal
     // (categoria "Voz/Habla" del juego). El archivo del json nunca suena: se reemplaza al vuelo.

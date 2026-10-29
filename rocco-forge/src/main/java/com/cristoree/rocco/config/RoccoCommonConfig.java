@@ -22,6 +22,7 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.EnumValue<AiProviderChoice> AI_PROVIDER;
     public static final ForgeConfigSpec.ConfigValue<String> AI_PROVIDER_ORDER;
     public static final ForgeConfigSpec.BooleanValue AI_OFFLINE_FALLBACK;
+    public static final ForgeConfigSpec.BooleanValue AI_LOCAL_ORDERS;
     public static final ForgeConfigSpec.ConfigValue<String> GEMINI_API_KEY;
     public static final ForgeConfigSpec.ConfigValue<String> GEMINI_MODEL;
     public static final ForgeConfigSpec.ConfigValue<String> GEMINI_ENDPOINT;
@@ -59,6 +60,7 @@ public final class RoccoCommonConfig
 
     // voice (Fish Audio)
     public static final ForgeConfigSpec.BooleanValue VOICE_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue VOICE_RECORDED_LINES;
     public static final ForgeConfigSpec.ConfigValue<String> FISH_API_KEY;
     public static final ForgeConfigSpec.ConfigValue<String> FISH_VOICE_ID;
     public static final ForgeConfigSpec.ConfigValue<String> FISH_MODEL;
@@ -106,6 +108,11 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.BooleanValue IDLE_SIT_ENABLED;
     public static final ForgeConfigSpec.BooleanValue IDLE_MATE_ENABLED;
     public static final ForgeConfigSpec.IntValue IDLE_MATE_COOLDOWN_MINUTES;
+    public static final ForgeConfigSpec.BooleanValue IDLE_DANCE_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue CHEER_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue ACCOMPANY_FLIGHT;
+    public static final ForgeConfigSpec.BooleanValue ACCOMPANY_WATER;
+    public static final ForgeConfigSpec.BooleanValue ACCOMPANY_BOAT;
 
     // magic
     public static final ForgeConfigSpec.IntValue ENCHANT_COOLDOWN_MINUTES;
@@ -203,6 +210,12 @@ public final class RoccoCommonConfig
                 .comment("Si ninguna IA responde (o no hay claves), Rocco contesta con frases propias",
                          "y entiende ordenes simples: plantar, cosechar, seguir, esperar, dormir...")
                 .define("offlineFallback", true);
+        AI_LOCAL_ORDERS = b
+                .comment("Ahorra IA: las ordenes simples y claras (seguime, esperá, sentate, plantá papas,",
+                         "guardá todo, crafteame un pico...) las resuelve Rocco solo, sin gastar un pedido",
+                         "a la IA. La charla y lo que no sea una orden clara sigue yendo a la IA.",
+                         "Apagado: todo pasa por la IA, incluso las ordenes cortas.")
+                .define("localOrders", true);
         GEMINI_API_KEY = b
                 .comment("Clave de Gemini, gratis desde aistudio.google.com/app/apikey.",
                          "Si queda vacia se usa la variable de entorno ROCCO_GEMINI_API_KEY.")
@@ -331,6 +344,12 @@ public final class RoccoCommonConfig
         VOICE_ENABLED = b
                 .comment("Si es false, Rocco solo escribe y no gasta credito de voz.")
                 .define("enabled", true);
+        VOICE_RECORDED_LINES = b
+                .comment("Sus frases de siempre (las de sin IA y las de los trabajos) suenan con audios",
+                         "grabados que trae el mod: no hace falta clave y no gastan credito de voz.",
+                         "Lo demas sale con Fish Audio si esta configurado. Apagalo si usas otra voz",
+                         "en Fish Audio y queres que todo suene igual.")
+                .define("recordedLines", true);
         FISH_API_KEY = b
                 .comment("Clave de Fish Audio.",
                          "Si queda vacia se usa la variable de entorno ROCCO_FISH_API_KEY.")
@@ -487,6 +506,23 @@ public final class RoccoCommonConfig
                 .comment("Minutos minimos entre un mate y el siguiente cuando lo toma por su cuenta.",
                          "Si se lo pedis, lo toma igual.")
                 .defineInRange("idleMateCooldownMinutes", 10, 1, 240);
+        IDLE_DANCE_ENABLED = b
+                .comment("Si estas un rato quieto, a veces se pone a bailar tarareando.")
+                .define("idleDanceEnabled", true);
+        CHEER_ENABLED = b
+                .comment("Festeja tus logros: aplaude los chicos (un logro comun, subir de nivel,",
+                         "domesticar un animal) y salta con confeti en los grandes (jefes, desafios).")
+                .define("cheerEnabled", true);
+        ACCOMPANY_FLIGHT = b
+                .comment("Cuando volas con elytra (o en creativo), vuela al lado tuyo con sus hojas.")
+                .define("accompanyFlight", true);
+        ACCOMPANY_WATER = b
+                .comment("Cuando buceas, se pone las antiparras y bucea con vos.",
+                         "En la superficie siempre flota con su patito.")
+                .define("accompanyWater", true);
+        ACCOMPANY_BOAT = b
+                .comment("Cuando vas en bote, te acompaña remando en su propio barquito.")
+                .define("accompanyBoat", true);
         b.pop();
 
         b.comment("El poder que le dio la Madre Naturaleza: encantar tus cosas.").push("magic");

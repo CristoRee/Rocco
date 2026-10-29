@@ -87,7 +87,7 @@ public final class RoccoSpawner
         return true;
     }
 
-    static BlockPos findGround(ServerLevel level, BlockPos origin)
+    public static BlockPos findGround(ServerLevel level, BlockPos origin)
     {
         for (int[] offset : OFFSETS)
         {

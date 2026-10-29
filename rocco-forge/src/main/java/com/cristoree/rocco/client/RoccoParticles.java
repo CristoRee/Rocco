@@ -9,7 +9,7 @@ import net.minecraft.client.particle.TextureSheetParticle;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.util.Mth;
 
-// Las cinco particulas del mate y la magia, con el comportamiento que pide la guia de animacion.
+// Las particulas de Rocco, con el comportamiento que pide la guia de animacion de cada una.
 public final class RoccoParticles
 {
     private static final int FULL_BRIGHT = 15728880;
@@ -227,6 +227,106 @@ public final class RoccoParticles
         public ParticleRenderType getRenderType()
         {
             return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+        }
+    }
+
+    // ---------- las del vuelo, el agua, el barco y los festejos ----------
+
+    // Como se comporta cada una: casi todas son variaciones de lo mismo (sube o cae, crece o se
+    // achica, se desvanece al final), asi que comparten una sola clase con estos ajustes.
+    // fadeFrom: desde que parte de la vida se empieza a desvanecer (0 = desde el principio).
+    // grow: cuanto cambia el tamaño a lo largo de la vida (1 = igual, 2 = el doble al final).
+    public record Look(int minLife, int maxLife, float size, float grow, float gravity, boolean byAge,
+                       float fadeFrom, boolean bright, float spin, float sway, double drag)
+    {
+        public static final Look LEAF_SPARKLE = new Look(15, 15, 0.09F, 0.7F, 0.0F, true, 0.4F, false, 0.0F, 0.0F, 0.96D);
+        public static final Look LEAF_BURST = new Look(20, 30, 0.1F, 0.9F, 0.035F, false, 0.7F, false, 0.25F, 0.0F, 0.94D);
+        public static final Look SPEED_LEAF = new Look(8, 12, 0.11F, 0.8F, 0.0F, false, 0.5F, false, 0.1F, 0.0F, 0.9D);
+        public static final Look WIND_STREAK = new Look(6, 10, 0.22F, 1.0F, 0.0F, true, 0.5F, false, 0.0F, 0.0F, 0.92D);
+        public static final Look WIND_PUFF = new Look(10, 10, 0.12F, 2.2F, 0.0F, true, 0.3F, false, 0.0F, 0.0F, 0.85D);
+        public static final Look WIND_TEAR = new Look(8, 8, 0.06F, 0.8F, 0.0F, false, 0.5F, false, 0.0F, 0.0F, 0.9D);
+        public static final Look LAND_DUST = new Look(12, 16, 0.12F, 1.8F, -0.002F, true, 0.4F, false, 0.0F, 0.0F, 0.86D);
+        public static final Look DUCK_POP = new Look(8, 8, 0.1F, 0.6F, 0.0F, true, 0.5F, true, 0.0F, 0.0F, 0.82D);
+        public static final Look WATER_DROP = new Look(15, 15, 0.07F, 1.0F, 0.06F, false, 0.7F, false, 0.0F, 0.0F, 0.98D);
+        public static final Look THINK_DOT = new Look(30, 30, 0.09F, 1.6F, 0.0F, true, 0.75F, false, 0.0F, 0.0F, 1.0D);
+        public static final Look CLAP_SPARK = new Look(8, 8, 0.08F, 0.7F, 0.0F, true, 0.4F, true, 0.0F, 0.0F, 0.85D);
+        public static final Look CONFETTI = new Look(40, 40, 0.08F, 1.0F, 0.04F, false, 0.75F, false, 0.3F, 0.0F, 0.95D);
+        public static final Look MUSIC_NOTE = new Look(30, 30, 0.12F, 1.0F, 0.0F, false, 0.73F, false, 0.0F, 0.02F, 1.0D);
+        public static final Look DANCE_SPARKLE = new Look(12, 12, 0.08F, 0.8F, 0.0F, true, 0.5F, true, 0.0F, 0.0F, 0.8D);
+    }
+
+    public static final class Tuned extends TextureSheetParticle
+    {
+        private final SpriteSet sprites;
+        private final Look look;
+        private final float startSize;
+        private final float phase;
+
+        Tuned(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites, Look look)
+        {
+            super(level, x, y, z);
+            this.sprites = sprites;
+            this.look = look;
+            this.lifetime = look.minLife() + (look.maxLife() > look.minLife() ? this.random.nextInt(look.maxLife() - look.minLife() + 1) : 0);
+            this.startSize = look.size() * (0.85F + this.random.nextFloat() * 0.3F);
+            this.quadSize = this.startSize;
+            this.gravity = look.gravity();
+            this.friction = (float) look.drag();
+            this.hasPhysics = false;
+            this.xd = dx;
+            this.yd = dy;
+            this.zd = dz;
+            this.phase = this.random.nextFloat() * Mth.TWO_PI;
+            this.roll = this.oRoll = look.spin() > 0.0F ? this.random.nextFloat() * Mth.TWO_PI : 0.0F;
+            if (look.byAge())
+            {
+                setSpriteFromAge(sprites);
+            }
+            else
+            {
+                pickSprite(sprites);
+            }
+        }
+
+        @Override
+        public void tick()
+        {
+            super.tick();
+            if (this.look.byAge())
+            {
+                setSpriteFromAge(this.sprites);
+            }
+            float life = Math.min(1.0F, (float) this.age / this.lifetime);
+            this.quadSize = this.startSize * (1.0F + (this.look.grow() - 1.0F) * life);
+            if (this.look.sway() > 0.0F)
+            {
+                this.xd += Mth.sin(this.phase + this.age * 0.35F) * this.look.sway() * 0.1D;
+            }
+            this.oRoll = this.roll;
+            this.roll += this.look.spin();
+            this.alpha = life > this.look.fadeFrom() ? 1.0F - (life - this.look.fadeFrom()) / (1.0F - this.look.fadeFrom()) : 1.0F;
+        }
+
+        @Override
+        protected int getLightColor(float partialTick)
+        {
+            return this.look.bright() ? FULL_BRIGHT : super.getLightColor(partialTick);
+        }
+
+        @Override
+        public ParticleRenderType getRenderType()
+        {
+            return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+        }
+    }
+
+    public record TunedProvider(SpriteSet sprites, Look look) implements ParticleProvider<SimpleParticleType>
+    {
+        @Override
+        public Particle createParticle(SimpleParticleType type, ClientLevel level, double x, double y, double z,
+                                       double dx, double dy, double dz)
+        {
+            return new Tuned(level, x, y, z, dx, dy, dz, this.sprites, this.look);
         }
     }
 

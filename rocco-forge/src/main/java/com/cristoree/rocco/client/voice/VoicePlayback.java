@@ -97,6 +97,49 @@ public final class VoicePlayback
         minecraft.getSoundManager().play(playing);
     }
 
+    // Frases grabadas: se leen del mod (assets/rocco/voice_lines/<codigo>.ogg) y van a la misma fila
+    // que la voz generada, asi suenan en orden y desde Rocco. Una que no este, se saltea.
+    public static void playLines(int entityId, java.util.List<String> ids)
+    {
+        for (String id : ids)
+        {
+            net.minecraft.resources.ResourceLocation location =
+                    new net.minecraft.resources.ResourceLocation(com.cristoree.rocco.RoccoMod.MODID, "voice_lines/" + id + ".ogg");
+            var resource = Minecraft.getInstance().getResourceManager().getResource(location);
+            if (resource.isEmpty())
+            {
+                continue;
+            }
+            try (java.io.InputStream input = resource.get().open();
+                 com.mojang.blaze3d.audio.OggAudioStream ogg = new com.mojang.blaze3d.audio.OggAudioStream(input))
+            {
+                AudioFormat format = ogg.getFormat();
+                ByteBuffer all = ogg.readAll();
+                byte[] pcm = new byte[all.remaining()];
+                all.get(pcm);
+                QUEUE.add(new Clip(entityId, (int) format.getSampleRate(), format.getChannels() > 1 ? toMono(pcm) : pcm));
+            }
+            catch (java.io.IOException | RuntimeException e)
+            {
+                com.cristoree.rocco.RoccoMod.LOGGER.warn("[Rocco] No pude leer la frase grabada {}: {}", id, e.toString());
+            }
+        }
+    }
+
+    // La voz sale desde Rocco, y el sonido con posicion tiene que ser mono: se promedian los canales.
+    private static byte[] toMono(byte[] stereo)
+    {
+        ByteBuffer in = ByteBuffer.wrap(stereo).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer out = ByteBuffer.allocate(stereo.length / 2).order(ByteOrder.LITTLE_ENDIAN);
+        while (in.remaining() >= 4)
+        {
+            int left = in.getShort();
+            int right = in.getShort();
+            out.putShort((short) ((left + right) / 2));
+        }
+        return out.array();
+    }
+
     // Una frase de prueba (la pantalla de bienvenida): sin mundo ni Rocco, suena "en la cabeza".
     public static void playPreview(byte[] pcm, int sampleRate)
     {

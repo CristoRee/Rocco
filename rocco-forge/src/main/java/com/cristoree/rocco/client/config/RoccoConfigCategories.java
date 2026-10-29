@@ -42,7 +42,21 @@ public final class RoccoConfigCategories
     // title null = sin subtitulo.
     public record Group(String title, List<Option> options) {}
 
-    public record Category(String name, String description, Supplier<ItemStack> icon, List<Group> groups) {}
+    // ready: las tres de conexion (IA, voz, microfono) dicen si ya estan listas para usarse; las
+    // demas no tienen (null).
+    public record Category(String name, String description, Supplier<ItemStack> icon, List<Group> groups,
+                           @org.jetbrains.annotations.Nullable Supplier<Boolean> ready)
+    {
+        public Category(String name, String description, Supplier<ItemStack> icon, List<Group> groups)
+        {
+            this(name, description, icon, groups, null);
+        }
+
+        public boolean isConnection()
+        {
+            return this.ready != null;
+        }
+    }
 
     private static List<Category> all;
 
@@ -119,22 +133,15 @@ public final class RoccoConfigCategories
         ForgeConfigSpec client = RoccoClientConfig.SPEC;
         List<Category> list = new ArrayList<>();
 
-        list.add(new Category("General", "Encender a Rocco, su nombre y como se ve.",
-                () -> new ItemStack(ModItems.ROCCO_SPAWN_EGG.get()), List.of(
-                group(null,
-                        opt(common, RoccoCommonConfig.ENABLED, "Rocco activado"),
-                        opt(common, RoccoCommonConfig.COMPANION_NAME, "Nombre")),
-                group("Pantalla",
-                        opt(client, RoccoClientConfig.SHOW_NAMEPLATE, "Nombre sobre la cabeza"),
-                        opt(client, RoccoClientConfig.NAMEPLATE_DISTANCE, "Distancia del nombre"),
-                        opt(client, RoccoClientConfig.MODEL_SCALE, "Tamaño del modelo")))));
-
-        list.add(new Category("IA y claves", "Con que IA piensa Rocco y las claves de cada proveedor.",
+        // Primero las tres conexiones (con que piensa, con que habla y con que te escucha): son lo
+        // que hay que configurar para empezar, y la pantalla las muestra juntas arriba de todo.
+        list.add(new Category("IA (cerebro)", "Con que IA piensa Rocco y las claves de cada proveedor. Sin clave igual anda, con sus frases propias.",
                 () -> new ItemStack(Items.KNOWLEDGE_BOOK), List.of(
                 group("Cómo elige",
                         opt(common, RoccoCommonConfig.AI_PROVIDER, "Proveedor"),
                         opt(common, RoccoCommonConfig.AI_PROVIDER_ORDER, "Orden en automático"),
-                        opt(common, RoccoCommonConfig.AI_OFFLINE_FALLBACK, "Frases propias sin IA")),
+                        opt(common, RoccoCommonConfig.AI_OFFLINE_FALLBACK, "Frases propias sin IA"),
+                        opt(common, RoccoCommonConfig.AI_LOCAL_ORDERS, "Ahorrar IA en órdenes simples")),
                 group("Groq",
                         opt(common, RoccoCommonConfig.GROQ_API_KEY, "Clave"),
                         opt(common, RoccoCommonConfig.GROQ_MODEL, "Modelo")),
@@ -152,27 +159,69 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.CUSTOM_NAME, "Nombre"),
                         opt(common, RoccoCommonConfig.CUSTOM_URL, "Dirección"),
                         opt(common, RoccoCommonConfig.CUSTOM_API_KEY, "Clave"),
-                        opt(common, RoccoCommonConfig.CUSTOM_MODEL, "Modelo")))));
+                        opt(common, RoccoCommonConfig.CUSTOM_MODEL, "Modelo"))),
+                com.cristoree.rocco.config.RoccoConfig::aiConfigured));
 
-        list.add(new Category("IA avanzada", "Ajustes finos de las respuestas, la conexion y los limites.",
-                () -> new ItemStack(Items.COMPARATOR), List.of(
-                group("Respuestas",
-                        opt(common, RoccoCommonConfig.AI_TEMPERATURE, "Creatividad"),
-                        opt(common, RoccoCommonConfig.AI_TOP_P, "Top P"),
-                        opt(common, RoccoCommonConfig.AI_TOP_K, "Top K"),
-                        opt(common, RoccoCommonConfig.AI_MAX_OUTPUT_TOKENS, "Largo máximo (tokens)"),
-                        opt(common, RoccoCommonConfig.AI_THINKING_LEVEL, "Razonamiento (Gemini 3)"),
-                        opt(common, RoccoCommonConfig.AI_THINKING_BUDGET, "Razonamiento (Gemini 2)"),
-                        opt(common, RoccoCommonConfig.AI_SAFETY_LEVEL, "Filtros de Gemini")),
-                group("Conexión",
-                        opt(common, RoccoCommonConfig.AI_TIMEOUT_SECONDS, "Espera máxima (s)"),
-                        opt(common, RoccoCommonConfig.AI_MAX_RETRIES, "Reintentos"),
-                        opt(common, RoccoCommonConfig.GEMINI_ENDPOINT, "Dirección de Gemini")),
-                group("Límites",
-                        opt(common, RoccoCommonConfig.MAX_CONCURRENT_REQUESTS, "Pedidos a la vez"),
-                        opt(common, RoccoCommonConfig.RATE_LIMIT_PER_MINUTE, "Pedidos por minuto"),
-                        opt(common, RoccoCommonConfig.LOG_REQUEST_BODIES, "Registrar pedidos (depurar)"),
-                        opt(common, RoccoCommonConfig.DEBUG_LOGGING, "rocco.config.opt.debug_logging")))));
+        list.add(new Category("Voz", "La voz de Rocco: sus frases grabadas, Fish Audio para todo lo demas, y como suena en tus parlantes.",
+                () -> new ItemStack(Items.NOTE_BLOCK), List.of(
+                group("Fish Audio",
+                        opt(common, RoccoCommonConfig.VOICE_ENABLED, "Voz activada"),
+                        opt(common, RoccoCommonConfig.VOICE_RECORDED_LINES, "Frases grabadas"),
+                        opt(common, RoccoCommonConfig.FISH_API_KEY, "Clave"),
+                        opt(common, RoccoCommonConfig.FISH_VOICE_ID, "ID de la voz"),
+                        opt(common, RoccoCommonConfig.FISH_MODEL, "Modelo")),
+                group("Cómo suena",
+                        opt(client, RoccoClientConfig.VOICE_VOLUME, "Volumen"),
+                        opt(client, RoccoClientConfig.SPATIAL_AUDIO, "Sale desde Rocco"),
+                        opt(common, RoccoCommonConfig.VOICE_SPEED, "Velocidad"),
+                        opt(common, RoccoCommonConfig.VOICE_LOUDNESS, "Volumen al generar"),
+                        opt(common, RoccoCommonConfig.VOICE_SAMPLE_RATE, "Calidad (Hz)"),
+                        opt(common, RoccoCommonConfig.VOICE_LATENCY_MODE, "Rapidez")),
+                group("rocco.config.group.impressions",
+                        opt(common, RoccoCommonConfig.IMPRESSIONS_ENABLED, "rocco.config.trait.impressions"),
+                        new Option(common, RoccoCommonConfig.IMPRESSION_VOICES, "rocco.config.opt.impression_voices",
+                                "rocco.config.tip.impression_voices", 2000),
+                        new Option(common, RoccoCommonConfig.IMPRESSION_VOICE_SEARCH, "rocco.config.opt.impression_search",
+                                "rocco.config.tip.impression_search", 512)),
+                group("Avanzado",
+                        opt(common, RoccoCommonConfig.VOICE_MAX_CHARS, "Largo máximo (letras)"),
+                        opt(common, RoccoCommonConfig.VOICE_TIMEOUT_SECONDS, "Espera máxima (s)"),
+                        opt(common, RoccoCommonConfig.VOICE_CACHE_ENABLED, "Guardar frases dichas"),
+                        opt(common, RoccoCommonConfig.VOICE_CACHE_SIZE_MB, "Espacio para frases (MB)"),
+                        opt(common, RoccoCommonConfig.FISH_ENDPOINT, "Dirección de Fish Audio"))),
+                com.cristoree.rocco.config.RoccoConfig::voiceReady));
+
+        list.add(new Category("Micrófono", "Hablarle a Rocco con Deepgram. La tecla se cambia en Teclas.",
+                () -> new ItemStack(Items.SCULK_SENSOR), List.of(
+                group("Deepgram",
+                        opt(common, RoccoCommonConfig.STT_ENABLED, "Micrófono activado"),
+                        opt(common, RoccoCommonConfig.DEEPGRAM_API_KEY, "Clave"),
+                        opt(common, RoccoCommonConfig.DEEPGRAM_MODEL, "Modelo"),
+                        opt(common, RoccoCommonConfig.STT_LANGUAGE, "Idioma")),
+                group("Grabación",
+                        opt(common, RoccoCommonConfig.STT_ACTIVATION, "Modo"),
+                        opt(client, RoccoClientConfig.MIC_DEVICE, "Micrófono a usar"),
+                        opt(common, RoccoCommonConfig.STT_MIC_GAIN, "Amplificación"),
+                        opt(common, RoccoCommonConfig.STT_SILENCE_TIMEOUT_MS, "Silencio que corta (ms)"),
+                        opt(common, RoccoCommonConfig.STT_MAX_SECONDS, "Duración máxima (s)"),
+                        opt(common, RoccoCommonConfig.STT_PUNCTUATE, "Agregar puntuación")),
+                group("Avisos",
+                        opt(client, RoccoClientConfig.SHOW_MIC_INDICATOR, "Indicador en pantalla"),
+                        opt(client, RoccoClientConfig.MIC_FEEDBACK_SOUND, "Clic al grabar")),
+                group("Avanzado",
+                        opt(common, RoccoCommonConfig.DEEPGRAM_ENDPOINT, "Dirección de Deepgram"))),
+                com.cristoree.rocco.config.RoccoConfig::sttReady));
+
+        // Despues, el resto de los ajustes.
+        list.add(new Category("General", "Encender a Rocco, su nombre y como se ve.",
+                () -> new ItemStack(ModItems.ROCCO_SPAWN_EGG.get()), List.of(
+                group(null,
+                        opt(common, RoccoCommonConfig.ENABLED, "Rocco activado"),
+                        opt(common, RoccoCommonConfig.COMPANION_NAME, "Nombre")),
+                group("Pantalla",
+                        opt(client, RoccoClientConfig.SHOW_NAMEPLATE, "Nombre sobre la cabeza"),
+                        opt(client, RoccoClientConfig.NAMEPLATE_DISTANCE, "Distancia del nombre"),
+                        opt(client, RoccoClientConfig.MODEL_SCALE, "Tamaño del modelo")))));
 
         // La personalidad (modos y rasgos) tiene su propia pantalla: RoccoPersonalityScreen. Aca
         // quedan solo las opciones que valen en cualquier modo, asi el buscador las encuentra.
@@ -197,53 +246,6 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.CONTEXT_NEARBY_ENTITIES, "Mobs y jugadores cerca"),
                         opt(common, RoccoCommonConfig.CONTEXT_PLAYER_STATS, "Tu vida y hambre")))));
 
-        list.add(new Category("Voz", "La voz de Rocco con Fish Audio y como suena en tus parlantes.",
-                () -> new ItemStack(Items.NOTE_BLOCK), List.of(
-                group("Fish Audio",
-                        opt(common, RoccoCommonConfig.VOICE_ENABLED, "Voz activada"),
-                        opt(common, RoccoCommonConfig.FISH_API_KEY, "Clave"),
-                        opt(common, RoccoCommonConfig.FISH_VOICE_ID, "ID de la voz"),
-                        opt(common, RoccoCommonConfig.FISH_MODEL, "Modelo")),
-                group("Cómo suena",
-                        opt(client, RoccoClientConfig.VOICE_VOLUME, "Volumen"),
-                        opt(client, RoccoClientConfig.SPATIAL_AUDIO, "Sale desde Rocco"),
-                        opt(common, RoccoCommonConfig.VOICE_SPEED, "Velocidad"),
-                        opt(common, RoccoCommonConfig.VOICE_LOUDNESS, "Volumen al generar"),
-                        opt(common, RoccoCommonConfig.VOICE_SAMPLE_RATE, "Calidad (Hz)"),
-                        opt(common, RoccoCommonConfig.VOICE_LATENCY_MODE, "Rapidez")),
-                group("rocco.config.group.impressions",
-                        opt(common, RoccoCommonConfig.IMPRESSIONS_ENABLED, "rocco.config.trait.impressions"),
-                        new Option(common, RoccoCommonConfig.IMPRESSION_VOICES, "rocco.config.opt.impression_voices",
-                                "rocco.config.tip.impression_voices", 2000),
-                        new Option(common, RoccoCommonConfig.IMPRESSION_VOICE_SEARCH, "rocco.config.opt.impression_search",
-                                "rocco.config.tip.impression_search", 512)),
-                group("Avanzado",
-                        opt(common, RoccoCommonConfig.VOICE_MAX_CHARS, "Largo máximo (letras)"),
-                        opt(common, RoccoCommonConfig.VOICE_TIMEOUT_SECONDS, "Espera máxima (s)"),
-                        opt(common, RoccoCommonConfig.VOICE_CACHE_ENABLED, "Guardar frases dichas"),
-                        opt(common, RoccoCommonConfig.VOICE_CACHE_SIZE_MB, "Espacio para frases (MB)"),
-                        opt(common, RoccoCommonConfig.FISH_ENDPOINT, "Dirección de Fish Audio")))));
-
-        list.add(new Category("Micrófono", "Hablarle a Rocco con Deepgram. La tecla se cambia en Controles.",
-                () -> new ItemStack(Items.SCULK_SENSOR), List.of(
-                group("Deepgram",
-                        opt(common, RoccoCommonConfig.STT_ENABLED, "Micrófono activado"),
-                        opt(common, RoccoCommonConfig.DEEPGRAM_API_KEY, "Clave"),
-                        opt(common, RoccoCommonConfig.DEEPGRAM_MODEL, "Modelo"),
-                        opt(common, RoccoCommonConfig.STT_LANGUAGE, "Idioma")),
-                group("Grabación",
-                        opt(common, RoccoCommonConfig.STT_ACTIVATION, "Modo"),
-                        opt(client, RoccoClientConfig.MIC_DEVICE, "Micrófono a usar"),
-                        opt(common, RoccoCommonConfig.STT_MIC_GAIN, "Amplificación"),
-                        opt(common, RoccoCommonConfig.STT_SILENCE_TIMEOUT_MS, "Silencio que corta (ms)"),
-                        opt(common, RoccoCommonConfig.STT_MAX_SECONDS, "Duración máxima (s)"),
-                        opt(common, RoccoCommonConfig.STT_PUNCTUATE, "Agregar puntuación")),
-                group("Avisos",
-                        opt(client, RoccoClientConfig.SHOW_MIC_INDICATOR, "Indicador en pantalla"),
-                        opt(client, RoccoClientConfig.MIC_FEEDBACK_SOUND, "Clic al grabar")),
-                group("Avanzado",
-                        opt(common, RoccoCommonConfig.DEEPGRAM_ENDPOINT, "Dirección de Deepgram")))));
-
         list.add(new Category("Movimiento", "Como te sigue, cuanto se aleja y cuando aparece al lado tuyo.",
                 () -> new ItemStack(Items.LEATHER_BOOTS), List.of(
                 group("Seguirte",
@@ -252,6 +254,10 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.FOLLOW_STOP_DISTANCE, "Frena a"),
                         opt(common, RoccoCommonConfig.FOLLOW_SPEED, "Velocidad"),
                         opt(common, RoccoCommonConfig.WANDER_RADIUS, "Radio de paseo")),
+                group("Acompañarte",
+                        opt(common, RoccoCommonConfig.ACCOMPANY_FLIGHT, "Vuela con vos (elytra)"),
+                        opt(common, RoccoCommonConfig.ACCOMPANY_WATER, "Bucea con vos"),
+                        opt(common, RoccoCommonConfig.ACCOMPANY_BOAT, "Su barquito si vas en bote")),
                 group("Teletransporte",
                         opt(common, RoccoCommonConfig.TELEPORT_DISTANCE, "Aparece si está a más de"),
                         opt(common, RoccoCommonConfig.ANTI_STUCK_ENABLED, "Se destraba solo"),
@@ -273,7 +279,9 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.SLEEP_WITH_PLAYER, "Duerme con vos"),
                         opt(common, RoccoCommonConfig.IDLE_SIT_ENABLED, "Se sienta solo"),
                         opt(common, RoccoCommonConfig.IDLE_MATE_ENABLED, "Toma mate solo"),
-                        opt(common, RoccoCommonConfig.IDLE_MATE_COOLDOWN_MINUTES, "Minutos entre mates")))));
+                        opt(common, RoccoCommonConfig.IDLE_MATE_COOLDOWN_MINUTES, "Minutos entre mates"),
+                        opt(common, RoccoCommonConfig.IDLE_DANCE_ENABLED, "Baila solo"),
+                        opt(common, RoccoCommonConfig.CHEER_ENABLED, "Festeja tus logros")))));
 
         list.add(new Category("Trabajo", "Craftear, cofres, horno, herramientas y huerta.",
                 () -> new ItemStack(Items.CRAFTING_TABLE), List.of(
@@ -292,6 +300,27 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.ENCHANT_COOLDOWN_MINUTES, "Descanso (minutos)"),
                         opt(common, RoccoCommonConfig.ENCHANT_POWER, "Poder de encantar"),
                         opt(common, RoccoCommonConfig.ENCHANT_TREASURE, "Encantamientos de tesoro")))));
+
+        // Lo fino de la IA va al final: casi nadie lo necesita.
+        list.add(new Category("IA avanzada", "Ajustes finos de las respuestas, la conexion y los limites.",
+                () -> new ItemStack(Items.COMPARATOR), List.of(
+                group("Respuestas",
+                        opt(common, RoccoCommonConfig.AI_TEMPERATURE, "Creatividad"),
+                        opt(common, RoccoCommonConfig.AI_TOP_P, "Top P"),
+                        opt(common, RoccoCommonConfig.AI_TOP_K, "Top K"),
+                        opt(common, RoccoCommonConfig.AI_MAX_OUTPUT_TOKENS, "Largo máximo (tokens)"),
+                        opt(common, RoccoCommonConfig.AI_THINKING_LEVEL, "Razonamiento (Gemini 3)"),
+                        opt(common, RoccoCommonConfig.AI_THINKING_BUDGET, "Razonamiento (Gemini 2)"),
+                        opt(common, RoccoCommonConfig.AI_SAFETY_LEVEL, "Filtros de Gemini")),
+                group("Conexión",
+                        opt(common, RoccoCommonConfig.AI_TIMEOUT_SECONDS, "Espera máxima (s)"),
+                        opt(common, RoccoCommonConfig.AI_MAX_RETRIES, "Reintentos"),
+                        opt(common, RoccoCommonConfig.GEMINI_ENDPOINT, "Dirección de Gemini")),
+                group("Límites",
+                        opt(common, RoccoCommonConfig.MAX_CONCURRENT_REQUESTS, "Pedidos a la vez"),
+                        opt(common, RoccoCommonConfig.RATE_LIMIT_PER_MINUTE, "Pedidos por minuto"),
+                        opt(common, RoccoCommonConfig.LOG_REQUEST_BODIES, "Registrar pedidos (depurar)"),
+                        opt(common, RoccoCommonConfig.DEBUG_LOGGING, "rocco.config.opt.debug_logging")))));
 
         return List.copyOf(list);
     }

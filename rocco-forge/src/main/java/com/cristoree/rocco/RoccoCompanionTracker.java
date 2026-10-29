@@ -194,7 +194,12 @@ public final class RoccoCompanionTracker
     {
         if (event.getEntity() instanceof ServerPlayer player)
         {
-            bringToPlayer(player);
+            bringOrRecall(player);
+            RoccoEntity rocco = event.isEndConquered() ? null : find(player);
+            if (rocco != null)
+            {
+                rocco.react("react_respawn");
+            }
         }
     }
 
@@ -204,7 +209,21 @@ public final class RoccoCompanionTracker
     {
         if (event.getEntity() instanceof ServerPlayer player)
         {
+            bringOrRecall(player);
+        }
+    }
+
+    // Si esta cargado lo trae ya; si su zona se descargo (por ejemplo, moriste lejisimo), carga
+    // donde lo vio por ultima vez y lo trae en cuanto aparece. Asi nunca queda perdido del otro lado.
+    private static void bringOrRecall(ServerPlayer player)
+    {
+        if (find(player) != null)
+        {
             bringToPlayer(player);
+        }
+        else if (player.getPersistentData().getBoolean(TAG_ROCCO_FOLLOWING))
+        {
+            recall(player, false);
         }
     }
 
@@ -239,6 +258,7 @@ public final class RoccoCompanionTracker
         // Si quedo sentado o dormido, traerlo asi pareceria que sigue perdido.
         rocco.standUp();
         rocco.setFollowing(true);
+        rocco.stopTravelling();
         rocco.getNavigation().stop();
 
         if (rocco.level() == target)
