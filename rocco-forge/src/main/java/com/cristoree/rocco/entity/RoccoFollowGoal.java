@@ -62,7 +62,10 @@ public class RoccoFollowGoal extends Goal
         }
 
         double distanceSqr = rocco.distanceToSqr(player);
-        double start = RoccoCommonConfig.FOLLOW_START_DISTANCE.get();
+        // Mientras construis, no se te pega: asi no queda en el lugar donde vas a poner un bloque.
+        double start = rocco.isGivingSpace()
+                ? Math.max(4.5D, RoccoCommonConfig.FOLLOW_START_DISTANCE.get())
+                : RoccoCommonConfig.FOLLOW_START_DISTANCE.get();
         double wander = Math.max(start, RoccoCommonConfig.WANDER_RADIUS.get());
 
         // Con el jugador quieto, lo deja pasear hasta wanderRadius; si se mueve, lo sigue de cerca.
@@ -86,7 +89,9 @@ public class RoccoFollowGoal extends Goal
                 && rocco.isFollowing()
                 && !rocco.isBusy()
                 && !rocco.isResting()
-                && rocco.distanceToSqr(this.target) > sqr(RoccoCommonConfig.FOLLOW_STOP_DISTANCE.get());
+                && rocco.distanceToSqr(this.target) > sqr(rocco.isGivingSpace()
+                        ? Math.max(3.0D, RoccoCommonConfig.FOLLOW_STOP_DISTANCE.get())
+                        : RoccoCommonConfig.FOLLOW_STOP_DISTANCE.get());
     }
 
     @Override
@@ -251,7 +256,7 @@ public class RoccoFollowGoal extends Goal
         return null;
     }
 
-    private static boolean isSafe(ServerLevel level, BlockPos pos)
+    public static boolean isSafe(ServerLevel level, BlockPos pos)
     {
         BlockPos below = pos.below();
         BlockState ground = level.getBlockState(below);

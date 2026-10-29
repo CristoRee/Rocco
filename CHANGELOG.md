@@ -1,5 +1,21 @@
 # Cambios
 
+## 1.2.1
+
+### Arreglado
+- **Puertas:** Rocco ahora cabe por una puerta y la abre (y la cierra) solo, en vez de quedarse trabado hasta teletransportarse.
+- **Construir al lado de Rocco:** es más angosto, y si vas a poner un bloque justo donde está parado, se corre a un costado sin pararse delante tuyo. Mientras construís te deja un poco más de espacio.
+- **Una sola respuesta por orden:** ya no salen dos mensajes encimados ni contradictorios. Rocco primero intenta lo que le pediste y después contesta una vez, con lo que va a hacer o con lo que le falta.
+- Si le mandás otra orden mientras todavía piensa la anterior, hace caso a la última. "Seguime", "esperá" y similares se cumplen al instante.
+
+### Cambiado
+- **Craftear:** si los materiales están en los cofres de alrededor, va a buscarlos directamente. Si no están pero se consiguen (madera, piedra), va a talar o picar. Si no hay forma, te dice qué le falta.
+- "Haceme un pico" (sin decir de qué) hace el mejor pico que pueda con lo que hay. Lo mismo con hachas, palas, azadas, espadas y armaduras.
+- **Traer:** si le pedís algo que no está en ningún cofre, sale a conseguirlo. Si un solo cofre tiene todo lo que pediste, va a ese en vez de recorrer varios.
+- **Guardar:** cada cosa va a un cofre que ya la tenga, si no a uno de su tipo (minerales, comida, madera, piedra, cultivos, cosas de mobs, redstone, herramientas...), si no a un cofre vacío que desde ahí queda para ese tipo, y recién al final a cualquiera con lugar.
+- **Ordenar:** cada cofre queda de un tema, en el que ya tenía más de ese tipo (así lo que ya tenías acomodado casi no se mueve), con los stacks completos y todo agrupado adentro.
+- Entiende órdenes también en "tú": sígueme, ven aquí, despiértate, hazme, constrúyeme.
+
 ## 1.2.0
 
 ### Nuevo

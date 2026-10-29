@@ -224,6 +224,7 @@ public final class RoccoActions
     private static Outcome start(RoccoEntity rocco, com.cristoree.rocco.work.Errand errand)
     {
         rocco.startErrand(errand);
+        rocco.primeErrand();
         return OK;
     }
 
@@ -534,8 +535,16 @@ public final class RoccoActions
         FetchErrand errand = FetchErrand.plan(rocco, player, filter, what, Math.max(1, wanted - (give ? have : 0)), looked, give, false);
         if (errand == null)
         {
-            rocco.sayLine("fetch_none", "item", what);
-            return SAID;
+            // En el cofre que miraba no hay: eso es lo que pidio, y se lo dice.
+            if (looked != null)
+            {
+                rocco.sayLine("fetch_none", "item", what);
+                return SAID;
+            }
+            // En ningun cofre: como "conseguime", lo fabrica o lo saca de la naturaleza si puede
+            // (y si no hay forma, lo dice). Mejor que un "no hay" y quedarse quieto.
+            int amount = query.count() > 0 ? query.count() : new ItemStack(query.first()).getMaxStackSize() > 1 ? 16 : 1;
+            return start(rocco, new GatherErrand(rocco, player, query.items(), amount, !give, false));
         }
         return start(rocco, errand);
     }

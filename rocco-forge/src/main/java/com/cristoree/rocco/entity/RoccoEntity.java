@@ -266,6 +266,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     protected void registerGoals()
     {
         this.goalSelector.addGoal(1, new FloatGoal(this));
+        // El navegador ya sabe pasar por puertas de madera (setCanOpenDoors), pero quien las abre
+        // de verdad es este objetivo; sin el, se quedaba empujando la puerta cerrada hasta
+        // teletransportarse. La vuelve a cerrar al pasar, como los aldeanos.
+        this.goalSelector.addGoal(1, new net.minecraft.world.entity.ai.goal.OpenDoorGoal(this, true));
         this.goalSelector.addGoal(2, new RoccoFollowGoal(this));
         // Pasea cerca del jugador aunque lo este siguiendo (dentro de behavior.wanderRadius).
         this.goalSelector.addGoal(3, new RoccoWanderGoal(this));
@@ -273,7 +277,66 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
     public boolean canWander()
     {
-        return getRoccoState() == RoccoState.ACTIVE && isIdleForWandering();
+        return getRoccoState() == RoccoState.ACTIVE && isIdleForWandering() && !isGivingSpace();
+    }
+
+    // ---------- dar espacio mientras el jugador construye ----------
+
+    private int giveSpaceTicks;
+
+    // Un rato sin pasear cerca y siguiendo un poco mas lejos, para no meterse en la construccion.
+    public void giveSpace(int ticks)
+    {
+        this.giveSpaceTicks = Math.max(this.giveSpaceTicks, ticks);
+    }
+
+    public boolean isGivingSpace()
+    {
+        return this.giveSpaceTicks > 0;
+    }
+
+    // El jugador quiere poner un bloque justo donde esta Rocco: se corre a un lugar libre de al
+    // lado (lejos del bloque y sin taparle la vista) antes de que el juego compruebe el lugar, asi
+    // el bloque entra en el mismo clic. Devuelve false si no encontro donde correrse.
+    public boolean stepAsideFrom(BlockPos blocked, Player player)
+    {
+        if (!(level() instanceof ServerLevel serverLevel) || isPlantVisible())
+        {
+            return false;
+        }
+        net.minecraft.world.phys.AABB forbidden = new net.minecraft.world.phys.AABB(blocked);
+        net.minecraft.world.phys.Vec3 look = player.getLookAngle();
+        BlockPos here = blockPosition();
+        BlockPos best = null;
+        double bestScore = Double.MAX_VALUE;
+
+        for (BlockPos candidate : BlockPos.betweenClosed(here.offset(-2, -1, -2), here.offset(2, 1, 2)))
+        {
+            net.minecraft.world.phys.Vec3 center = new net.minecraft.world.phys.Vec3(candidate.getX() + 0.5D, candidate.getY(), candidate.getZ() + 0.5D);
+            if (getDimensions(getPose()).makeBoundingBox(center).intersects(forbidden)
+                    || !RoccoFollowGoal.isSafe(serverLevel, candidate))
+            {
+                continue;
+            }
+            // Cerca de donde estaba, a la misma altura, y no adelante del jugador (ahi esta construyendo).
+            double dx = center.x - player.getX();
+            double dz = center.z - player.getZ();
+            double ahead = (dx * look.x + dz * look.z) / Math.max(0.1D, Math.sqrt(dx * dx + dz * dz));
+            double score = candidate.distSqr(here) + Math.abs(candidate.getY() - here.getY()) * 2.0D + (ahead > 0.3D ? 3.0D : 0.0D);
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = candidate.immutable();
+            }
+        }
+        if (best == null)
+        {
+            return false;
+        }
+        getNavigation().stop();
+        moveTo(best.getX() + 0.5D, best.getY(), best.getZ() + 0.5D, getYRot(), getXRot());
+        giveSpace(300);
+        return true;
     }
 
     @Override
@@ -657,6 +720,31 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         cancelErrand();
         standUp();
         this.errand = next;
+    }
+
+    // Los primeros pasos del encargo, ya mismo y no en el proximo tick: asi lo que tiene para decir
+    // al arrancar ("me faltan palos", "voy al cofre") se sabe antes de contestarle al jugador, y
+    // sale en una sola respuesta. Para cuando el encargo pone un trabajo en la cola o termina.
+    public void primeErrand()
+    {
+        for (int i = 0; i < 3 && this.errand != null && this.jobs.isEmpty() && this.task == RoccoTask.NONE; i++)
+        {
+            Errand running = this.errand;
+            Errand.Status status;
+            try
+            {
+                status = running.tick();
+            }
+            catch (RuntimeException e)
+            {
+                com.cristoree.rocco.RoccoMod.LOGGER.error("[Rocco] El encargo '{}' fallo", running.describe(), e);
+                status = Errand.Status.FAILED;
+            }
+            if (status != Errand.Status.RUNNING && this.errand == running)
+            {
+                this.errand = null;
+            }
+        }
     }
 
     public void cancelErrand()
@@ -1634,6 +1722,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (this.tickCount % 100 == 0 && getHealth() < getMaxHealth())
         {
             heal(1.0F);
+        }
+
+        if (this.giveSpaceTicks > 0)
+        {
+            this.giveSpaceTicks--;
         }
 
         tickFace();

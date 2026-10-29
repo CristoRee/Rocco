@@ -55,8 +55,10 @@ public final class FetchErrand extends Errand
                 : Storage.find((net.minecraft.server.level.ServerLevel) rocco.level(), rocco.blockPosition(),
                         RoccoCommonConfig.WORK_SEARCH_RADIUS.get());
 
-        List<Pickup> pickups = new ArrayList<>();
-        int left = amount;
+        // Los cofres vienen del mas cercano al mas lejano. Si uno solo tiene todo lo pedido, va a
+        // ese y listo, en vez de juntar de a poco entre varios.
+        List<BlockPos> stocked = new ArrayList<>();
+        List<Integer> counts = new ArrayList<>();
         for (BlockPos chest : chests)
         {
             Container container = Storage.open((net.minecraft.server.level.ServerLevel) rocco.level(), chest, requester);
@@ -65,16 +67,30 @@ public final class FetchErrand extends Errand
                 continue;
             }
             int available = Inv.count(container, filter);
-            if (available <= 0)
+            if (available > 0)
             {
-                continue;
+                stocked.add(chest);
+                counts.add(available);
             }
-            int take = Math.min(available, left);
-            pickups.add(new Pickup(chest, filter, take));
-            left -= take;
-            if (left <= 0)
+        }
+
+        List<Pickup> pickups = new ArrayList<>();
+        for (int i = 0; i < stocked.size(); i++)
+        {
+            if (counts.get(i) >= amount)
             {
+                pickups.add(new Pickup(stocked.get(i), filter, amount));
                 break;
+            }
+        }
+        if (pickups.isEmpty())
+        {
+            int left = amount;
+            for (int i = 0; i < stocked.size() && left > 0; i++)
+            {
+                int take = Math.min(counts.get(i), left);
+                pickups.add(new Pickup(stocked.get(i), filter, take));
+                left -= take;
             }
         }
 

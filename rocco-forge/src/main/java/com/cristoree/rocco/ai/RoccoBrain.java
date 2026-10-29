@@ -91,6 +91,44 @@ public class RoccoBrain
     private String playerMood;
     private long playerMoodAt;
 
+    // ---------- una sola respuesta por orden ----------
+    //
+    // Antes una orden podia generar dos mensajes que se contradecian: la IA decia "dale, ya lo
+    // hago" y un instante despues el trabajo decia "me faltan palos". Ahora la orden arranca
+    // primero, lo que Rocco diria al empezar se junta (captured) en vez de ir al chat, y recien
+    // ahi se contesta: si no hubo nada que avisar, va la respuesta de la IA; si hubo, se le pasa
+    // eso a la IA para que lo diga una sola vez y en personaje (o se dice tal cual si no responde).
+
+    // Lo que dijo una orden al arrancar. ack: lo que diria si no hubo nada que avisar.
+    private record Started(String verb, String argument, List<String> said, String ack) {}
+
+    // Un pedido a la IA. question es lo que dijo el jugador; prompt, lo que se le manda (con notas).
+    // started: la orden ya se hizo antes (no se vuelve a hacer). followUp: es la segunda vuelta
+    // para contar lo que paso al arrancar una orden.
+    private record Turn(String question, String prompt, boolean spontaneous, @Nullable Started started, boolean followUp)
+    {
+        static Turn of(String question)
+        {
+            return new Turn(question, question, false, null, false);
+        }
+    }
+
+    // Un mensaje que llego mientras pensaba la respuesta anterior: se contesta ese, el ultimo.
+    private record Pending(ServerPlayer player, String question, @Nullable Started started, boolean isOrder) {}
+
+    // Las ordenes de moverse se cumplen al toque aunque este pensando otra cosa.
+    private static final Set<String> QUICK_VERBS = Set.of(
+            "seguir", "esperar", "quedarse", "sentarse", "dormir", "levantarse", "despertarse", "parar", "cancelar",
+            "teletransportarse", "venir", "aparecer");
+
+    @Nullable
+    private List<String> captured;
+    @Nullable
+    private Pending pending;
+    @Nullable
+    private String lastSaid;
+    private long lastSaidAt;
+
     public RoccoBrain(RoccoEntity rocco)
     {
         this.rocco = rocco;
@@ -101,7 +139,7 @@ public class RoccoBrain
     {
         if (RoccoConfig.aiConfigured())
         {
-            request(player, GREET_PROMPT, false);
+            request(player, Turn.of(GREET_PROMPT));
         }
         else if (RoccoCommonConfig.AI_OFFLINE_FALLBACK.get())
         {
@@ -120,16 +158,19 @@ public class RoccoBrain
         notePlayerMood(question, now);
         offerMigration(player);
 
-        // Si una respuesta anterior quedo colgada (una IA que nunca contesto), no lo deja sordo.
+        // Mientras piensa otra respuesta: se contesta el mensaje nuevo cuando llegue esa (la vieja
+        // se descarta, con su orden, asi nada se hace dos veces). Una orden de moverse ("quedate",
+        // "seguime") igual se cumple al toque, en silencio, y la respuesta despues lo cuenta.
         if (this.waiting && System.currentTimeMillis() - this.waitingSince < STUCK_REQUEST_MS)
         {
-            // Mientras piensa la respuesta anterior, una orden clara ("quedate quieto",
-            // "seguime") se cumple igual, al toque, en vez de perderse.
             OfflineRocco.Answer order = OfflineRocco.reply(this.rocco, question);
-            if (order.verb() != null)
+            Started started = null;
+            if (order.verb() != null && QUICK_VERBS.contains(order.verb()))
             {
-                deliverOffline(player, order);
+                this.rocco.setExpressionFromAi(order.face());
+                started = start(player, order.verb(), order.argument(), order.text());
             }
+            this.pending = new Pending(player, question, started, order.verb() != null);
             return;
         }
         if (this.waiting)
@@ -138,10 +179,19 @@ public class RoccoBrain
             this.waiting = false;
         }
 
+        answer(player, question, null);
+    }
+
+    private void answer(ServerPlayer player, String question, @Nullable Started started)
+    {
         // Sin IA: contesta al toque con sus frases y entiende las ordenes simples.
         if (!RoccoConfig.aiConfigured())
         {
-            if (RoccoCommonConfig.AI_OFFLINE_FALLBACK.get())
+            if (started != null)
+            {
+                sayStarted(started);
+            }
+            else if (RoccoCommonConfig.AI_OFFLINE_FALLBACK.get())
             {
                 deliverOffline(player, OfflineRocco.reply(this.rocco, question));
                 offerFreeAi(player);
@@ -153,7 +203,61 @@ public class RoccoBrain
             return;
         }
 
-        request(player, question, false);
+        Turn turn = started == null
+                ? Turn.of(question)
+                : new Turn(question, question + "\n\n" + alreadyDoneNote(started), false, started, false);
+        if (!request(player, turn) && started != null)
+        {
+            sayStarted(started);
+        }
+    }
+
+    // Hace la orden juntando lo que Rocco diria al arrancar, en vez de mandarlo al chat.
+    private Started start(ServerPlayer player, String verb, @Nullable String argument, String ack)
+    {
+        List<String> said = new ArrayList<>();
+        List<String> previous = this.captured;
+        this.captured = said;
+        try
+        {
+            RoccoActions.Outcome outcome = RoccoActions.run(this.rocco, player, verb, argument == null ? "" : argument);
+            if (outcome != null && !outcome.ok() && outcome.note() != null)
+            {
+                this.rocco.setExpression(RoccoExpression.SAD);
+                said.add(outcome.note() + ".");
+            }
+        }
+        finally
+        {
+            this.captured = previous;
+        }
+        return new Started(verb, argument == null ? "" : argument, said, ack == null ? "" : ack);
+    }
+
+    // Lo que paso al arrancar la orden, tal cual (sin IA, o si la IA no contesto).
+    private void sayStarted(Started started)
+    {
+        String text = clean(started.said().isEmpty() ? started.ack() : String.join(" ", started.said()));
+        if (!text.isEmpty())
+        {
+            speak(text, text, null);
+        }
+        this.chatter.activity(gameTime(), PersonalityProfile.current(), this.rocco.getRandom());
+    }
+
+    private static String alreadyDoneNote(Started started)
+    {
+        return "[You already did what the player asked (\"" + (started.verb() + " " + started.argument()).trim() + "\")."
+                + (started.said().isEmpty() ? " It went fine." : " Right away this happened: " + String.join(" ", started.said()))
+                + " Answer in ONE short reply, in character, without contradicting this. Do not add an #accion line.]";
+    }
+
+    private static String resultNote(Started started)
+    {
+        return "[RESULT OF WHAT YOU JUST STARTED (\"" + (started.verb() + " " + started.argument()).trim() + "\"): right away "
+                + "this happened: " + String.join(" ", started.said()) + " Answer the player above in ONE short reply that "
+                + "tells them this, in character, without contradicting it. If something is missing, say exactly what. "
+                + "Do not add an #accion line.]";
     }
 
     // Una vez por segundo desde la entidad: si hubo silencio un buen rato, dice algo solo.
@@ -183,32 +287,35 @@ public class RoccoBrain
         String note = this.chatter.note(this.rocco, owner, now, profile, !RoccoMemory.isEmpty(owner), this.rocco.getRandom());
         // Pase lo que pase con este pedido, el proximo silencio se cuenta desde ahora.
         this.chatter.activity(now, profile, this.rocco.getRandom());
-        request(owner, note, true);
+        request(owner, new Turn(note, note, true, null, false));
     }
 
     // ---------- el pedido a la IA ----------
 
-    private void request(ServerPlayer player, String question, boolean spontaneous)
+    // false si el pedido no salio (demasiados a la vez, o el limite por minuto).
+    private boolean request(ServerPlayer player, Turn turn)
     {
+        boolean spontaneous = turn.spontaneous();
+        String question = turn.question();
         if (IN_FLIGHT.get() >= RoccoCommonConfig.MAX_CONCURRENT_REQUESTS.get())
         {
             RoccoMod.LOGGER.debug("[Rocco] Peticion descartada: ya hay {} en curso", IN_FLIGHT.get());
-            return;
+            return false;
         }
 
         if (!allowedByRateLimit())
         {
-            if (!spontaneous)
+            if (!spontaneous && turn.started() == null)
             {
                 tell(Component.literal("Estoy respondiendo demasiado seguido, espera un momento."), true);
             }
-            return;
+            return false;
         }
 
         MinecraftServer server = player.getServer();
         if (server == null)
         {
-            return;
+            return false;
         }
 
         // Una vez por sesion: el modelo de Gemini configurado fue retirado.
@@ -231,8 +338,8 @@ public class RoccoBrain
         this.waitingSince = System.currentTimeMillis();
         IN_FLIGHT.incrementAndGet();
 
-        // Rocco "piensa" mientras espera.
-        if (!spontaneous)
+        // Rocco "piensa" mientras espera (si ya esta haciendo algo, la cara la pone eso).
+        if (!spontaneous && turn.started() == null)
         {
             this.rocco.setExpression(RoccoExpression.SERIOUS);
         }
@@ -249,7 +356,7 @@ public class RoccoBrain
                             systemPrompt.length(), systemPrompt.length() / 4, mode,
                             fullImpressions ? ", con la guia de imitaciones completa" : "");
                 }
-                reply = AiRouter.ask(systemPrompt, snapshot, question);
+                reply = AiRouter.ask(systemPrompt, snapshot, turn.prompt());
             }
             catch (Throwable e)
             {
@@ -268,6 +375,24 @@ public class RoccoBrain
                 // Pudo morir o descargarse mientras esperabamos.
                 if (!this.rocco.isAlive())
                 {
+                    this.pending = null;
+                    return;
+                }
+
+                // Mientras pensaba le dieron otra orden: esa manda, asi que esta respuesta (y su
+                // orden) quedo vieja y se descarta. Si solo le siguieron charlando, se contesta esta
+                // y despues lo nuevo.
+                Pending next = this.pending;
+                this.pending = null;
+                if (next != null && next.isOrder())
+                {
+                    RoccoMod.LOGGER.debug("[Rocco] Descarto la respuesta a '{}': llego una orden nueva", question);
+                    if (turn.followUp() && turn.started() != null)
+                    {
+                        // Lo que paso al arrancar la orden anterior igual se cuenta, tal cual.
+                        sayStarted(turn.started());
+                    }
+                    answer(next.player(), next.question(), next.started());
                     return;
                 }
 
@@ -275,13 +400,29 @@ public class RoccoBrain
                 {
                     this.lastMode = mode;
                     this.pendingNote = null;
-                    deliver(player, question, result.text(), spontaneous, asked, permissions, profile);
-                    return;
+                    deliver(player, turn, result.text(), asked, permissions, profile);
+                }
+                else
+                {
+                    failed(player, turn, result);
                 }
 
-                failed(player, question, result, spontaneous);
+                if (next != null)
+                {
+                    // Si esta respuesta abrio una segunda vuelta (contar lo que paso al arrancar),
+                    // lo nuevo espera a esa.
+                    if (this.waiting)
+                    {
+                        this.pending = next;
+                    }
+                    else
+                    {
+                        answer(next.player(), next.question(), next.started());
+                    }
+                }
             });
         });
+        return true;
     }
 
     // Lo que hace falta para armar el prompt de un pedido. Se junta en el hilo del servidor (mira
@@ -416,9 +557,11 @@ public class RoccoBrain
 
     // ---------- la respuesta ----------
 
-    private void deliver(ServerPlayer player, String question, String rawAnswer, boolean spontaneous, boolean asked,
+    private void deliver(ServerPlayer player, Turn turn, String rawAnswer, boolean asked,
                          Moments.Permissions permissions, PersonalityProfile profile)
     {
+        String question = turn.question();
+        boolean spontaneous = turn.spontaneous();
         // Primero las lineas de memoria y la orden de trabajo, asi no aparecen en el chat.
         String withoutMemory = applyMemoryLines(player, rawAnswer);
         RoccoActions.Parsed parsed = RoccoActions.parse(withoutMemory);
@@ -437,25 +580,30 @@ public class RoccoBrain
         boolean spontaneousImpression = tags.impression() != null && !asked && this.impression == null;
         this.moments.used(permissions, psycho, spontaneousImpression, face == RoccoExpression.ANGRY, gameTime());
         trackImpression(tags.impression());
-
-        String chat = clean(tags.chatText());
-        if (!chat.isEmpty())
-        {
-            this.history.add(new ChatTurn(true, spontaneous ? "[SPONTANEOUS MOMENT]" : question));
-            this.history.add(new ChatTurn(false, tags.historyText()));
-            this.phrases.add(chat);
-            speak(chat, tags.voiceText(), tags.impression());
-        }
         this.chatter.activity(gameTime(), profile, this.rocco.getRandom());
 
-        if (spontaneous)
+        String chat = clean(tags.chatText());
+
+        // Por su cuenta no se pone a trabajar, y una orden que ya se hizo no se vuelve a hacer.
+        if (spontaneous || turn.started() != null || turn.followUp())
         {
-            // Por su cuenta no se pone a trabajar ni a moverse: solo hablo.
+            if (!spontaneous)
+            {
+                this.rocco.addTrust(2.0D);
+            }
+            if (!chat.isEmpty())
+            {
+                remember(spontaneous ? "[SPONTANEOUS MOMENT]" : question, tags.historyText(), chat);
+                speak(chat, tags.voiceText(), tags.impression());
+            }
+            else if (turn.started() != null)
+            {
+                sayStarted(turn.started());
+            }
             return;
         }
         this.rocco.addTrust(2.0D);
 
-        // Despues de hablar: si la accion dice algo al toque (una receta), sale en orden.
         String verb = parsed.verb();
         String argument = parsed.argument();
 
@@ -477,8 +625,44 @@ public class RoccoBrain
             }
         }
 
-        RoccoActions.Outcome outcome = verb == null ? null : RoccoActions.run(this.rocco, player, verb, argument);
-        reportOutcome(outcome);
+        if (verb == null)
+        {
+            if (!chat.isEmpty())
+            {
+                remember(question, tags.historyText(), chat);
+                speak(chat, tags.voiceText(), tags.impression());
+            }
+            return;
+        }
+
+        // Primero la orden, despues la palabra: asi lo que dice no contradice lo que paso.
+        Started started = start(player, verb, argument, chat);
+        if (started.said().isEmpty())
+        {
+            // Arranco sin nada que avisar: la respuesta de la IA es la que corresponde.
+            if (!chat.isEmpty())
+            {
+                remember(question, tags.historyText(), chat);
+                speak(chat, tags.voiceText(), tags.impression());
+            }
+            return;
+        }
+
+        // Al arrancar surgio algo (le falta algo, no se puede): la IA lo cuenta en una sola
+        // respuesta. Si no se puede preguntar, se dice tal cual.
+        Turn followUp = new Turn(question, question + "\n\n" + resultNote(started), false, started, true);
+        if (!request(player, followUp))
+        {
+            sayStarted(started);
+        }
+    }
+
+    // Lo que se dijo queda en la charla, para que la IA sepa lo que ya hablaron.
+    private void remember(String playerText, String roccoText, String chat)
+    {
+        this.history.add(new ChatTurn(true, playerText));
+        this.history.add(new ChatTurn(false, roccoText));
+        this.phrases.add(chat);
     }
 
     // Guarda u olvida lo que la IA marco, y devuelve la respuesta sin esas lineas.
@@ -523,13 +707,25 @@ public class RoccoBrain
     }
 
     // Ninguna IA contesto (o el filtro de un proveedor bloqueo la respuesta).
-    private void failed(ServerPlayer player, String question, ChatReply result, boolean spontaneous)
+    private void failed(ServerPlayer player, Turn turn, ChatReply result)
     {
-        if (spontaneous)
+        String question = turn.question();
+        if (turn.spontaneous())
         {
             // Si nadie le pregunto nada, mejor callado que explicando por que no pudo.
             RoccoMod.LOGGER.debug("[Rocco] El comentario espontaneo no salio: {}", result.error());
             this.rocco.setExpressionFromAi(RoccoExpression.HAPPY);
+            return;
+        }
+
+        // La orden ya esta hecha: lo que paso se cuenta tal cual, sin volver a hacerla.
+        if (turn.started() != null)
+        {
+            sayStarted(turn.started());
+            if (result.failure() != ChatReply.Failure.BLOCKED)
+            {
+                noteProblem(player, result);
+            }
             return;
         }
 
@@ -540,13 +736,19 @@ public class RoccoBrain
             {
                 RoccoMod.LOGGER.info("[Rocco] Respuesta bloqueada por el proveedor: {}", result.error());
             }
-            this.rocco.setExpressionFromAi(RoccoExpression.SMUG);
-            tell(Component.translatable("rocco.blocked." + (1 + this.rocco.getRandom().nextInt(6))), false);
             OfflineRocco.Answer order = question.equals(GREET_PROMPT) ? null : OfflineRocco.reply(this.rocco, question);
             if (order != null && order.verb() != null)
             {
-                reportOutcome(RoccoActions.run(this.rocco, player, order.verb(), order.argument() == null ? "" : order.argument()));
+                // Si era una orden, se hace igual; lo que diga al arrancar es la respuesta.
+                Started started = start(player, order.verb(), order.argument(), "");
+                if (!started.said().isEmpty())
+                {
+                    sayStarted(started);
+                    return;
+                }
             }
+            this.rocco.setExpressionFromAi(RoccoExpression.SMUG);
+            tell(Component.translatable("rocco.blocked." + (1 + this.rocco.getRandom().nextInt(6))), false);
             return;
         }
 
@@ -566,21 +768,22 @@ public class RoccoBrain
         }
     }
 
+    // Sin IA: si es una orden, se hace primero y se dice una sola cosa (lo que paso al arrancar,
+    // o su frase de "dale" si arranco sin problemas). Si no, su frase y listo.
     private void deliverOffline(ServerPlayer player, OfflineRocco.Answer answer)
     {
         this.rocco.setExpressionFromAi(answer.face());
-        // Algunas ordenes (la receta, el cofre de la cosecha) las contesta la accion misma.
+        if (answer.verb() != null)
+        {
+            sayStarted(start(player, answer.verb(), answer.argument(), answer.text()));
+            return;
+        }
         if (!answer.text().isBlank())
         {
             String text = clean(answer.text());
             speak(text, text, null);
         }
         this.chatter.activity(gameTime(), PersonalityProfile.current(), this.rocco.getRandom());
-
-        RoccoActions.Outcome outcome = answer.verb() == null
-                ? null
-                : RoccoActions.run(this.rocco, player, answer.verb(), answer.argument() == null ? "" : answer.argument());
-        reportOutcome(outcome);
     }
 
     // Rocco habla por su cuenta mientras trabaja ("me faltan 3 de roca"). Lo escuchan los que
@@ -597,6 +800,23 @@ public class RoccoBrain
         {
             this.rocco.setExpressionFromAi(face);
         }
+
+        // Una orden recien arrancada: lo que diga al empezar se junta para la respuesta unica.
+        if (this.captured != null)
+        {
+            this.captured.add(message);
+            return;
+        }
+
+        // La misma frase dos veces seguidas en pocos segundos (dos encargos que avisan lo mismo) sobra.
+        long now = gameTime();
+        if (message.equals(this.lastSaid) && now - this.lastSaidAt < 100L)
+        {
+            return;
+        }
+        this.lastSaid = message;
+        this.lastSaidAt = now;
+
         this.rocco.talkFor(Math.min(200, 20 + message.length()));
         this.chatter.activity(gameTime(), PersonalityProfile.current(), this.rocco.getRandom());
 
@@ -648,16 +868,6 @@ public class RoccoBrain
         broadcast(Component.literal(chat), impression, false);
         // Y en voz alta, si la voz esta configurada.
         com.cristoree.rocco.voice.RoccoVoice.speak(this.rocco, voice, impression);
-    }
-
-    // Si dijo que iba a hacer algo y no pudo, lo aclara en vez de quedarse quieto sin mas.
-    private void reportOutcome(@Nullable RoccoActions.Outcome outcome)
-    {
-        if (outcome != null && !outcome.ok() && outcome.note() != null)
-        {
-            this.rocco.setExpression(RoccoExpression.SAD);
-            tell(Component.literal(outcome.note() + "."), false);
-        }
     }
 
     // Una sola linea, sin espacios dobles ni etiquetas sueltas: el chat no muestra saltos de linea.

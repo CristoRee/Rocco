@@ -63,6 +63,7 @@ public final class Names
 
     private static final Map<String, String> WORDS = new HashMap<>();
     private static final Map<String, TagKey<Item>> GROUPS = new HashMap<>();
+    private static final Map<String, List<String>> CHOICES = new HashMap<>();
     private static final Map<TagKey<Item>, String> GROUP_FALLBACK = Map.of(
             ItemTags.PLANKS, "minecraft:oak_planks",
             ItemTags.LOGS, "minecraft:oak_log",
@@ -98,6 +99,29 @@ public final class Names
             {
                 WORDS.put(piece[0] + " de " + material[0], "minecraft:" + material[1] + "_" + piece[1]);
             }
+        }
+
+        // "Haceme un pico", sin decir de que: vale cualquiera, del mejor al mas basico. Al craftear
+        // se queda con el primero que pueda hacer con lo que hay.
+        String[] toolOrder = {"diamond", "iron", "stone", "wooden", "golden"};
+        for (String[] tool : tools)
+        {
+            List<String> ids = new ArrayList<>();
+            for (String material : toolOrder)
+            {
+                ids.add("minecraft:" + material + "_" + tool[1]);
+            }
+            CHOICES.put(tool[0], ids);
+        }
+        String[] armorOrder = {"diamond", "iron", "golden", "leather"};
+        for (String[] piece : armor)
+        {
+            List<String> ids = new ArrayList<>();
+            for (String material : armorOrder)
+            {
+                ids.add("minecraft:" + material + "_" + piece[1]);
+            }
+            CHOICES.put(piece[0], ids);
         }
 
         word("minecraft:crafting_table", "mesa de crafteo", "mesa de crafting", "mesa de trabajo", "mesa de crafteos",
@@ -365,6 +389,15 @@ public final class Names
             {
                 return List.of(Inv.item(id));
             }
+            List<String> choices = CHOICES.get(candidate);
+            if (choices != null)
+            {
+                List<Item> members = choices.stream().map(Inv::item).filter(item -> item != Items.AIR).toList();
+                if (!members.isEmpty())
+                {
+                    return members;
+                }
+            }
             TagKey<Item> tag = GROUPS.get(candidate);
             if (tag != null)
             {
@@ -450,7 +483,7 @@ public final class Names
             if (word.length() > 4 && word.endsWith("es") && !word.endsWith("ses"))
             {
                 String base = word.substring(0, word.length() - 2);
-                one = WORDS.containsKey(base) || GROUPS.containsKey(base) ? base : word.substring(0, word.length() - 1);
+                one = WORDS.containsKey(base) || GROUPS.containsKey(base) || CHOICES.containsKey(base) ? base : word.substring(0, word.length() - 1);
             }
             else if (word.length() > 3 && word.endsWith("s"))
             {

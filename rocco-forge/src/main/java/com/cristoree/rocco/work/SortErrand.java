@@ -22,10 +22,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-// Ordena los cofres: junta lo repartido, cada cosa va al cofre donde ya habia mas de eso, se
-// completan los stacks y adentro de cada cofre queda todo en orden. Pasa por cada cofre y el
-// cambio se hace de una sola vez al final, contando que no se pierda ni se duplique nada: si la
-// cuenta no da, no toca nada.
+// Ordena los cofres: junta lo repartido, completa los stacks y deja cada cofre de un tema
+// (minerales, comida, madera...), en el que ya tenia mas de ese tipo, con todo en orden adentro.
+// Pasa por cada cofre y el cambio se hace de una sola vez al final, contando que no se pierda ni
+// se duplique nada: si la cuenta no da, no toca nada.
 public final class SortErrand extends Errand
 {
     private static final int MAX_CHESTS = 16;
@@ -131,9 +131,53 @@ public final class SortErrand extends Errand
             }
         }
 
-        // Lo que mas hay se acomoda primero, en su cofre "de siempre".
+        // Cada cofre queda de un tema: cada tipo de cosa (minerales, comida, madera...) va al cofre
+        // donde ya habia mas de ese tipo, asi lo que el jugador ya tenia acomodado casi no se mueve.
+        // Un tipo que no entra en su cofre sigue en uno libre, y recien despues en cualquiera.
+        Map<Key, ItemCategory> categoryOf = new HashMap<>();
+        Map<ItemCategory, int[]> categoryPerChest = new java.util.EnumMap<>(ItemCategory.class);
+        Map<ItemCategory, Integer> categoryTotals = new java.util.EnumMap<>(ItemCategory.class);
+        for (Map.Entry<Key, int[]> entry : perChest.entrySet())
+        {
+            ItemCategory category = ItemCategory.of(sample.get(entry.getKey()));
+            categoryOf.put(entry.getKey(), category);
+            int[] row = categoryPerChest.computeIfAbsent(category, k -> new int[containers.size()]);
+            for (int c = 0; c < row.length; c++)
+            {
+                row[c] += entry.getValue()[c];
+            }
+            categoryTotals.merge(category, totals.get(entry.getKey()), Integer::sum);
+        }
+
+        List<ItemCategory> categoryOrder = new ArrayList<>(categoryTotals.keySet());
+        categoryOrder.sort(Comparator.comparingInt((ItemCategory category) -> -categoryTotals.get(category)));
+
+        boolean[] claimed = new boolean[containers.size()];
+        Map<ItemCategory, List<Integer>> homes = new java.util.EnumMap<>(ItemCategory.class);
+        for (ItemCategory category : categoryOrder)
+        {
+            int[] row = categoryPerChest.get(category);
+            int best = -1;
+            for (int c = 0; c < row.length; c++)
+            {
+                if (!claimed[c] && row[c] > 0 && (best < 0 || row[c] > row[best]))
+                {
+                    best = c;
+                }
+            }
+            List<Integer> list = new ArrayList<>();
+            if (best >= 0)
+            {
+                claimed[best] = true;
+                list.add(best);
+            }
+            homes.put(category, list);
+        }
+
+        // Primero los tipos que mas hay; adentro de cada tipo, cada cosa junta.
         List<Key> order = new ArrayList<>(totals.keySet());
-        order.sort(Comparator.comparingInt((Key key) -> -totals.get(key)));
+        order.sort(Comparator.comparingInt((Key key) -> categoryOrder.indexOf(categoryOf.get(key)))
+                .thenComparing(Key::id).thenComparing(Key::tag));
 
         List<List<ItemStack>> plan = new ArrayList<>();
         for (int c = 0; c < containers.size(); c++)
@@ -143,26 +187,39 @@ public final class SortErrand extends Errand
 
         for (Key key : order)
         {
-            int[] counts = perChest.get(key);
-            int home = 0;
-            for (int c = 1; c < counts.length; c++)
-            {
-                if (counts[c] > counts[home])
-                {
-                    home = c;
-                }
-            }
-
             ItemStack template = sample.get(key);
+            List<Integer> mine = homes.get(categoryOf.get(key));
             int left = totals.get(key);
             int max = Math.max(1, template.getMaxStackSize());
             while (left > 0)
             {
                 int amount = Math.min(max, left);
-                int target = home;
-                if (plan.get(target).size() >= containers.get(target).getContainerSize())
+                int target = -1;
+                for (int c : mine)
                 {
-                    target = -1;
+                    if (plan.get(c).size() < containers.get(c).getContainerSize())
+                    {
+                        target = c;
+                        break;
+                    }
+                }
+                if (target < 0)
+                {
+                    // Su cofre se lleno: toma uno que no sea de nadie...
+                    for (int c = 0; c < containers.size(); c++)
+                    {
+                        if (!claimed[c] && plan.get(c).size() < containers.get(c).getContainerSize())
+                        {
+                            claimed[c] = true;
+                            mine.add(c);
+                            target = c;
+                            break;
+                        }
+                    }
+                }
+                if (target < 0)
+                {
+                    // ...y si no queda ninguno, el que tenga lugar.
                     for (int c = 0; c < containers.size(); c++)
                     {
                         if (plan.get(c).size() < containers.get(c).getContainerSize())
@@ -183,10 +240,12 @@ public final class SortErrand extends Errand
             }
         }
 
-        // Adentro de cada cofre, en orden alfabetico por id (bloques y herramientas quedan juntos).
+        // Adentro de cada cofre: por tipo, despues por id (cada cosa junta), los stacks llenos primero.
         for (List<ItemStack> stacks : plan)
         {
-            stacks.sort(Comparator.comparing((ItemStack stack) -> Inv.id(stack)).thenComparingInt(stack -> -stack.getCount()));
+            stacks.sort(Comparator.comparingInt((ItemStack stack) -> ItemCategory.of(stack).ordinal())
+                    .thenComparing(Inv::id)
+                    .thenComparingInt(stack -> -stack.getCount()));
         }
 
         // La cuenta tiene que dar exacta antes de tocar un solo cofre.

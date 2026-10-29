@@ -140,20 +140,76 @@ public final class DepositErrand extends Errand
             return;
         }
 
-        // Cada cosa al cofre mas cercano que ya tenga de eso.
+        // A donde va cada cosa, como lo haria una persona prolija (los cofres van del mas cercano al
+        // mas lejano):
+        //  1. a un cofre que ya tenga eso mismo;
+        //  2. a uno de su tipo (los minerales con los minerales, la comida con la comida);
+        //  3. a un cofre vacio, que desde ahi queda para ese tipo;
+        //  4. a cualquiera que tenga lugar.
         List<BlockPos> chests = Storage.find(this.level, this.rocco.blockPosition(), RoccoCommonConfig.WORK_SEARCH_RADIUS.get());
+        Map<BlockPos, Container> opened = new LinkedHashMap<>();
+        Map<BlockPos, ItemCategory> themes = new LinkedHashMap<>();
+        for (BlockPos chest : chests)
+        {
+            Container container = Storage.open(this.level, chest, requester());
+            if (container != null)
+            {
+                opened.put(chest, container);
+                ItemCategory theme = themeOf(container);
+                if (theme != null)
+                {
+                    themes.put(chest, theme);
+                }
+            }
+        }
         Map<BlockPos, List<Item>> plan = new LinkedHashMap<>();
 
         for (Item item : items)
         {
+            ItemStack probe = new ItemStack(item);
+            ItemCategory category = ItemCategory.of(probe);
             BlockPos home = null;
-            for (BlockPos chest : chests)
+
+            for (Map.Entry<BlockPos, Container> chest : opened.entrySet())
             {
-                Container container = Storage.open(this.level, chest, requester());
-                if (container != null && Inv.count(container, item) > 0 && Inv.room(container, new ItemStack(item)) > 0)
+                if (Inv.count(chest.getValue(), item) > 0 && Inv.room(chest.getValue(), probe) > 0)
                 {
-                    home = chest;
+                    home = chest.getKey();
                     break;
+                }
+            }
+            if (home == null)
+            {
+                for (Map.Entry<BlockPos, Container> chest : opened.entrySet())
+                {
+                    if (themes.get(chest.getKey()) == category && Inv.room(chest.getValue(), probe) > 0)
+                    {
+                        home = chest.getKey();
+                        break;
+                    }
+                }
+            }
+            if (home == null)
+            {
+                for (Map.Entry<BlockPos, Container> chest : opened.entrySet())
+                {
+                    if (Inv.isEmpty(chest.getValue()) && !themes.containsKey(chest.getKey()) && !plan.containsKey(chest.getKey()))
+                    {
+                        home = chest.getKey();
+                        themes.put(home, category);
+                        break;
+                    }
+                }
+            }
+            if (home == null)
+            {
+                for (Map.Entry<BlockPos, Container> chest : opened.entrySet())
+                {
+                    if (Inv.room(chest.getValue(), probe) > 0)
+                    {
+                        home = chest.getKey();
+                        break;
+                    }
                 }
             }
 
@@ -168,6 +224,27 @@ public final class DepositErrand extends Errand
         }
 
         plan.forEach((chest, list) -> this.visits.add(new Visit(chest, list)));
+    }
+
+    // El tipo de cosas que guarda un cofre: el que ocupa al menos la mitad de lo que tiene.
+    @Nullable
+    static ItemCategory themeOf(Container container)
+    {
+        Map<ItemCategory, Integer> counts = new java.util.EnumMap<>(ItemCategory.class);
+        int total = 0;
+        for (ItemStack stack : Inv.contents(container))
+        {
+            counts.merge(ItemCategory.of(stack), stack.getCount(), Integer::sum);
+            total += stack.getCount();
+        }
+        for (Map.Entry<ItemCategory, Integer> entry : counts.entrySet())
+        {
+            if (total > 0 && entry.getValue() * 2 >= total)
+            {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     @Nullable

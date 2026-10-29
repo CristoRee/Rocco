@@ -50,6 +50,9 @@ public final class CraftErrand extends Errand
     @Nullable
     private BlockPos table;
     private boolean crafted;
+    // Ya conto al arrancar que iba a los cofres (o que ya los habia mirado): no lo repite despues.
+    private boolean toldChests;
+    private boolean toldGathering;
 
     // count 0 = lo que salga de una vez (4 antorchas, 1 pico).
     public CraftErrand(RoccoEntity rocco, @Nullable Player requester, List<Item> candidates, int count, boolean keep, boolean quiet)
@@ -82,6 +85,9 @@ public final class CraftErrand extends Errand
 
     // ---------- planear ----------
 
+    // Que hacer primero, dicho una sola vez: si con lo que lleva alcanza, lo hace; si lo que falta
+    // esta en los cofres, va a buscarlo; si es madera o piedra, la consigue; y solo si falta algo
+    // que nadie mas que el jugador puede darle, dice exactamente que y espera.
     private Status plan()
     {
         if (!choose(Inv.tally(this.rocco.inventory())))
@@ -96,11 +102,87 @@ public final class CraftErrand extends Errand
             return Status.RUNNING;
         }
 
-        say("craft_missing", "item", Names.name(this.target), "missing", Names.missing(this.plan.missing()));
+        List<CraftPlanner.Missing> stillMissing = this.plan.missing();
+        if (!this.searched)
+        {
+            CraftPlanner.Plan withChests = planWith(stockWithChests());
+            if (withChests.complete())
+            {
+                say("craft_fetching", "item", Names.name(this.target), "missing", Names.missing(this.plan.missing()));
+                this.toldChests = true;
+                this.phase = Phase.SEARCH;
+                return Status.RUNNING;
+            }
+            stillMissing = withChests.missing();
+            this.toldChests = true;
+            if (RoccoCommonConfig.WORK_GATHER_FROM_NATURE.get() && allGatherable(stillMissing))
+            {
+                say("craft_gathering", "item", Names.name(this.target), "missing", Names.missing(stillMissing));
+                this.toldGathering = true;
+                this.phase = Phase.SEARCH;
+                return Status.RUNNING;
+            }
+        }
+
+        say("craft_missing", "item", Names.name(this.target), "missing", Names.missing(stillMissing));
         this.lastMissing = this.plan.missingTotal();
         this.phase = Phase.WAIT;
         this.waitStart = this.age;
         return Status.RUNNING;
+    }
+
+    // Lo que lleva encima mas lo que hay en los cofres de alrededor.
+    private Map<String, Integer> stockWithChests()
+    {
+        Map<String, Integer> combined = Inv.tally(this.rocco.inventory());
+        for (BlockPos chest : Storage.find(this.level, this.rocco.blockPosition(), RoccoCommonConfig.WORK_SEARCH_RADIUS.get()))
+        {
+            Container container = Storage.open(this.level, chest, requester());
+            if (container != null)
+            {
+                Inv.addTally(combined, container);
+            }
+        }
+        return combined;
+    }
+
+    private CraftPlanner.Plan planWith(Map<String, Integer> stock)
+    {
+        boolean tableAvailable = tableNearby() != null || stock.getOrDefault(CraftPlanner.CRAFTING_TABLE, 0) > 0;
+        return CraftPlanner.plan(Recipes.book(this.level), stock, Inv.id(this.target), this.count, tableAvailable);
+    }
+
+    // Madera (troncos, tablas, palos, la mesa) o roca: lo que sabe sacar de la naturaleza.
+    private static boolean allGatherable(List<CraftPlanner.Missing> missing)
+    {
+        if (missing.isEmpty())
+        {
+            return false;
+        }
+        for (CraftPlanner.Missing need : missing)
+        {
+            boolean any = false;
+            for (String option : need.options())
+            {
+                if (gatherable(Inv.item(option)))
+                {
+                    any = true;
+                    break;
+                }
+            }
+            if (!any)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean gatherable(Item item)
+    {
+        ItemStack probe = new ItemStack(item);
+        return probe.is(ItemTags.PLANKS) || probe.is(ItemTags.LOGS) || item == Items.STICK
+                || item == Items.CRAFTING_TABLE || item == Items.COBBLESTONE;
     }
 
     // De las opciones (por ejemplo "tablas" de cualquier madera), la que se pueda hacer, o la
@@ -190,8 +272,18 @@ public final class CraftErrand extends Errand
         }
         if (!this.searched && waited > patience)
         {
-            say("craft_search_myself");
+            if (!this.toldChests)
+            {
+                say("craft_search_myself");
+            }
             this.phase = Phase.SEARCH;
+            return Status.RUNNING;
+        }
+        // Ya busco en los cofres y no le diste lo que falta: si una parte es madera o piedra, la
+        // consigue mientras tanto, asi despues solo falta lo tuyo.
+        if (this.searched && !this.gatherPlanned && waited > patience && RoccoCommonConfig.WORK_GATHER_FROM_NATURE.get())
+        {
+            this.phase = Phase.GATHER;
             return Status.RUNNING;
         }
         if (this.searched && waited > GIVE_UP_TICKS)
@@ -305,7 +397,10 @@ public final class CraftErrand extends Errand
         choose(Inv.tally(this.rocco.inventory()));
         if (this.plan.complete())
         {
-            say("craft_found_it");
+            if (!this.toldChests)
+            {
+                say("craft_found_it");
+            }
             this.phase = Phase.PREPARE;
             return Status.RUNNING;
         }
@@ -377,7 +472,10 @@ public final class CraftErrand extends Errand
         {
             this.gatherQueue.add(() ->
             {
-                say("craft_going_to_chop");
+                if (!this.toldGathering)
+                {
+                    say("craft_going_to_chop");
+                }
                 delegate(new ChopErrand(this.rocco, requester(), true));
             });
         }
@@ -386,7 +484,10 @@ public final class CraftErrand extends Errand
             int amount = stone;
             this.gatherQueue.add(() ->
             {
-                say("craft_going_to_mine");
+                if (!this.toldGathering)
+                {
+                    say("craft_going_to_mine");
+                }
                 delegate(new GatherErrand(this.rocco, requester(), List.of(Items.COBBLESTONE), amount, true, true));
             });
         }

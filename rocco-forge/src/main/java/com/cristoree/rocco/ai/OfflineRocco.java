@@ -26,7 +26,7 @@ public final class OfflineRocco
     private static final Pattern NOT_FOLLOW = Pattern.compile("\\b(no me sigas|deja de seguirme|dejame solo|no vengas)\\b");
     private static final Pattern STOP = Pattern.compile("\\b(basta|stop|cancela|para de|deja de|para ya)\\b|^\\s*para\\s*$");
     // Sin "aca" ni "vamos": "que haces aca?" o "vamos a plantar" no son una orden de seguir.
-    private static final Pattern FOLLOW = Pattern.compile("\\b(seguime|segui|veni|veni aca|follow|follow me|come here)\\b");
+    private static final Pattern FOLLOW = Pattern.compile("\\b(seguime|segui|sigueme|veni|veni aca|ven aqui|ven aca|ven conmigo|follow|follow me|come here)\\b");
     private static final Pattern PLANT = Pattern.compile("\\b(planta|plantar|plantame|plant|sembra|sembrar|siembra)\\w*");
     private static final Pattern HARVEST = Pattern.compile("\\b(cosecha|cosechar|harvest|recolecta|arranca)\\w*");
     private static final Pattern OPEN = Pattern.compile("\\b(abri|abrir|abrime|cerra|cerrar|open|close)\\b.*\\b(puerta|trampilla|porton|door|trapdoor|gate)\\b"
@@ -35,7 +35,7 @@ public final class OfflineRocco
     // Sin "sentado" ni "dormido": "estas sentado, levantate" pide lo contrario.
     private static final Pattern SIT = Pattern.compile("\\b(senta|sentate|sentarte|sentar|sentarse|sentame|sientate|sit|sit down)\\b");
     private static final Pattern SLEEP = Pattern.compile("\\b(dormi|dormite|dormir|dormirte|duermete|duerme|siesta|a mimir|sleep|nap)\\b");
-    private static final Pattern WAKE = Pattern.compile("\\b(levanta\\w*|desperta\\w*|wake up|arriba)\\b");
+    private static final Pattern WAKE = Pattern.compile("\\b(levanta\\w*|desperta\\w*|despierta\\w*|wake up|arriba)\\b");
     private static final Pattern WAIT = Pattern.compile("\\b(espera\\w*|quedate|quieto|stay|wait)\\b");
 
     // Trabajos. El argumento es el resto de la frase: RoccoActions lo traduce a items.
@@ -48,7 +48,7 @@ public final class OfflineRocco
     private static final Pattern CHOP = Pattern.compile("\\b(tala\\w*|corta\\w*|hacha\\w*)\\b.*\\b(arbol\\w*|tronco\\w*|madera)\\b|\\btala(lo|me)?\\b");
     private static final Pattern LIGHT = Pattern.compile("\\b(ilumina\\w*|alumbra\\w*)\\b|\\bpone(me)? antorchas\\b");
     private static final Pattern COOK = Pattern.compile("\\b(cocina\\w*|asa|asar|asame|asalo|asala|hornea\\w*|funde|fundi|fundir|derreti\\w*)\\b(.*)");
-    private static final Pattern CRAFT = Pattern.compile("\\b(craftea\\w*|craftear|fabrica\\w*|haceme|hace|hacete|arma|armame|construi|construime)\\b(.*)");
+    private static final Pattern CRAFT = Pattern.compile("\\b(craftea\\w*|craftear|fabrica\\w*|haceme|hace|hacete|haz|hazme|arma|armame|construi|construime|construye|construyeme)\\b(.*)");
     private static final Pattern STORE = Pattern.compile("\\b(guarda\\w*|deja(lo|la|los|las)? en)\\b(.*)");
     private static final Pattern TAKE = Pattern.compile("\\b(saca\\w*|agarra\\w*)\\b(.*)\\b(del|de los|de el|en el)\\s+(cofres?|baul|barril)\\b");
     private static final Pattern BREAK = Pattern.compile("\\b(rompe\\w*|saca\\w*|quita\\w*|desarma\\w*)\\b(.*)");
@@ -484,6 +484,7 @@ public final class OfflineRocco
             return RoccoExpression.SMUG;
         }
         if (category.endsWith("_ack") || category.endsWith("_ok") || category.startsWith("craft_going")
+                || category.equals("craft_fetching") || category.equals("craft_gathering")
                 || category.startsWith("craft_making") || category.startsWith("cook_placing")
                 || category.startsWith("cook_making"))
         {
@@ -627,9 +628,17 @@ public final class OfflineRocco
                     "Fabricar es lo mio. Ya vas a ver.",
                     "Anotado. Dejame revisar los materiales."}),
             Map.entry("craft_missing", new String[]{
-                    "Para {item} me faltan {missing}. Pasamelos o decime en que cofre busco.",
-                    "Me faltan {missing} para {item}. Tirame las cosas o te las busco yo en los cofres.",
-                    "Sin {missing} no hay {item}, y milagros de esos no hago. Me los das?"}),
+                    "Para {item} me faltan {missing}, y en los cofres no hay. Pasamelos y lo hago.",
+                    "Me faltan {missing} para {item}. En los cofres no estan: tirame las cosas y arranco.",
+                    "Sin {missing} no hay {item}, y en los cofres no queda. Me los das?"}),
+            Map.entry("craft_fetching", new String[]{
+                    "Para {item} me faltan {missing}, pero estan en los cofres. Voy a buscarlos y te lo hago.",
+                    "Dale. Saco {missing} del cofre y te hago {item}.",
+                    "{item}, sale. Busco {missing} en los cofres y vuelvo."}),
+            Map.entry("craft_gathering", new String[]{
+                    "Para {item} me faltan {missing}. Los consigo yo y te lo hago.",
+                    "No hay {missing} en ningun lado, asi que voy a sacarlo de la naturaleza. Despues te hago {item}.",
+                    "Dale. Junto {missing} por aca y te armo {item}."}),
             Map.entry("craft_got_it", new String[]{
                     "Ahi esta, ya tengo todo. Mira y aprende.",
                     "Perfecto, con esto alcanza. Manos a la obra."}),
@@ -759,7 +768,8 @@ public final class OfflineRocco
             Map.entry("deposit_nothing", new String[]{
                     "No tengo nada para guardar."}),
             Map.entry("deposit_no_place", new String[]{
-                    "No se donde guardar {items}. Mira un cofre y decime que lo guarde ahi."}),
+                    "Los cofres de aca estan llenos: {items} me lo quedo yo. Pone otro cofre y lo guardo.",
+                    "No entra mas nada en los cofres. {items} lo llevo en mi tapa hasta que pongas otro."}),
             Map.entry("deposit_full", new String[]{
                     "El cofre se lleno. Lo que no entro lo tengo yo."}),
             Map.entry("deposit_done", new String[]{

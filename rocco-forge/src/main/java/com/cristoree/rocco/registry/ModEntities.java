@@ -16,7 +16,7 @@ public final class ModEntities
 
     public static final RegistryObject<EntityType<RoccoEntity>> ROCCO = ENTITIES.register("rocco",
             () -> EntityType.Builder.of(RoccoEntity::new, MobCategory.CREATURE)
-                    .sized(0.8F, 1.3F)
+                    .sized(0.6F, 1.3F)
                     .clientTrackingRange(10)
                     .updateInterval(2)
                     .build(RoccoMod.MODID + ":rocco"));
