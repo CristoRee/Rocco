@@ -221,6 +221,24 @@
       "rocco:think2"
     ]
   },
+  "player_sip1": {
+    "subtitle": "subtitles.rocco.player_sip",
+    "sounds": [
+      "rocco:player_sip1"
+    ]
+  },
+  "player_sip2": {
+    "subtitle": "subtitles.rocco.player_sip",
+    "sounds": [
+      "rocco:player_sip2"
+    ]
+  },
+  "player_sip3": {
+    "subtitle": "subtitles.rocco.player_sip",
+    "sounds": [
+      "rocco:player_sip3"
+    ]
+  },
   "voice": {
     "subtitle": "subtitles.rocco.voice",
     "sounds": [

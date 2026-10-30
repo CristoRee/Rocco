@@ -253,6 +253,7 @@ public final class RoccoParticles
         public static final Look CONFETTI = new Look(40, 40, 0.08F, 1.0F, 0.04F, false, 0.75F, false, 0.3F, 0.0F, 0.95D);
         public static final Look MUSIC_NOTE = new Look(30, 30, 0.12F, 1.0F, 0.0F, false, 0.73F, false, 0.0F, 0.02F, 1.0D);
         public static final Look DANCE_SPARKLE = new Look(12, 12, 0.08F, 0.8F, 0.0F, true, 0.5F, true, 0.0F, 0.0F, 0.8D);
+        public static final Look PETAL = new Look(30, 30, 0.07F, 1.0F, 0.01F, false, 0.7F, false, 0.08F, 0.03F, 0.97D);
     }
 
     public static final class Tuned extends TextureSheetParticle
@@ -330,7 +331,60 @@ public final class RoccoParticles
         }
     }
 
+    // Mariposita del jardincito: un color al azar (dos cuadros cada uno) que aletea cada 3 ticks,
+    // sube despacio dando vueltas suaves y se desvanece al final.
+    public static final class Butterfly extends TextureSheetParticle
+    {
+        private final SpriteSet sprites;
+        private final int color;
+        private final float phase;
+
+        Butterfly(ClientLevel level, double x, double y, double z, SpriteSet sprites)
+        {
+            super(level, x, y, z);
+            this.sprites = sprites;
+            this.color = this.random.nextInt(3);
+            this.phase = this.random.nextFloat() * Mth.TWO_PI;
+            this.lifetime = 60 + this.random.nextInt(21);
+            this.quadSize = 0.09F;
+            this.gravity = 0.0F;
+            this.hasPhysics = false;
+            this.xd = 0.0D;
+            this.yd = 0.015D;
+            this.zd = 0.0D;
+            setSprite(sprites.get(this.color * 2, 5));
+        }
+
+        @Override
+        public void tick()
+        {
+            super.tick();
+            float life = (float) this.age / this.lifetime;
+            this.xd = Mth.sin(this.phase + this.age * 0.15F) * 0.02D;
+            this.zd = Mth.cos(this.phase + this.age * 0.15F) * 0.02D;
+            this.yd = 0.015D;
+            setSprite(this.sprites.get(this.color * 2 + (this.age / 3) % 2, 5));
+            this.alpha = life > 0.75F ? 1.0F - (life - 0.75F) / 0.25F : 1.0F;
+        }
+
+        @Override
+        public ParticleRenderType getRenderType()
+        {
+            return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+        }
+    }
+
     // ---------- fabricas que registra el cliente ----------
+
+    public record ButterflyProvider(SpriteSet sprites) implements ParticleProvider<SimpleParticleType>
+    {
+        @Override
+        public Particle createParticle(SimpleParticleType type, ClientLevel level, double x, double y, double z,
+                                       double dx, double dy, double dz)
+        {
+            return new Butterfly(level, x, y, z, this.sprites);
+        }
+    }
 
     public record BlissFlowerProvider(SpriteSet sprites) implements ParticleProvider<SimpleParticleType>
     {

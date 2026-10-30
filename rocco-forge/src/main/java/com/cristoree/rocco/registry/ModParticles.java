@@ -39,6 +39,10 @@ public final class ModParticles
     public static final RegistryObject<SimpleParticleType> MUSIC_NOTE = register("music_note");
     public static final RegistryObject<SimpleParticleType> DANCE_SPARKLE = register("dance_sparkle");
 
+    // El jardincito de la tapa en modo Chill.
+    public static final RegistryObject<SimpleParticleType> BUTTERFLY = register("butterfly");
+    public static final RegistryObject<SimpleParticleType> PETAL = register("petal");
+
     public static void register(IEventBus modEventBus)
     {
         PARTICLES.register(modEventBus);

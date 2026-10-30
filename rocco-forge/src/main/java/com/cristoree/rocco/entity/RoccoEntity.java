@@ -81,6 +81,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private static final int LID_CLOSING = 2;
 
     private static final double WORK_REACH = 2.2D;
+    // Un cofre lo alcanza como una persona: parado al lado, hasta una columna de cinco cofres
+    // (el de arriba de todo a 4 bloques del piso) y un par para abajo.
+    private static final double STORAGE_REACH_SIDE = 2.6D;
+    private static final double STORAGE_REACH_UP = 4.5D;
+    private static final double STORAGE_REACH_DOWN = 2.5D;
     // GeckoLib tarda esto en pasar de una animacion a la siguiente (la transicion del
     // controlador "main"). Los sonidos y efectos salen del servidor, asi que se corren estos
     // ticks para caer justo con el fotograma y no un poquito antes.
@@ -116,6 +121,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Pensando la respuesta de la IA (solo despues de un ratito, para que no parpadee).
     private static final EntityDataAccessor<Boolean> DATA_THINKING =
             SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.BOOLEAN);
+    // La tapa con el jardincito (modo Chill) en vez de la carne: lo decide la config del servidor.
+    private static final EntityDataAccessor<Boolean> DATA_GARDEN_LID =
+            SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.BOOLEAN);
+    // Que animacion del mate compartido esta haciendo (0 = ninguna). La elige el servidor.
+    private static final EntityDataAccessor<Integer> DATA_MATE_STEP =
+            SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
 
     // Lo que tarda la boya en volar de la caña al agua.
     public static final int BOBBER_FLIGHT_TICKS = 10;
@@ -131,6 +142,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             .thenPlay("animation.rocco.lid_open")
             .thenLoop("animation.rocco.lid_dizzy");
     private static final RawAnimation LID_CLOSE = RawAnimation.begin().thenPlay("animation.rocco.lid_close");
+    // Las mismas, con el jardincito en vez de la carne (modo Chill).
+    private static final RawAnimation LID_OPEN_LOOP_GARDEN = RawAnimation.begin()
+            .thenPlay("animation.rocco.lid_open_chill")
+            .thenLoop("animation.rocco.lid_dizzy_chill");
+    private static final RawAnimation LID_CLOSE_GARDEN = RawAnimation.begin().thenPlay("animation.rocco.lid_close_chill");
 
     // Las de una sola vez se disparan desde el servidor para que se puedan repetir.
     private static final RawAnimation WAVE = RawAnimation.begin().thenPlay("animation.rocco.wave");
@@ -171,6 +187,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     private final RoccoContainer inventory = new RoccoContainer();
     private final RoccoTravel journey = new RoccoTravel(this);
+    private final MateShare share = new MateShare(this);
+    private final com.cristoree.rocco.RoccoSurprises.State surprises = new com.cristoree.rocco.RoccoSurprises.State();
     private final Deque<Job> jobs = new ArrayDeque<>();
 
     private RoccoBrain brain;
@@ -271,7 +289,9 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 .add(Attributes.MAX_HEALTH, 20.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.28D)
                 .add(Attributes.FOLLOW_RANGE, 32.0D)
-                .add(Attributes.KNOCKBACK_RESISTANCE, 0.6D);
+                .add(Attributes.KNOCKBACK_RESISTANCE, 0.6D)
+                // Caminando por el agua (para salir, o hasta que se pone el patito) no se arrastra.
+                .add(net.minecraftforge.common.ForgeMod.SWIM_SPEED.get(), 2.5D);
     }
 
     @Override
@@ -381,6 +401,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.entityData.define(DATA_BOBBER_BITE, false);
         this.entityData.define(DATA_MOTION, RoccoMotion.NONE.ordinal());
         this.entityData.define(DATA_THINKING, false);
+        this.entityData.define(DATA_GARDEN_LID, false);
+        this.entityData.define(DATA_MATE_STEP, 0);
     }
 
     // ---------- volando, en el agua y en el barquito (RoccoTravel) ----------
@@ -426,6 +448,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Antes de despegar, bucear o subirse al barquito: deja lo que estaba haciendo y se para.
     void prepareForTravel()
     {
+        this.share.stop(true);
         interruptActivity();
         if (this.task != RoccoTask.NONE)
         {
@@ -704,6 +727,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         return getRoccoState().isPlantVisible();
     }
 
+    // El jardincito de la tapa (modo Chill) solo existe mientras la tapa esta abierta o cerrandose.
+    public boolean showsGarden()
+    {
+        return this.entityData.get(DATA_GARDEN_LID) && this.entityData.get(DATA_LID) != LID_CLOSED;
+    }
+
     public boolean isLidOpen()
     {
         return this.entityData.get(DATA_LID) == LID_OPENED;
@@ -757,7 +786,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         // Regla 4 de la spec: con la boca grande abierta no puede hablar, o se encimarian
         // mouth_talk y la boca de la animacion.
-        if (this.task == RoccoTask.EATING || this.task == RoccoTask.SWALLOWING || this.task == RoccoTask.MATE)
+        if (this.task == RoccoTask.EATING || this.task == RoccoTask.SWALLOWING || this.task == RoccoTask.MATE
+                || this.share.drinking())
         {
             return;
         }
@@ -910,7 +940,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
     private boolean isIdleForWandering()
     {
-        return !isWorking()
+        return !this.share.active()
+                && !isWorking()
                 && this.jobs.isEmpty()
                 && this.errand == null
                 && this.entityData.get(DATA_LID) == LID_CLOSED
@@ -1052,7 +1083,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Ocupado de verdad: el seguir al jugador lo sacaria de lo que esta haciendo.
     public boolean isBusy()
     {
-        return isWorking()
+        return this.share.active()
+                || isWorking()
                 || !this.jobs.isEmpty()
                 || (this.errand != null && !this.errand.allowsFollowing());
     }
@@ -1182,6 +1214,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // habia pedido como si no hubiera llegado, asi el encantamiento no gasta el poder del dia.
     public void interruptActivity()
     {
+        this.share.stop(false);
         String animation = switch (this.task)
         {
             case MATE -> "mate";
@@ -1537,7 +1570,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         double distance = Math.sqrt(distanceToSqr(
                 next.target().getX() + 0.5D, next.target().getY(), next.target().getZ() + 0.5D));
 
-        if (distance <= next.reachOr(WORK_REACH))
+        if (distance <= next.reachOr(WORK_REACH) || reachesStorage(next))
         {
             // El mate y los festejos son ahi donde esta: en vez de girar hacia su propio bloque
             // (para cualquier lado), mira al jugador.
@@ -1580,6 +1613,23 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                     next.target().getZ() + 0.5D, 1.0D);
             this.pathFailures = moving ? 0 : this.pathFailures + 1;
         }
+    }
+
+    // Antes tenia que llegar a 2,2 bloques del cofre: uno puesto arriba de otro ya no lo alcanzaba,
+    // y lo que iba ahi se quedaba sin guardar (o sin sacar).
+    private boolean reachesStorage(Job job)
+    {
+        if (job.task() != RoccoTask.INTERACTING || job.entityId() >= 0
+                || !(level() instanceof ServerLevel server) || !com.cristoree.rocco.work.Storage.isStorage(server, job.target()))
+        {
+            return false;
+        }
+        double dx = getX() - (job.target().getX() + 0.5D);
+        double dz = getZ() - (job.target().getZ() + 0.5D);
+        double rise = job.target().getY() - getY();
+        return dx * dx + dz * dz <= STORAGE_REACH_SIDE * STORAGE_REACH_SIDE
+                && rise <= STORAGE_REACH_UP
+                && rise >= -STORAGE_REACH_DOWN;
     }
 
     private void tickErrand()
@@ -1735,7 +1785,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         return this.boredTicks == 0 ? RoccoExpression.HAPPY : null;
     }
 
-    private boolean hostileNearby()
+    public boolean hostileNearby()
     {
         return hostileNearby(8.0D);
     }
@@ -1963,6 +2013,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             this.faceBeforeLid = getExpression();
         }
 
+        // Se decide al abrir, asi no cambia de carne a flores con la tapa abierta.
+        boolean garden = RoccoCommonConfig.gardenLid();
+        if (this.entityData.get(DATA_LID) == LID_CLOSED)
+        {
+            this.entityData.set(DATA_GARDEN_LID, garden);
+        }
         this.entityData.set(DATA_LID, LID_OPENED);
         this.lidCloseTicks = 0;
         setExpression(RoccoExpression.DIZZY);
@@ -1971,8 +2027,24 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
         // El archivo ya trae el pop, el roce, la baba y el golpecito al apoyarse, sincronizados.
         schedule(ANIM_LAG, () -> playRoccoSound(ModSounds.LID_OPEN.get(), 0.8F));
+        if (this.entityData.get(DATA_GARDEN_LID))
+        {
+            // Las flores brotando.
+            schedule(ANIM_LAG + 8, () -> playRoccoSound(ModSounds.LEAF_GROW.get(), 0.4F));
+        }
         this.gooTicks = 40 + this.random.nextInt(40);
         player.openMenu(this);
+    }
+
+    // Desde el menu: le abre la tapa si puede (no en medio de un trabajo ni mientras viaja).
+    public boolean openInventory(ServerPlayer player)
+    {
+        if (getRoccoState() != RoccoState.ACTIVE || isWorking() || isTravelling())
+        {
+            return false;
+        }
+        openLid(player);
+        return true;
     }
 
     private void beginLidClose()
@@ -1986,7 +2058,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private void tickLid()
     {
         // Con la tapa abierta la baba chapotea cada tanto.
-        if (this.entityData.get(DATA_LID) == LID_OPENED && --this.gooTicks <= 0)
+        if (this.entityData.get(DATA_LID) == LID_OPENED && !this.entityData.get(DATA_GARDEN_LID) && --this.gooTicks <= 0)
         {
             this.gooTicks = 40 + this.random.nextInt(40);
             playRoccoSound(ModSounds.GOO.get(), 0.3F);
@@ -2043,7 +2115,9 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             {
                 case PLANT -> InteractionResult.SUCCESS;
                 case AWAKENING -> InteractionResult.PASS;
-                case ACTIVE -> isWorking() || isTravelling() ? InteractionResult.PASS : InteractionResult.SUCCESS;
+                case ACTIVE -> !player.isShiftKeyDown() && !isSharingMate() && (isWorking() || isTravelling())
+                        ? InteractionResult.PASS
+                        : InteractionResult.SUCCESS;
             };
         }
 
@@ -2059,6 +2133,18 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             }
             case ACTIVE ->
             {
+                // Agachado: su menu, aunque este trabajando o viajando (sirve justamente para pararlo).
+                if (player instanceof ServerPlayer serverPlayer && player.isShiftKeyDown())
+                {
+                    com.cristoree.rocco.RoccoMenu.open(serverPlayer, this);
+                    return InteractionResult.CONSUME;
+                }
+                // Tomando mate con vos: agarras el que te ofrece, o se lo devolves.
+                if (player instanceof ServerPlayer serverPlayer && this.share.active())
+                {
+                    this.share.interact(serverPlayer);
+                    return InteractionResult.CONSUME;
+                }
                 // Volando, nadando o en el barquito no abre la tapa (se le mojaria todo).
                 if (player instanceof ServerPlayer serverPlayer && !isWorking() && !isTravelling())
                 {
@@ -2098,7 +2184,19 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             ground.setCanOpenDoors(RoccoCommonConfig.CAN_OPEN_DOORS.get());
         }
 
-        setPathfindingMalus(BlockPathTypes.WATER, RoccoCommonConfig.AVOID_WATER.get() ? 8.0F : 0.0F);
+        applyWaterMalus(false);
+    }
+
+    // "Evita el agua" es para cuando pasea solo: si te sigue y vos estas en el agua, se mete igual.
+    private void applyWaterMalus(boolean ownerSwimming)
+    {
+        setPathfindingMalus(BlockPathTypes.WATER, RoccoCommonConfig.AVOID_WATER.get() && !ownerSwimming ? 8.0F : 0.0F);
+    }
+
+    // Lo esta llevando nadando al lado tuyo: el seguir de siempre no lo tiene que mover.
+    public boolean isSwimmingAlongside(Player player)
+    {
+        return player instanceof ServerPlayer swimmer && this.journey.swimsWith(swimmer);
     }
 
     @Override
@@ -2180,6 +2278,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             resumeTending();
             this.journey.tick();
+            this.share.tick();
+            if (this.tickCount % 20 == 0)
+            {
+                ServerPlayer leader = owner();
+                applyWaterMalus(this.following && leader != null && leader.isInWater());
+            }
             tickWork();
             tickGifts();
             tickCompanionship();
@@ -2254,6 +2358,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             ItemStack stack = item.getItem();
             int before = stack.getCount();
+            boolean diary = com.cristoree.rocco.RoccoSurprises.isDiary(stack);
             ItemStack leftover = Inv.insert(this.inventory, stack);
             int taken = before - leftover.getCount();
             if (taken <= 0)
@@ -2271,6 +2376,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 item.setItem(leftover);
             }
             playSound(SoundEvents.ITEM_PICKUP, 0.4F, 1.4F + this.random.nextFloat() * 0.4F);
+            // Le devolviste el diario.
+            if (diary)
+            {
+                sayLine(RoccoExpression.SMUG, "diary_returned");
+            }
         }
     }
 
@@ -2297,6 +2407,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
 
         trackOwnerStillness(owner);
+
+        // Lo que junto mientras no estabas, y las sorpresas (un regalito raro, su diario).
+        com.cristoree.rocco.RoccoPresents.tick(this, owner);
+        com.cristoree.rocco.RoccoSurprises.tick(this, owner);
 
         // Cada minuto juntos (cerca) suma confianza; tambien suma cada charla (RoccoBrain).
         if (distanceToSqr(owner) < 32 * 32)
@@ -2379,11 +2493,50 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     }
 
     // Libre de verdad: sin encargos, sin trabajos, de pie, en tierra y con la tapa cerrada.
-    private boolean isFreeTime()
+    // ---------- el mate compartido ----------
+
+    public MateShare mateShare()
     {
-        return this.errand == null && this.jobs.isEmpty() && this.task == RoccoTask.NONE
+        return this.share;
+    }
+
+    void setMateStep(MateShare.Step step)
+    {
+        this.entityData.set(DATA_MATE_STEP, step.ordinal());
+    }
+
+    // Tambien del lado del cliente: muestra el mate y el termo, y no le gira la cabeza.
+    public boolean isSharingMate()
+    {
+        return this.entityData.get(DATA_MATE_STEP) != 0;
+    }
+
+    // Gira de a poco hacia el jugador (todo el cuerpo: la cabeza la mueve la animacion).
+    void faceToward(Player player)
+    {
+        lookAt(player, 12.0F, 30.0F);
+        this.yBodyRot = getYRot();
+        this.yHeadRot = getYRot();
+    }
+
+    public boolean isFreeTime()
+    {
+        return !this.share.active() && this.errand == null && this.jobs.isEmpty() && this.task == RoccoTask.NONE
                 && this.entityData.get(DATA_LID) == LID_CLOSED && getRoccoPose() == RoccoPose.STANDING
                 && !isTravelling();
+    }
+
+    // Libre para darte algo en la mano: despierto, en tierra, sin un trabajo a la mitad y con la
+    // tapa cerrada. Puede estar sentado, esperando o cuidando la huerta.
+    public boolean canHandOver()
+    {
+        return getRoccoState() == RoccoState.ACTIVE && this.jobs.isEmpty() && this.task == RoccoTask.NONE
+                && this.entityData.get(DATA_LID) == LID_CLOSED && !getRoccoPose().isAsleep() && !isTravelling();
+    }
+
+    public com.cristoree.rocco.RoccoSurprises.State surprises()
+    {
+        return this.surprises;
     }
 
     // Que nunca quede perdido: si te alejaste mucho mientras estaba sentado, dormido o con un
@@ -2474,6 +2627,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         return com.cristoree.rocco.ai.personality.Relationship.of(this.trust,
                 com.cristoree.rocco.ai.personality.PersonalityProfile.current().trustPace());
+    }
+
+    public double trustPoints()
+    {
+        return this.trust;
     }
 
     // Cuantos ticks lleva el dueño sin alejarse de donde estaba (en la casa, haciendo sus cosas).
@@ -2652,6 +2810,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             // Primero se corta lo que estaba haciendo (mate, magia), asi la animacion del golpe
             // no queda pisada.
+            this.share.stop(true);
             interruptActivity();
 
             // Un golpecito lo sacude; uno fuerte lo dobla. La cara acompaña a la animacion y
@@ -2767,6 +2926,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         tag.putLong("LastMate", this.lastMateTick);
         tag.putLong("LastEnchant", this.lastEnchantTick);
         tag.putDouble("Trust", this.trust);
+        this.surprises.save(tag);
 
         net.minecraft.nbt.ListTag placeList = new net.minecraft.nbt.ListTag();
         this.places.forEach((name, place) ->
@@ -2826,6 +2986,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             this.lastEnchantTick = tag.getLong("LastEnchant");
         }
         this.trust = tag.getDouble("Trust");
+        this.surprises.load(tag);
 
         this.places.clear();
         for (net.minecraft.nbt.Tag raw : tag.getList("Places", 10))
@@ -2910,13 +3071,20 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private RawAnimation activeAnimation(AnimationState<RoccoEntity> state)
     {
         int lid = this.entityData.get(DATA_LID);
+        boolean garden = this.entityData.get(DATA_GARDEN_LID);
         if (lid == LID_OPENED)
         {
-            return LID_OPEN_LOOP;
+            return garden ? LID_OPEN_LOOP_GARDEN : LID_OPEN_LOOP;
         }
         if (lid == LID_CLOSING)
         {
-            return LID_CLOSE;
+            return garden ? LID_CLOSE_GARDEN : LID_CLOSE;
+        }
+
+        RawAnimation sharing = MateShare.Step.byId(this.entityData.get(DATA_MATE_STEP)).animation();
+        if (sharing != null)
+        {
+            return sharing;
         }
 
         // Volando, flotando, buceando o en el barquito: la animacion la decide el servidor.

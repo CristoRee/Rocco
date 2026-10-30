@@ -166,6 +166,23 @@ public class RoccoBrain
             this.rocco.interruptActivity();
         }
 
+        // Algunas cosas pedidas en broma ("dame marihuana", "prestame plata") tienen su regalito, con
+        // o sin IA. Si estaba pensando otra respuesta, esa queda vieja.
+        String joke = com.cristoree.rocco.RoccoSurprises.joke(this.rocco, player, question);
+        if (joke != null)
+        {
+            if (this.waiting)
+            {
+                this.pending = null;
+                this.answeredMeanwhile = true;
+            }
+            String said = clean(joke);
+            speak(said, said, null);
+            remember(question, said, said);
+            this.chatter.activity(gameTime(), profile, this.rocco.getRandom());
+            return;
+        }
+
         // Ahorro de IA: una orden corta y clara la resuelve Rocco solo, sin gastar un pedido.
         OfflineRocco.Answer local = RoccoConfig.aiConfigured() && RoccoCommonConfig.AI_LOCAL_ORDERS.get()
                 ? OfflineRocco.localOrder(this.rocco, question)
@@ -207,6 +224,37 @@ public class RoccoBrain
             return;
         }
         answer(player, question, null);
+    }
+
+    // Lo que el jugador elige en el menu (agachado + clic derecho): una orden comun, que se hace al
+    // toque y sin IA. Queda en la charla como si se la hubiera dicho (phrase), con la frase de "dale"
+    // de esa orden (ack), o lo que haya pasado al arrancar.
+    public void menuOrder(ServerPlayer player, String phrase, String verb, String argument, String ack)
+    {
+        if (this.waiting)
+        {
+            this.pending = null;
+            this.answeredMeanwhile = true;
+        }
+        this.chatter.heard(phrase, gameTime());
+        RoccoExpression face = ack.isEmpty() ? RoccoExpression.HAPPY : OfflineRocco.faceFor(ack);
+        answerLocally(player, phrase, new OfflineRocco.Answer(ack.isEmpty() ? "" : OfflineRocco.line(ack), face, verb, argument));
+    }
+
+    // "Callate un rato" o "charla mas", desde el menu.
+    public void menuQuiet(boolean quiet)
+    {
+        this.chatter.quiet(gameTime(), quiet);
+        String category = quiet ? "shush" : "chatty";
+        String said = clean(OfflineRocco.line(category));
+        this.rocco.setExpressionFromAi(quiet ? RoccoExpression.BORED : RoccoExpression.HAPPY);
+        speak(said, said, null);
+        remember(quiet ? "Callate un rato." : "Charla un poco mas.", said, said);
+    }
+
+    public boolean isQuiet()
+    {
+        return this.chatter.isQuiet(gameTime());
     }
 
     // Una orden resuelta sin IA: se hace, se contesta una vez (lo que paso al arrancar o la frase

@@ -114,7 +114,7 @@ public final class RoccoActions
     public static final List<String> OFFERED_VERBS = List.of(
             "plantar", "cosechar", "arar", "cuidar_huerta", "cofre_cosecha", "craftear", "buscar", "receta",
             "cocinar", "agarrar", "traer", "guardar", "dar", "tirar", "juntar", "poner", "iluminar", "romper",
-            "talar", "conseguir", "encantar", "mate", "aplaudir", "festejar", "bailar", "recordar_lugar", "olvidar_lugar", "ir_a", "criar", "pescar",
+            "talar", "conseguir", "encantar", "mate", "cebar_mate", "aplaudir", "festejar", "bailar", "recordar_lugar", "olvidar_lugar", "ir_a", "criar", "pescar",
             "comprar", "vender", "ordenar", "teletransportarse", "abrir", "comer", "seguir", "esperar",
             "sentarse", "dormir", "levantarse", "parar");
 
@@ -148,7 +148,7 @@ public final class RoccoActions
     }
 
     private static final java.util.Set<String> KNOWN_VERBS = java.util.Set.of(
-            "mate", "tomar_mate", "aplaudir", "festejar", "bailar", "encantar", "recordar_lugar", "recordar", "olvidar_lugar", "olvidar", "ir_a", "llevar",
+            "mate", "tomar_mate", "cebar_mate", "compartir_mate", "aplaudir", "festejar", "bailar", "encantar", "recordar_lugar", "recordar", "olvidar_lugar", "olvidar", "ir_a", "llevar",
             "criar", "pescar", "comprar", "comerciar", "vender", "ordenar", "teletransportarse", "venir", "aparecer",
             "plantar", "sembrar", "cosechar", "cuidar_huerta", "cuidar", "arar", "cofre_cosecha", "craftear", "fabricar",
             "buscar", "receta", "cocinar", "agarrar", "sacar", "traer", "guardar", "dar", "tirar", "soltar", "juntar",
@@ -163,7 +163,8 @@ public final class RoccoActions
         }
 
         // Una orden nueva corta el mate, el encantamiento o el baile que estuviera haciendo.
-        if (!verb.equals("mate") || rocco.getActiveTask() != RoccoTask.MATE)
+        boolean mateVerb = verb.equals("cebar_mate") || verb.equals("compartir_mate");
+        if ((!verb.equals("mate") || rocco.getActiveTask() != RoccoTask.MATE) && !(mateVerb && rocco.isSharingMate()))
         {
             rocco.interruptActivity();
         }
@@ -171,6 +172,7 @@ public final class RoccoActions
         return switch (verb)
         {
             case "mate", "tomar_mate" -> mate(rocco);
+            case "cebar_mate", "compartir_mate" -> shareMate(rocco, player);
             case "aplaudir" -> celebrate(rocco, player, RoccoTask.CLAPPING);
             case "festejar" -> celebrate(rocco, player, RoccoTask.CELEBRATING);
             case "bailar" -> celebrate(rocco, player, RoccoTask.DANCING);
@@ -254,6 +256,21 @@ public final class RoccoActions
         }
         rocco.cancelErrand();
         rocco.startMate();
+        return OK;
+    }
+
+    // Te ceba un mate y te lo pasa. Volando, en el agua o con un bicho cerca no se puede.
+    private static Outcome shareMate(RoccoEntity rocco, @Nullable ServerPlayer player)
+    {
+        if (player == null)
+        {
+            return mate(rocco);
+        }
+        if (!rocco.mateShare().request(player))
+        {
+            rocco.sayLine("mate_share_cant");
+            return SAID;
+        }
         return OK;
     }
 
@@ -414,7 +431,7 @@ public final class RoccoActions
 
     // ---------- huerta ----------
 
-    // No gasta semillas: el poder de las semillas lo lleva adentro.
+    // Gasta una semilla por planta: las que tenga encima, o las que vaya a buscar a los cofres.
     private static Outcome plant(RoccoEntity rocco, @Nullable ServerPlayer player, ServerLevel level, String argument)
     {
         Names.Query query = Names.parse(argument);
@@ -437,8 +454,12 @@ public final class RoccoActions
         }
         else
         {
-            // Sin decir que: lo que mas hay en la huerta, o trigo.
+            // Sin decir que: lo que mas hay en la huerta, si no lo que tenga encima para sembrar, o trigo.
             plant = Crops.mostCommon(level, rocco.blockPosition(), 8);
+            if (plant == null)
+            {
+                plant = Crops.firstInInventory(rocco);
+            }
             if (plant == null)
             {
                 plant = Crops.plantableFor(Items.WHEAT_SEEDS);

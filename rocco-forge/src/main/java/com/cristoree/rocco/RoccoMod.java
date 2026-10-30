@@ -96,6 +96,12 @@ public class RoccoMod
             com.cristoree.rocco.client.RoccoParticleFx.install();
             // El registro de propiedades de items no es seguro desde varios hilos.
             event.enqueueWork(com.cristoree.rocco.client.RoccoFishingLine::installRodModel);
+            // El agua del mate baja con cada sorbo (el modelo trae lleno, 2/3, 1/3 y vacio).
+            event.enqueueWork(() -> net.minecraft.client.renderer.item.ItemProperties.register(
+                    com.cristoree.rocco.registry.ModItems.MATE.get(),
+                    new net.minecraft.resources.ResourceLocation(MODID, "sipped"),
+                    (stack, level, entity, seed) -> com.cristoree.rocco.item.RoccoMateItem.sips(stack)
+                            / (float) com.cristoree.rocco.item.RoccoMateItem.SIPS));
         }
 
         @SubscribeEvent
@@ -120,6 +126,8 @@ public class RoccoMod
             tuned(event, ModParticles.CONFETTI.get(), Look.CONFETTI);
             tuned(event, ModParticles.MUSIC_NOTE.get(), Look.MUSIC_NOTE);
             tuned(event, ModParticles.DANCE_SPARKLE.get(), Look.DANCE_SPARKLE);
+            event.registerSpriteSet(ModParticles.BUTTERFLY.get(), com.cristoree.rocco.client.RoccoParticles.ButterflyProvider::new);
+            tuned(event, ModParticles.PETAL.get(), Look.PETAL);
         }
 
         private static void tuned(net.minecraftforge.client.event.RegisterParticleProvidersEvent event,

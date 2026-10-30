@@ -85,10 +85,12 @@ public final class ChopErrand extends Errand
                     return Status.FAILED;
                 }
                 this.phase = Phase.REPLANT;
+                // Replanta el arbolito solo si tiene uno encima: plantar gasta, como al jugador.
                 Crops.Plantable plant = this.sapling == Items.AIR ? null : Crops.plantableFor(this.sapling);
-                if (plant != null && Crops.fits(this.level, this.base, plant))
+                if (plant != null && Crops.seeds(this.rocco, plant) > 0 && Crops.fits(this.level, this.base, plant))
                 {
-                    work(RoccoTask.PLANTING, this.base, new ItemStack(this.sapling), level -> Crops.plant(level, this.base, plant));
+                    work(RoccoTask.PLANTING, this.base, new ItemStack(this.sapling),
+                            level -> Crops.plant(level, this.base, plant, this.rocco));
                 }
                 return Status.RUNNING;
             }

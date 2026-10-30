@@ -221,7 +221,8 @@ public final class RoccoConfigCategories
                 group("Pantalla",
                         opt(client, RoccoClientConfig.SHOW_NAMEPLATE, "Nombre sobre la cabeza"),
                         opt(client, RoccoClientConfig.NAMEPLATE_DISTANCE, "Distancia del nombre"),
-                        opt(client, RoccoClientConfig.MODEL_SCALE, "Tamaño del modelo")))));
+                        opt(client, RoccoClientConfig.MODEL_SCALE, "Tamaño del modelo"),
+                        opt(common, RoccoCommonConfig.LID_STYLE, "Adentro de su tapa")))));
 
         // La personalidad (modos y rasgos) tiene su propia pantalla: RoccoPersonalityScreen. Aca
         // quedan solo las opciones que valen en cualquier modo, asi el buscador las encuentra.
@@ -281,7 +282,10 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.IDLE_MATE_ENABLED, "Toma mate solo"),
                         opt(common, RoccoCommonConfig.IDLE_MATE_COOLDOWN_MINUTES, "Minutos entre mates"),
                         opt(common, RoccoCommonConfig.IDLE_DANCE_ENABLED, "Baila solo"),
-                        opt(common, RoccoCommonConfig.CHEER_ENABLED, "Festeja tus logros")))));
+                        opt(common, RoccoCommonConfig.CHEER_ENABLED, "Festeja tus logros")),
+                group("Regalos",
+                        opt(common, RoccoCommonConfig.RETURN_GIFTS_ENABLED, "Regalos al volver"),
+                        opt(common, RoccoCommonConfig.SURPRISES_ENABLED, "Sorpresas y su diario")))));
 
         list.add(new Category("Trabajo", "Craftear, cofres, horno, herramientas y huerta.",
                 () -> new ItemStack(Items.CRAFTING_TABLE), List.of(

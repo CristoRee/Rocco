@@ -22,8 +22,8 @@ public final class RoccoNetwork
 {
     // Sube cuando cambian los mensajes: un cliente y un servidor con versiones distintas de Rocco
     // se avisan al conectar en vez de fallar a mitad de partida. 2: se agrego OpenSetup.
-    // 3: se agrego VoiceLines (las frases grabadas).
-    private static final String PROTOCOL = "3";
+    // 3: se agrego VoiceLines (las frases grabadas). 4: el menu de Rocco (OpenMenu y MenuAction).
+    private static final String PROTOCOL = "4";
     public static final int CHUNK_BYTES = 30_000;
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -85,6 +85,46 @@ public final class RoccoNetwork
         }
     }
 
+    // Agachado + clic derecho: el menu de Rocco, con lo que esta haciendo para que cada boton diga
+    // lo que corresponde ("Dejar de seguir" o "Seguirme"). flags: ver RoccoMenu.
+    public record OpenMenu(int entityId, String status, int flags, String mode, String bond, float bondProgress,
+                           String magic, java.util.List<String> places)
+    {
+        static void encode(OpenMenu msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeUtf(msg.status, 128);
+            buf.writeVarInt(msg.flags);
+            buf.writeUtf(msg.mode, 32);
+            buf.writeUtf(msg.bond, 32);
+            buf.writeFloat(msg.bondProgress);
+            buf.writeUtf(msg.magic, 32);
+            buf.writeCollection(msg.places, (out, place) -> out.writeUtf(place, 64));
+        }
+
+        static OpenMenu decode(FriendlyByteBuf buf)
+        {
+            return new OpenMenu(buf.readVarInt(), buf.readUtf(128), buf.readVarInt(), buf.readUtf(32), buf.readUtf(32),
+                    buf.readFloat(), buf.readUtf(32), buf.readList(in -> in.readUtf(64)));
+        }
+    }
+
+    // Lo que el jugador eligio en el menu ("seguir", "ir_a" + "casa"...).
+    public record MenuAction(int entityId, String action, String argument)
+    {
+        static void encode(MenuAction msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeUtf(msg.action, 32);
+            buf.writeUtf(msg.argument, 64);
+        }
+
+        static MenuAction decode(FriendlyByteBuf buf)
+        {
+            return new MenuAction(buf.readVarInt(), buf.readUtf(32), buf.readUtf(64));
+        }
+    }
+
     // "/rocco setup": que el jugador abra la pantalla de bienvenida (los comandos corren en el servidor).
     public record OpenSetup()
     {
@@ -108,6 +148,40 @@ public final class RoccoNetwork
                 RoccoNetwork::onOpenSetup, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(3, VoiceLines.class, VoiceLines::encode, VoiceLines::decode,
                 RoccoNetwork::onVoiceLines, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(4, OpenMenu.class, OpenMenu::encode, OpenMenu::decode,
+                RoccoNetwork::onOpenMenu, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(5, MenuAction.class, MenuAction::encode, MenuAction::decode,
+                RoccoNetwork::onMenuAction, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+    }
+
+    public static void openMenu(ServerPlayer player, OpenMenu menu)
+    {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), menu);
+    }
+
+    private static void onOpenMenu(OpenMenu msg, Supplier<NetworkEvent.Context> context)
+    {
+        context.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.menu.RoccoMenuScreen.open(msg)));
+        context.get().setPacketHandled(true);
+    }
+
+    public static void sendMenuAction(MenuAction action)
+    {
+        CHANNEL.sendToServer(action);
+    }
+
+    private static void onMenuAction(MenuAction msg, Supplier<NetworkEvent.Context> context)
+    {
+        ServerPlayer sender = context.get().getSender();
+        context.get().enqueueWork(() ->
+        {
+            if (sender != null)
+            {
+                com.cristoree.rocco.RoccoMenu.handle(sender, msg);
+            }
+        });
+        context.get().setPacketHandled(true);
     }
 
     public static void sendLines(ServerPlayer player, VoiceLines lines)

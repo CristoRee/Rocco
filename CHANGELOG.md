@@ -1,5 +1,30 @@
 # Cambios
 
+## 1.4.0
+
+### Nuevo
+- **Menú de Rocco (agachado + clic derecho):** qué está haciendo, qué tan amigos son y si tiene la magia lista. Botones para seguir o dejar de seguir, vení, sentate, a dormir, su inventario, guardar todo, ordenar cofres, cuidar la huerta, cebarte un mate, baile y callarse un rato, más sus lugares (llevame, guardar uno nuevo, olvidar), la personalidad y la configuración. Si está ocupado, un botón para cancelar. En multijugador, solo lo usa el dueño.
+- **Regalos al volver:** si estuviste desconectado al menos una hora, te deja en su tapa lo que juntó mientras no estabas (si no le entra, te tira lo que sobra): más y mejor cuanto más tiempo pasaste afuera (lo máximo, a la semana). Minerales, comida, cosas de bichos (de un solo tipo por vez), botellas de experiencia y, en las ausencias largas, manzanas doradas, netherita o un libro encantado.
+- **Sorpresas:** muy de vez en cuando te regala una cosita rara que encontró (un palito perfecto, una piedra con forma de corazón, un dibujo tuyo...) o se le cae su diario, con sus anécdotas y sus quejas. Tenés unos segundos para agarrarlo antes de que lo levante. Y algunas cosas que le pidas en broma tienen su regalito con nombre.
+- Los regalos y las sorpresas se apagan en **Vida y rutina > Regalos**.
+- **Mate compartido:** pedile "pasame un mate" (o "cebame uno", "tomemos unos mates", o el botón del menú) y te ceba uno y te lo ofrece. Clic derecho para agarrarlo, lo tomás en tres sorbos (el agua baja) y se lo devolvés con clic derecho: se toma uno él y te ofrece otro. Si no lo agarrás en 10 segundos, se lo toma solo. Si te alejás, el mate vuelve con él.
+- **Tapa del modo Chill:** en modo Chill, adentro de su cabeza hay un jardincito con flores, mariposas y pétalos en vez de la carne y la baba. Se puede forzar en **General > Pantalla > Adentro de su tapa**.
+- **Animaciones pulidas:** nado bajo el agua rehecho (horizontal, como el jugador), sin brazos que dan la vuelta de golpe, y los objetos (mate, termo, antiparras, barquito) crecen en su lugar en vez de volar desde otro lado.
+
+### Cambiado
+- **Alcanza los cofres como vos:** parado al lado, llega hasta el de arriba de una columna de cinco cofres (y un par para abajo). Antes tenía que estar a dos bloques, y lo que iba a un cofre alto se quedaba sin guardar.
+- **Plantar gasta semillas:** una por planta, como al jugador. Si no le alcanzan las que tiene encima, las busca en los cofres de alrededor; si no hay, te lo dice. Al cosechar replanta con una de las semillas que suelta la planta, y cuidando la huerta se guarda unas para la próxima vuelta. Al talar replanta el arbolito solo si tiene uno.
+- **Tu voz primero:** con una voz de Fish Audio configurada y andando, Rocco dice todo con esa voz, también sus frases de siempre. Los audios grabados del mod son para cuando no hay voz configurada, o mientras Fish Audio falla (sin crédito o sin conexión).
+
+### Arreglado
+- **Rocco no hablaba en voz alta:** desde la 1.3.0, buscar si la frase estaba grabada fallaba con casi cualquier respuesta y cortaba la voz entera (el texto salía igual). Ahora suena con tu voz de Fish Audio.
+- **Nadando no te seguía:** en el agua lo movía la navegación de tierra, que avanza a menos de un bloque por segundo. Ahora nada a tu ritmo, a tu costado, y si te seguía con "Evita el agua" prendido se mete igual. Con vos quieto se queda flotando a un par de bloques: girar la cámara para mirarlo ya no lo hace nadar alrededor tuyo ni chocarte, y al salir del agua frena en vez de seguir pataleando.
+- **Guardar se dejaba cosas:** miraba si en el cofre entraba una sola unidad y mandaba todo ahí; lo que no entraba volvía con él y decía que el cofre estaba lleno, aunque al lado hubiera otros vacíos. Ahora reparte contando el lugar real de cada cofre (una misma cosa puede ir a varios), y si alguno se llenó mientras iba o no llega, prueba en otro.
+- **"Los cofres están llenos" sin cofres llenos:** lo decía también cuando no encontraba ningún cofre cerca. Ahora busca alrededor suyo y alrededor tuyo, y si no hay ninguno te lo dice así.
+- **La tierra del modo planta parpadeaba:** las capas de tierra (y la tapa) tenían varias caras de arriba a la misma altura con texturas distintas, y la placa de video las alternaba al mover la cámara. Ahora no se pisan.
+- **El mate no le llegaba a la boca:** mientras tomaba se le giraba la cabeza hacia un costado y la bombilla quedaba lejos. Ahora la cabeza la mueve solo la animación.
+- **El juego no arrancaba con la 1.3.0:** el archivo de animaciones disparaba dos partículas en el mismo instante (al encantar, despegar, volar con cohete, festejar y bailar), algo que GeckoLib no acepta. Ahora salen una detrás de la otra, con medio tick de diferencia.
+
 ## 1.3.0
 
 ### Nuevo

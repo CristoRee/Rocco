@@ -273,5 +273,11 @@
   "rocco.setup.summary.tested": " (probado)",
   "rocco.setup.privacy.title": "Privacidad",
   "rocco.setup.privacy.text": "Lo que le decís a Rocco y algunos datos de tu partida se envían a los proveedores que elijas. Tus claves se guardan solo en tu computadora.",
-  "rocco.personality.migrate":"[Rocco] Tenés una personalidad editada de una versión anterior en %s. Para seguir usándola: Mods > Rocco > Config > Personalidad, modo Personalizado y \"Usar mi propio archivo\"."
+  "rocco.personality.migrate":"[Rocco] Tenés una personalidad editada de una versión anterior en %s. Para seguir usándola: Mods > Rocco > Config > Personalidad, modo Personalizado y \"Usar mi propio archivo\".",
+
+  "item.rocco.mate": "Mate de Rocco",
+  "subtitles.rocco.player_sip": "Sorbo de mate",
+  "rocco.value.LidStyle.AUTO": "Según el modo",
+  "rocco.value.LidStyle.GARDEN": "Jardincito",
+  "rocco.value.LidStyle.CLASSIC": "Clásica"
 }

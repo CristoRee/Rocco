@@ -33,8 +33,8 @@ import java.util.Map;
 
 // Todo lo de la huerta: que esta maduro, como se cosecha cada cosa y como se replanta.
 //
-// Rocco lleva el poder de las semillas: replantar y plantar no le gasta nada. Lo que suelta la
-// cosecha (incluidas las semillas) es todo ganancia y se guarda.
+// Plantar gasta semillas, como al jugador: una por planta. Al cosechar, lo replantado sale de lo
+// que solto la planta (el trigo siempre suelta al menos una semilla) o de su inventario.
 public final class Crops
 {
     public enum Soil { FARMLAND, SOUL_SAND, GROUND }
@@ -152,15 +152,54 @@ public final class Crops
         return true;
     }
 
-    public static void plant(ServerLevel level, BlockPos pos, Plantable plant)
+    // Planta gastando una semilla de su inventario. false si no habia lugar o no le quedaban.
+    public static boolean plant(ServerLevel level, BlockPos pos, Plantable plant, RoccoEntity rocco)
     {
-        if (!fits(level, pos, plant))
+        if (!fits(level, pos, plant) || Inv.take(rocco.inventory(), plant.shown(), 1).isEmpty())
         {
-            return;
+            return false;
         }
         level.setBlock(pos, plant.state(), Block.UPDATE_ALL);
         level.playSound(null, pos, plant.soil() == Soil.GROUND ? SoundEvents.GRASS_PLACE : SoundEvents.CROP_PLANTED,
                 SoundSource.BLOCKS, 0.5F, 1.0F);
+        return true;
+    }
+
+    public static int seeds(RoccoEntity rocco, Plantable plant)
+    {
+        return Inv.count(rocco.inventory(), plant.shown());
+    }
+
+    // Lo primero que tenga para sembrar en tierra arada (semillas, papas, zanahorias...).
+    @Nullable
+    public static Plantable firstInInventory(RoccoEntity rocco)
+    {
+        for (ItemStack stack : Inv.contents(rocco.inventory()))
+        {
+            Plantable plant = plantableFor(stack.getItem());
+            if (plant != null && plant.soil() == Soil.FARMLAND)
+            {
+                return plant;
+            }
+        }
+        return null;
+    }
+
+    // Las semillas de lo que hay plantado alrededor: lo que se guarda para replantar.
+    public static java.util.Set<Item> seedsAround(ServerLevel level, BlockPos center, int radius)
+    {
+        java.util.Set<Item> seeds = new java.util.LinkedHashSet<>();
+        for (BlockPos pos : BlockPos.betweenClosed(center.offset(-radius, -3, -radius), center.offset(radius, 3, radius)))
+        {
+            BlockState state = level.getBlockState(pos);
+            Block block = state.getBlock();
+            if (block instanceof CropBlock || block instanceof StemBlock || block instanceof AttachedStemBlock
+                    || block instanceof NetherWartBlock)
+            {
+                seeds.add(seedOf(block instanceof AttachedStemBlock ? stemOf(block) : block));
+            }
+        }
+        return seeds;
     }
 
     // El cultivo que mas hay en la huerta, para replantar lo mismo donde quedo libre.
@@ -271,7 +310,8 @@ public final class Crops
 
     // ---------- cosechar ----------
 
-    // Cosecha y deja replantado lo que se replanta. No gasta semillas: las saca de su poder.
+    // Cosecha y deja replantado lo que se replanta, con una semilla de lo que solto (o de las
+    // suyas). Si no hay ninguna, queda el lugar libre.
     public static List<ItemStack> harvest(ServerLevel level, BlockPos pos, RoccoEntity rocco)
     {
         BlockState state = level.getBlockState(pos);
@@ -325,15 +365,31 @@ public final class Crops
         }
 
         drops.addAll(Block.getDrops(state, level, pos, null, rocco, tool));
+        Item seed = seedOf(block);
         level.destroyBlock(pos, false, rocco);
 
         BlockState replant = replantState(state);
-        if (replant != null && replant.canSurvive(level, pos))
+        if (replant != null && replant.canSurvive(level, pos) && takeSeed(drops, seed, rocco))
         {
             level.setBlock(pos, replant, Block.UPDATE_ALL);
             level.playSound(null, pos, SoundEvents.CROP_PLANTED, SoundSource.BLOCKS, 0.4F, 1.0F);
         }
+        drops.removeIf(ItemStack::isEmpty);
         return drops;
+    }
+
+    // Una semilla para replantar: de lo que acaba de soltar la planta, o si no, de las suyas.
+    private static boolean takeSeed(List<ItemStack> drops, Item seed, RoccoEntity rocco)
+    {
+        for (ItemStack drop : drops)
+        {
+            if (drop.is(seed) && !drop.isEmpty())
+            {
+                drop.shrink(1);
+                return true;
+            }
+        }
+        return !Inv.take(rocco.inventory(), seed, 1).isEmpty();
     }
 
     @Nullable

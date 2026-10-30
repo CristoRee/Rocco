@@ -32,22 +32,33 @@ Se le habla por el chat (o por micrófono). Algunos ejemplos:
 |---|---|
 | "seguime", "quedate quieto", "sentate", "levantate", "vení" | Se mueve como le digas. Si está lejos o en otra zona, aparece al lado tuyo. |
 | "crafteame un pico de piedra" | Lee la receta real, te dice exactamente qué falta, lo busca en los cofres si hace falta y lo fabrica. |
-| "plantá papas", "cosechá", "cuidá la huerta" | Siembra sin gastar semillas, cosecha lo maduro, replanta y guarda la cosecha en su cofre. |
+| "plantá papas", "cosechá", "cuidá la huerta" | Siembra con las semillas que tenga (si le faltan, las busca en los cofres), cosecha lo maduro, replanta y guarda la cosecha en su cofre. |
 | "cociná las papas" | Usa el mejor horno que haya, pone el combustible justo y te da el resultado. |
 | "encantame este pico" / "...con eficiencia 5" | Una vez por día: al azar como una mesa de encantamientos, o solo el encantamiento que pidas. |
 | "tomate un mate" | Ceba y se toma unos mates. También lo hace solo cuando estás tranquilo en tu casa. |
+| "pasame un mate" | Te ceba uno y te lo ofrece: clic derecho para agarrarlo, lo tomás en tres sorbos y se lo devolvés con clic derecho para que te cebe otro. Si no lo agarrás, se lo toma él. |
 | "bailá", "aplaudí", "festejá" | Baila tarareando, aplaude o salta con confeti. Solo, festeja tus logros y baila cuando estás tranquilo. |
 | "esta es mi casa" / "llevame a casa" | Recuerda lugares y te guía hasta ellos. |
 | "traeme carbón", "guardá todo", "ordená los cofres" | Busca, guarda y ordena las cosas de tus cofres. |
 | "talá un árbol", "conseguime 10 de madera", "iluminá" | Junta materiales de la naturaleza y pone antorchas donde está oscuro. |
 | "criá las vacas", "andá a pescar", "comprale pan al aldeano" | Cría animales, pesca con su caña (con boya y todo) y comercia con los aldeanos. |
 
-Clic derecho sobre Rocco abre su tapa: un inventario de 36 lugares.
+Clic derecho sobre Rocco abre su tapa: un inventario de 36 lugares. En modo Chill, adentro de su cabeza hay un jardincito con flores en vez de la carne (se cambia en **Config > General > Adentro de su tapa**).
+
+**Agachado + clic derecho** abre su menú: qué está haciendo, qué tan amigos son y si tiene la magia lista, con botones para lo de todos los días (seguir o dejar de seguir, vení, sentate, a dormir, su inventario, guardar todo, ordenar cofres, cuidar la huerta, cebarte un mate, baile, callarse un rato), sus lugares guardados (llevame, guardar uno nuevo, olvidar) y accesos a la personalidad y la configuración. En multijugador, el menú es solo del dueño.
+
+### Regalos y sorpresas
+
+- **Al volver:** si estuviste desconectado al menos una hora, Rocco te deja en su tapa lo que juntó mientras no estabas (si no le entra, te tira lo que sobra). Cuanto más tiempo, más y mejor: a la hora, un poco de carbón o hierro; al día, diamantes, manzanas doradas o perlas; a la semana (lo máximo), netherita, oro, diamantes, botellas de experiencia y más.
+- **De vez en cuando:** te regala alguna cosita rara que encontró (un palito perfecto, una piedra con forma de corazón...) o se le cae su diario. Tenés unos segundos para agarrarlo antes de que lo levante él.
+- **En broma:** algunas cosas que le pidas en broma tienen su regalito con nombre.
+
+Se apagan en **Config > Vida y rutina > Regalos**.
 
 ### Te acompaña a todos lados
 
 - **Volando:** si planeás con elytra (o volás en creativo), agarra sus hojitas, las convierte en alas y vuela a tu lado. Con cohete va a toda velocidad, en picada pliega las alas y al aterrizar se las vuelve a poner en la cabeza.
-- **En el agua:** flota con su flotador de patito y, si buceás, se pone las antiparras y el snorkel y bucea con vos. Nunca se ahoga.
+- **En el agua:** flota con su flotador de patito y nada a tu lado a tu ritmo; si buceás, se pone las antiparras y el snorkel y bucea con vos. Nunca se ahoga.
 - **En bote:** no se sube al tuyo: tiene su propio barquito de calabaza y rema al costado.
 - **Nunca se pierde:** si quedó lejos, en una zona descargada, del otro lado de un portal o cayó al vacío, aparece al lado tuyo. Si estás nadando lejos de la costa, cae al agua junto a vos.
 
@@ -64,7 +75,7 @@ Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. Las �
 
 ## Voz y micrófono (opcional)
 
-- **Voz:** las frases de siempre que tengan su audio grabado en el mod suenan sin clave y sin gastar crédito. Para que diga en voz alta todo lo demás (lo que inventa la IA), poné tu clave de Fish Audio y el ID de la voz en **Config > Voz**. La voz sale de la boca de Rocco y respeta el volumen "Voz/Habla" del juego.
+- **Voz:** con tu clave de Fish Audio y el ID de la voz en **Config > Voz**, Rocco dice todo en voz alta con esa voz (lo que inventa la IA y también sus frases de siempre). Sin Fish Audio, las frases de siempre que tengan su audio grabado en el mod suenan igual, sin clave; y si Fish Audio falla (sin crédito o sin conexión), mientras tanto usa esas. La voz sale de la boca de Rocco y respeta el volumen "Voz/Habla" del juego.
 - **Micrófono (Deepgram):** activalo en **Config > Micrófono** y poné tu clave. La tecla para hablar se cambia en **Config > Teclas** (por defecto, la V). Se puede usar manteniendo la tecla o en modo de detección de voz.
 
 ## Configuración
@@ -117,4 +128,4 @@ Minecraft es marca de Mojang AB. Rocco no está afiliado a Mojang ni a Microsoft
 
 ### English
 
-Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms without seeds, crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate, remembers places, breeds animals, fishes, trades with villagers, sorts your chests, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.
+Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms (planting the seeds he has or finds in your chests), crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate (and shares one with you if you ask), remembers places, breeds animals, fishes, trades with villagers, sorts your chests, brings you gifts when you come back after being away, has a sneak + right-click menu, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.

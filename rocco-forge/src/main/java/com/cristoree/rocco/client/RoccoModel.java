@@ -78,6 +78,9 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         // que lo esconde de verdad es tapar a sus hijos.
         hide("mouth_talk", !rocco.isTalking());
         hide("plant", !rocco.isPlantVisible());
+        // Las animaciones lo dejan en escala 0, pero si alguna no lo toca asomaria por arriba.
+        hide("garden", !rocco.showsGarden());
+        hide("lid_garden", !rocco.showsGarden());
 
         // El mate, el termo y las esferas de magia viven escondidos adentro del cuerpo; igual se
         // tapan de verdad cuando no se usan, porque algunas animaciones abren la boca o la tapa.
@@ -85,7 +88,7 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         // que esta en esa tarea: antes dependia solo de lo segundo, y si ese dato llegaba tarde
         // (o no llegaba) Rocco hacia todo el mate con las manos vacias.
         String playing = playingAnimation(rocco, instanceId);
-        boolean mate = rocco.getActiveTask() == RoccoTask.MATE || playing.equals("animation.rocco.mate");
+        boolean mate = rocco.getActiveTask() == RoccoTask.MATE || rocco.isSharingMate() || playing.startsWith("animation.rocco.mate");
         boolean magic = rocco.getActiveTask() == RoccoTask.ENCHANTING || playing.startsWith("animation.rocco.enchant");
         for (String bone : MATE_BONES)
         {
@@ -104,7 +107,18 @@ public class RoccoModel extends GeoModel<RoccoEntity>
             getBone(locator).ifPresent(bone -> bone.setTrackingMatrices(true));
         }
 
-        aimHeadAtWork(rocco);
+        // Tomando mate, bailando o festejando la cabeza la mueve solo la animacion: si se le
+        // sumaba el giro hacia "su bloque", la boca quedaba lejos de la bombilla.
+        if (!isPerformance(rocco.getActiveTask()) && !playing.startsWith("animation.rocco.mate"))
+        {
+            aimHeadAtWork(rocco);
+        }
+    }
+
+    private static boolean isPerformance(RoccoTask task)
+    {
+        return task == RoccoTask.MATE || task == RoccoTask.DANCING || task == RoccoTask.CLAPPING
+                || task == RoccoTask.CELEBRATING;
     }
 
     private static final String[] MATE_BONES = {"mate", "termo", "mate_water"};
@@ -113,7 +127,7 @@ public class RoccoModel extends GeoModel<RoccoEntity>
     // aca: las animaciones los sacan y los guardan (en las demas quedan en escala 0).
     public static final String[] LOCATORS = {"fx_head", "fx_mate", "fx_spout", "fx_magic_right", "fx_magic_left",
             "fx_wing_right", "fx_wing_left", "fx_tear_right", "fx_tear_left", "fx_snorkel", "fx_ring", "fx_boat",
-            "fx_paddle_right", "fx_paddle_left"};
+            "fx_paddle_right", "fx_paddle_left", "fx_garden"};
 
     // La animacion que el controlador principal esta mostrando en este momento ("" si ninguna).
     private static String playingAnimation(RoccoEntity rocco, long instanceId)

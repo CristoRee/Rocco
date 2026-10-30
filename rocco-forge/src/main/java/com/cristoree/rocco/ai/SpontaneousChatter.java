@@ -70,6 +70,18 @@ public final class SpontaneousChatter
         }
     }
 
+    // Lo mismo, desde el menu: callado por un buen rato, o con ganas de charlar.
+    public void quiet(long now, boolean quiet)
+    {
+        this.mutedUntil = quiet ? now + 20 * MINUTE : 0L;
+        this.chattyUntil = quiet ? 0L : now + 30 * MINUTE;
+    }
+
+    public boolean isQuiet(long now)
+    {
+        return now < this.mutedUntil;
+    }
+
     public boolean due(long now, PersonalityProfile profile, RandomSource random)
     {
         if (this.lastActivity < 0L)

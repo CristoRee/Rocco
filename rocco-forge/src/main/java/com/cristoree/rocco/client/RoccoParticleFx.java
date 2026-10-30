@@ -173,6 +173,17 @@ public final class RoccoParticleFx
                     add(level, ModParticles.DANCE_SPARKLE.get(), at.add(spread(random, 0.1D), spread(random, 0.1D), spread(random, 0.1D)), new Vec3(0.0D, 0.005D, 0.0D));
                 }
             }
+
+            // El jardincito de la tapa en modo Chill.
+            case "rocco:butterfly" -> add(level, ModParticles.BUTTERFLY.get(), at, Vec3.ZERO);
+            case "rocco:petal" ->
+            {
+                int count = 3 + random.nextInt(3);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.PETAL.get(), at, new Vec3(spread(random, 0.04D), 0.05D + random.nextDouble() * 0.04D, spread(random, 0.04D)));
+                }
+            }
             default -> { }
         }
     }
@@ -213,7 +224,7 @@ public final class RoccoParticleFx
         double ahead;
         switch (locator)
         {
-            case "fx_head" -> { side = 0.0D; up = 1.05D; ahead = 0.0D; }
+            case "fx_head", "fx_garden" -> { side = 0.0D; up = 1.05D; ahead = 0.0D; }
             case "fx_mate", "fx_spout" -> { side = 0.2D; up = 0.55D; ahead = 0.3D; }
             case "fx_magic_right" -> { side = -0.2D; up = 0.5D; ahead = 0.45D; }
             case "fx_magic_left" -> { side = 0.2D; up = 0.5D; ahead = 0.45D; }

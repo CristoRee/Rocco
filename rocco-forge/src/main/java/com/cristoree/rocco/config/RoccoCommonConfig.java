@@ -110,6 +110,9 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.IntValue IDLE_MATE_COOLDOWN_MINUTES;
     public static final ForgeConfigSpec.BooleanValue IDLE_DANCE_ENABLED;
     public static final ForgeConfigSpec.BooleanValue CHEER_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue RETURN_GIFTS_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue SURPRISES_ENABLED;
+    public static final ForgeConfigSpec.EnumValue<LidStyle> LID_STYLE;
     public static final ForgeConfigSpec.BooleanValue ACCOMPANY_FLIGHT;
     public static final ForgeConfigSpec.BooleanValue ACCOMPANY_WATER;
     public static final ForgeConfigSpec.BooleanValue ACCOMPANY_BOAT;
@@ -345,10 +348,10 @@ public final class RoccoCommonConfig
                 .comment("Si es false, Rocco solo escribe y no gasta credito de voz.")
                 .define("enabled", true);
         VOICE_RECORDED_LINES = b
-                .comment("Sus frases de siempre (las de sin IA y las de los trabajos) suenan con audios",
-                         "grabados que trae el mod: no hace falta clave y no gastan credito de voz.",
-                         "Lo demas sale con Fish Audio si esta configurado. Apagalo si usas otra voz",
-                         "en Fish Audio y queres que todo suene igual.")
+                .comment("Sin una voz de Fish Audio configurada, sus frases de siempre (las de sin IA y",
+                         "las de los trabajos) suenan con audios grabados que trae el mod, sin clave.",
+                         "Si tenes Fish Audio andando, todo sale con tu voz y estas no se usan, salvo",
+                         "que Fish Audio falle (sin credito, sin conexion).")
                 .define("recordedLines", true);
         FISH_API_KEY = b
                 .comment("Clave de Fish Audio.",
@@ -513,6 +516,20 @@ public final class RoccoCommonConfig
                 .comment("Festeja tus logros: aplaude los chicos (un logro comun, subir de nivel,",
                          "domesticar un animal) y salta con confeti en los grandes (jefes, desafios).")
                 .define("cheerEnabled", true);
+        RETURN_GIFTS_ENABLED = b
+                .comment("Si estuviste desconectado al menos una hora, al volver te da lo que junto",
+                         "mientras no estabas: mas y mejores cosas cuanto mas tiempo pasaste afuera",
+                         "(lo maximo, a la semana).")
+                .define("returnGifts", true);
+        SURPRISES_ENABLED = b
+                .comment("Muy de vez en cuando te regala alguna cosita rara que encontro, o se le cae",
+                         "su diario. Tambien, si le pedis ciertas cosas en broma, te contesta con un regalito.")
+                .define("surprises", true);
+        LID_STYLE = b
+                .comment("Que hay adentro de su cabeza cuando abre la tapa. AUTO: en modo Chill un",
+                         "jardincito con flores y mariposas, en los otros la carne y la baba de siempre.",
+                         "GARDEN: siempre el jardincito. CLASSIC: siempre la carne.")
+                .defineEnum("censoredLid", LidStyle.AUTO);
         ACCOMPANY_FLIGHT = b
                 .comment("Cuando volas con elytra (o en creativo), vuela al lado tuyo con sus hojas.")
                 .define("accompanyFlight", true);
@@ -706,4 +723,17 @@ public final class RoccoCommonConfig
     public enum LatencyMode { NORMAL, BALANCED, LOW }
 
     public enum MicActivation { PUSH_TO_TALK, VOICE_ACTIVATION }
+
+    public enum LidStyle { AUTO, GARDEN, CLASSIC }
+
+    // Si la tapa muestra el jardincito en vez de la carne.
+    public static boolean gardenLid()
+    {
+        return switch (LID_STYLE.get())
+        {
+            case GARDEN -> true;
+            case CLASSIC -> false;
+            case AUTO -> PERSONALITY_MODE.get() == com.cristoree.rocco.ai.personality.Traits.Mode.CHILL;
+        };
+    }
 }

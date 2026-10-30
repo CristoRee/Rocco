@@ -33,6 +33,18 @@ public final class RoccoTravel
     // Mas lejos que esto, en vez de alcanzarlo de a poco aparece en su lugar.
     private static final double FLY_SNAP = 24.0D;
     private static final double SWIM_SNAP = 20.0D;
+    // Nadando en la superficie: hasta donde te acompaña nadando (mas lejos, el seguir de siempre
+    // lo hace aparecer al lado tuyo) y lo mas rapido que nada por tick (nadando rapido vas a ~0,28).
+    private static final double SURFACE_RANGE = 24.0D;
+    private static final double SURFACE_MAX_STEP = 0.4D;
+    // Con vos quieto en el agua: mas cerca que SWIM_NEAR se aparta, mas lejos que SWIM_FAR se
+    // acerca hasta SWIM_REST, y en el medio no se mueve. Nunca a menos de SWIM_MIN_GAP (te empuja).
+    // Moverse menos que SWIM_STILL por tick cuenta como quieto (flotando, el agua te mece un poco).
+    private static final double SWIM_NEAR = 1.4D;
+    private static final double SWIM_FAR = 3.2D;
+    private static final double SWIM_REST = 2.2D;
+    private static final double SWIM_MIN_GAP = 1.1D;
+    private static final double SWIM_STILL = 0.03D;
     private static final double BOAT_SNAP = 12.0D;
 
     // Solo despega o se mete al bote si el jugador no esta lejisimo (si no, primero lo alcanza).
@@ -50,6 +62,8 @@ public final class RoccoTravel
     private int notFlyingTicks;
     private int calmTicks;
     private int outOfWaterTicks;
+    private Vec3 ownerStep = Vec3.ZERO;
+    private boolean swimmingAlongside;
     private int surfacedTicks;
     private int boatLostTicks;
     private int boatSide;
@@ -68,6 +82,7 @@ public final class RoccoTravel
     {
         ServerPlayer owner = leader();
         Vec3 ownerVelocity = ownerVelocity(owner);
+        this.ownerStep = ownerVelocity;
         RoccoMotion motion = this.rocco.getMotion();
         this.ticks++;
 
@@ -388,12 +403,100 @@ public final class RoccoTravel
             }
         }
 
+        swimAlongside(owner);
+
         // Nada estilo perrito cuando avanza, y flota tranquilo cuando no.
         RoccoMotion wanted = keepMoving(horizontalSpeed() > 0.025D) ? RoccoMotion.FLOAT_SWIM : RoccoMotion.FLOAT_IDLE;
         if (wanted != motion)
         {
             set(wanted);
         }
+    }
+
+    // Nadando con vos en la superficie va a tu ritmo, a un costado. Antes lo llevaba la
+    // navegacion de tierra, que en el agua avanza a menos de un bloque por segundo: nadabas un
+    // poco y se quedaba atras (o en la orilla).
+    private void swimAlongside(@Nullable ServerPlayer owner)
+    {
+        if (!swimsWith(owner))
+        {
+            if (this.swimmingAlongside)
+            {
+                // Dejo de llevarlo: frena en vez de seguir de largo con el envion.
+                this.swimmingAlongside = false;
+                Vec3 movement = this.rocco.getDeltaMovement();
+                this.rocco.setDeltaMovement(0.0D, movement.y, 0.0D);
+            }
+            return;
+        }
+        this.swimmingAlongside = true;
+
+        Vec3 here = this.rocco.position();
+        Vec3 flat = new Vec3(this.ownerStep.x, 0.0D, this.ownerStep.z);
+        Vec3 fromOwner = new Vec3(here.x - owner.getX(), 0.0D, here.z - owner.getZ());
+        double distance = fromOwner.length();
+        Vec3 away = distance > 0.01D ? fromOwner.scale(1.0D / distance) : right(owner.getYRot());
+
+        Vec3 step;
+        if (flat.lengthSqr() > SWIM_STILL * SWIM_STILL)
+        {
+            // Nadando: a tu costado y un poco atras, segun para donde vas.
+            float yaw = (float) (Mth.atan2(flat.z, flat.x) * Mth.RAD_TO_DEG) - 90.0F;
+            Vec3 target = owner.position()
+                    .add(right(yaw).scale(SWIM_SIDE))
+                    .subtract(forward(yaw).scale(SWIM_BACK));
+            Vec3 gap = new Vec3(target.x - here.x - flat.x, 0.0D, target.z - here.z - flat.z);
+            step = flat.add(gap.scale(0.15D));
+        }
+        else if (distance < SWIM_NEAR)
+        {
+            // Quieto y pegado a vos: se hace a un lado.
+            step = away.scale((SWIM_NEAR - distance) * 0.2D);
+        }
+        else if (distance > SWIM_FAR)
+        {
+            step = away.scale(-(distance - SWIM_REST) * 0.12D);
+        }
+        else
+        {
+            // Quieto: se queda donde esta. Girar la camara para mirarlo ya no lo hace nadar
+            // alrededor tuyo (antes su lugar dependia de para donde mirabas).
+            step = Vec3.ZERO;
+        }
+
+        // Nunca se te mete encima: si con este paso quedaria pegado, lo corre para afuera.
+        Vec3 after = new Vec3(here.x + step.x - owner.getX() - flat.x, 0.0D, here.z + step.z - owner.getZ() - flat.z);
+        double afterDistance = after.length();
+        if (afterDistance < SWIM_MIN_GAP)
+        {
+            Vec3 out = afterDistance > 0.01D ? after.scale(1.0D / afterDistance) : away;
+            step = step.add(out.scale(SWIM_MIN_GAP - afterDistance));
+        }
+        if (step.lengthSqr() > SURFACE_MAX_STEP * SURFACE_MAX_STEP)
+        {
+            step = step.normalize().scale(SURFACE_MAX_STEP);
+        }
+
+        this.rocco.getNavigation().stop();
+        this.rocco.setDeltaMovement(step.x, this.rocco.getDeltaMovement().y, step.z);
+        float wanted = step.lengthSqr() > 0.0025D
+                ? (float) (Mth.atan2(step.z, step.x) * Mth.RAD_TO_DEG) - 90.0F
+                : (float) (Mth.atan2(-fromOwner.z, -fromOwner.x) * Mth.RAD_TO_DEG) - 90.0F;
+        face(Mth.approachDegrees(this.rocco.getYRot(), wanted, 12.0F), 0.0F);
+    }
+
+    // Si lo esta llevando nadando al lado tuyo (el seguir de siempre no tiene que pisarlo).
+    boolean swimsWith(@Nullable ServerPlayer owner)
+    {
+        return accompanies(owner)
+                && owner.isInWater()
+                // Parado en la orilla con los pies en el agua no cuenta: ahi lo trae el seguir de siempre.
+                && !(owner.onGround() && owner.getFluidTypeHeight(net.minecraftforge.common.ForgeMod.WATER_TYPE.get()) < 1.0D)
+                && !owner.isPassenger()
+                && this.rocco.getMotion().kind() == RoccoMotion.Kind.SURFACE
+                && this.rocco.getMotion() != RoccoMotion.FLOAT_START
+                && this.rocco.getMotion() != RoccoMotion.FLOAT_END
+                && this.rocco.distanceToSqr(owner) < SURFACE_RANGE * SURFACE_RANGE;
     }
 
     // El flotador lo sostiene con el agua a la altura de la cintura: si se hunde de mas sube, si

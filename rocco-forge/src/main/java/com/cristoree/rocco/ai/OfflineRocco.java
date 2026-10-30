@@ -449,6 +449,10 @@ public final class OfflineRocco
 
     private static final Pattern CALL = Pattern.compile("\\b(teletransport\\w*|tepea\\w*|tpea\\w*|aparece\\w*|vente|veni (aca|ya|para aca|rapido|al toque))\\b");
     private static final Pattern FAR_CALL = Pattern.compile("\\b(veni\\w*|vente|teletransport\\w*|tepea\\w*|tpea\\w*|aparece\\w*|seguime|donde estas|volve\\w*)\\b");
+    // "Pasame un mate", "cebame uno", "tomemos unos mates": te ceba y te lo pasa a vos.
+    private static final Pattern SHARE_MATE = Pattern.compile("\\b(dame|pasame|convidame|cebame|alcanzame|compartime|me das|me pasas|me convidas|me cebas"
+            + "|me cebarias|me pasarias|tomemos|compartamos|matiemos)\\b(\\s+\\w+){0,3}?\\s+(mate|mates|matecito|matecitos|uno)\\b"
+            + "|\\b(tomemos|compartamos) (unos )?mates\\b|\\bmate(amos|ar) juntos\\b");
     private static final Pattern MATE = Pattern.compile("\\b(toma\\w*|ceba\\w*|prepara\\w*|hacete|queres|vamos a tomar|un)\\b.*\\bmate(cito|s)?\\b|\\bmateamos\\b|\\bmatecito\\b");
     private static final Pattern ENCHANT = Pattern.compile("\\b(encanta\\w*|hechiza\\w*)\\b(.*)");
     private static final Pattern PLACE_SAVE = Pattern.compile("\\b(recorda\\w*|acordate|guarda\\w*|anota\\w*|marca\\w*)\\b.*\\b(este lugar|aca|esto|este sitio)\\b\\s*(como|es)?\\s*(.*)"
@@ -476,6 +480,11 @@ public final class OfflineRocco
         if (CALL.matcher(text).find())
         {
             return act("teleport_ack", RoccoExpression.SMUG, "teletransportarse", "");
+        }
+        // "Cebame uno" solo vale si ya estan tomando mate.
+        if (SHARE_MATE.matcher(text).find() && (text.contains("mate") || (rocco != null && rocco.isSharingMate())))
+        {
+            return act("mate_share_ack", RoccoExpression.HAPPY, "cebar_mate", "");
         }
         if (MATE.matcher(text).find())
         {
@@ -886,7 +895,7 @@ public final class OfflineRocco
                     "Rocco. Unico, irrepetible, y bastante facherito.",
                     "Tu companero. Bah, tu salvador, para ser exactos."}),
             Map.entry("help", new String[]{
-                    "Planto lo que sea sin semillas, cosecho y replanto, crafteo, cocino, busco en los cofres, guardo, pongo y saco bloques, talo arboles, pongo antorchas y te sigo. Clic derecho y te abro mi tapa.",
+                    "Planto, cosecho y replanto, crafteo, cocino, busco en los cofres, guardo, pongo y saco bloques, talo arboles, pongo antorchas y te sigo. Clic derecho y te abro mi tapa. Agachado y clic derecho, te abro mi menu.",
                     "Proba 'craftea un pico de piedra', 'cocina las papas', 'traeme carbon del cofre', 'guarda la cosecha en este cofre', 'cuida la huerta', 'ilumina' o 'tala un arbol'.",
                     "Tambien encanto tus cosas una vez por dia, me tomo unos mates, recuerdo lugares ('esta es mi casa', 'llevame a casa'), crio animales, pesco, comercio con aldeanos y ordeno tus cofres.",
                     "Si volas con elytra vuelo con vos, si nadas floto con mi patito, si buceas me pongo las antiparras y si vas en bote te sigo en mi barquito. Y si me pedis, bailo, aplaudo o festejo."}),
@@ -909,7 +918,7 @@ public final class OfflineRocco
             Map.entry("plant", new String[]{
                     "Mira y aprende como planta un profesional.",
                     "Dale. Sembrar es lo mio, literalmente.",
-                    "Aca va. Y semillas no me hacen falta: las llevo adentro."}),
+                    "Aca va. Si me faltan semillas, las busco en los cofres."}),
             Map.entry("harvest", new String[]{
                     "A cosechar. Vos quedate ahi mirando, como siempre.",
                     "Dale, junto lo maduro. Lo verde lo dejo, no soy un improvisado.",
@@ -1097,6 +1106,8 @@ public final class OfflineRocco
             Map.entry("deposit_no_place", new String[]{
                     "Los cofres de aca estan llenos: {items} me lo quedo yo. Pone otro cofre y lo guardo.",
                     "No entra mas nada en los cofres. {items} lo llevo en mi tapa hasta que pongas otro."}),
+            Map.entry("deposit_no_chest", new String[]{
+                    "No veo ningun cofre cerca. {items} lo llevo en mi tapa hasta que pongas uno."}),
             Map.entry("deposit_full", new String[]{
                     "El cofre se lleno. Lo que no entro lo tengo yo."}),
             Map.entry("deposit_done", new String[]{
@@ -1125,6 +1136,15 @@ public final class OfflineRocco
                     "La verruga va en arena de almas, y aca no hay."}),
             Map.entry("plant_no_ground", new String[]{
                     "No hay lugar con tierra para plantar un arbol aca."}),
+            Map.entry("plant_no_seeds", new String[]{
+                    "No tengo {item} para plantar, ni encima ni en los cofres. Pasame unas y siembro.",
+                    "Sin {item} no hay siembra. Soy un milagro, no un mago. Dame unas y listo."}),
+            Map.entry("plant_seeds_ran_out", new String[]{
+                    "Me quede sin {item}. Plante lo que pude.",
+                    "Hasta ahi llegue: no me quedan mas {item}."}),
+            Map.entry("farm_no_seeds", new String[]{
+                    "Para replantar me faltan {item}. Dejame unas en un cofre y sigo.",
+                    "Quedaron lugares vacios en la huerta: no tengo {item}. Tirame unas y las planto."}),
             Map.entry("till_ack", new String[]{
                     "A preparar la tierra."}),
             Map.entry("till_need_hoe", new String[]{
@@ -1211,6 +1231,31 @@ public final class OfflineRocco
                     "Un mate, dale. Lo cebo yo, que me sale mejor.",
                     "Mate. La mejor idea que tuviste en todo el dia.",
                     "Esperame que pongo el agua. Sin hervir, eh."}),
+            // Mate compartido: te ceba uno, te lo pasa y espera que se lo devuelvas.
+            Map.entry("mate_share_ack", new String[]{
+                    "Dale, te cebo uno. Del mio, que es el mejor.",
+                    "Un mate para vos? Esperame que lo preparo.",
+                    "Bueno, pero despues me lo devolves, eh."}),
+            Map.entry("mate_share_offer", new String[]{
+                    "Toma, esta justo.",
+                    "Un matecito?",
+                    "Aca tenes. Cuidado que quema."}),
+            Map.entry("mate_share_thanks", new String[]{
+                    "Gracias!",
+                    "Gracias. Ahora me toca a mi.",
+                    "Rico, no? Ahi te cebo otro."}),
+            Map.entry("mate_share_alone", new String[]{
+                    "Bueno... me lo tomo yo.",
+                    "Nadie? Mejor, mas para mi.",
+                    "Se me enfria. Me lo tomo yo y listo."}),
+            Map.entry("mate_share_empty", new String[]{
+                    "Ya esta, devolvemelo que te cebo otro.",
+                    "Ese ya fue. Pasamelo, que lo vuelvo a llenar."}),
+            Map.entry("mate_share_no_room", new String[]{
+                    "No tenes ni un lugar libre. Hace espacio y te lo paso."}),
+            Map.entry("mate_share_cant", new String[]{
+                    "Ahora no puedo cebar. Dejame llegar a tierra firme.",
+                    "Asi no se puede tomar mate. Despues, tranqui."}),
             Map.entry("enchant_ack", new String[]{
                     "A ver, a ver. Esto es lo mio de verdad.",
                     "Preparate para ver magia de la buena."}),
@@ -1537,6 +1582,87 @@ public final class OfflineRocco
                     "Uh, que cortante. Bueno."}),
 
             // ---------- lo que dice por su cuenta sin IA ----------
+
+            Map.entry("present_hours", new String[]{
+                    "Volviste! Mientras no estabas di unas vueltas y te junte unas cositas.",
+                    "Ah, aparecio. Me aburri tanto que sali a pasear, y mira lo que encontre.",
+                    "Te fuiste un rato y no me quede de brazos cruzados. Bah, no tengo brazos para cruzar. Pero te traje algo."}),
+            Map.entry("present_day", new String[]{
+                    "Un dia entero sin vos! Por suerte me entretuve juntando cosas. Son todas tuyas.",
+                    "Volviste! Pense que te habia comido un creeper. Mientras tanto te junte un monton de cosas.",
+                    "Un dia afuera, eh. Yo trabajando, como siempre. Toma, te traje de todo."}),
+            Map.entry("present_week", new String[]{
+                    "UNA SEMANA! Pense que me habias abandonado. Igual te junte cosas buenisimas, por si volvias.",
+                    "Siete dias. Siete. Recorri el mundo entero para no pensar en vos. Y mira todo lo que te traje.",
+                    "Volviste! Ya estaba por salir a buscarte. Mientras no estabas junte lo mejor que encontre. Es todo tuyo."}),
+            Map.entry("present_items", new String[]{
+                    "Te lo deje en mi tapa: {items}. Abrila cuando quieras.",
+                    "Te guarde {items} en mi tapa. De nada.",
+                    "En mi tapa tenes {items}. No digas que nunca te doy nada."}),
+            Map.entry("present_overflow", new String[]{
+                    "No me entro todo en la tapa, asi que lo que sobra te lo tiro.",
+                    "Mi tapa ya no da mas. El resto, agarralo vos."}),
+
+            Map.entry("diary_drop", new String[]{
+                    "Ay, se me cayo! No, no, devolvemelo. No lo leas!",
+                    "Uy. Mi diario. Ni se te ocurra leerlo, eh!",
+                    "NO. Eso es privado. Dame eso ya!"}),
+            Map.entry("diary_picked", new String[]{
+                    "Noooo! Bueno, ya fue. Leelo, pero no me juzgues.",
+                    "Lo agarraste. Genial. Ahora vas a saber todo. Que verguenza.",
+                    "Si lo lees, yo leo tus cofres. Estamos a mano."}),
+            Map.entry("diary_picked_other", new String[]{
+                    "Ey, eso es mio! Devolvelo, ladron de diarios!"}),
+            Map.entry("diary_recovered", new String[]{
+                    "Uf. Casi. Lo que hay ahi adentro queda entre mis hojas y yo.",
+                    "Recuperado. Menos mal que sos lento."}),
+            Map.entry("diary_returned", new String[]{
+                    "Gracias por devolverlo. No lo leiste, no? No me contestes.",
+                    "Mi diario! Gracias. Igual ya se que lo leiste."}),
+
+            Map.entry("trinket_stick", new String[]{
+                    "Mira lo que encontre! El palito perfecto. Es tuyo, cuidalo."}),
+            Map.entry("trinket_stone", new String[]{
+                    "Encontre una piedra con forma de corazon. Me hizo acordar a vos. Bah, mas o menos."}),
+            Map.entry("trinket_flower", new String[]{
+                    "Toma, una florcita. No es nada, eh. No te emociones."}),
+            Map.entry("trinket_feather", new String[]{
+                    "Esta pluma da suerte. Me lo dijo una gallina. Toma."}),
+            Map.entry("trinket_drawing", new String[]{
+                    "Te hice un dibujo. Sos vos. Se nota, no?"}),
+            Map.entry("trinket_complaints", new String[]{
+                    "Toma, te escribi algo. Leelo con atencion."}),
+            Map.entry("trinket_bone", new String[]{
+                    "Te traje un recuerdo de un esqueleto que conoci. Era buena gente."}),
+            Map.entry("trinket_seeds", new String[]{
+                    "Te regalo unas semillas magicas. Bueno, magicas no. Pero plantalas con fe."}),
+            Map.entry("trinket_air", new String[]{
+                    "Te junte aire puro del bosque en una botella. Respiralo de a poquito."}),
+
+            Map.entry("joke_weed", new String[]{
+                    "Toma, de la buena. Es un helecho, pero vos no le digas a nadie.",
+                    "Aca tenes, cosecha propia. Bueno, es un helecho. Pero con mucho amor."}),
+            Map.entry("joke_weed_chill", new String[]{
+                    "Eso no tengo. Pero toma: yerba de la buena. Para el mate, que pensabas?",
+                    "Marihuana no, pero yerba si. Toma, cebate unos mates."}),
+            Map.entry("joke_money", new String[]{
+                    "Plata no tengo, pero hice un billete. Vale por un abrazo.",
+                    "Toma, un billete de Rocco. Los aldeanos no lo aceptan, pero yo si."}),
+            Map.entry("joke_drink", new String[]{
+                    "Toma, una birra. De abeja. Cero alcohol, puro amor.",
+                    "Aca tenes, bien fria. Bueno, es miel. Salud!"}),
+            Map.entry("joke_love", new String[]{
+                    "No te consigo novia ni novio, pero toma esta flor. Dasela a quien te guste.",
+                    "Una cita no te consigo. Pero con esta flor arrancas bien."}),
+            Map.entry("joke_again", new String[]{
+                    "Ya te di uno hace un rato. Que hiciste con el?",
+                    "Otra vez? No soy un kiosco.",
+                    "Ya te di. No abuses, que se me acaban."}),
+
+            Map.entry("menu_not_yours", new String[]{
+                    "Perdon, mi menu es para quien me cuida. Pero si queres, charlamos."}),
+            Map.entry("menu_cant_open", new String[]{
+                    "Ahora no puedo abrir la tapa. Dejame terminar lo que estoy haciendo."}),
 
             Map.entry("spont_low_health", new String[]{
                     "Ey, estas con poca vida. Comete algo y alejate de los bichos.",

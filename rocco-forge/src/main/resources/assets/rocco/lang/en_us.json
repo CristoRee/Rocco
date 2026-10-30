@@ -273,5 +273,11 @@
   "rocco.setup.summary.tested": " (tested)",
   "rocco.setup.privacy.title": "Privacy",
   "rocco.setup.privacy.text": "What you say to Rocco and some data about your game are sent to the providers you choose. Your keys are stored only on your computer.",
-  "rocco.personality.migrate":"[Rocco] You have an edited personality from an older version in %s. To keep using it: Mods > Rocco > Config > Personality, Custom mode and \"Use my own file\"."
+  "rocco.personality.migrate":"[Rocco] You have an edited personality from an older version in %s. To keep using it: Mods > Rocco > Config > Personality, Custom mode and \"Use my own file\".",
+
+  "item.rocco.mate": "Rocco's Mate",
+  "subtitles.rocco.player_sip": "Mate sip",
+  "rocco.value.LidStyle.AUTO": "Follows the mode",
+  "rocco.value.LidStyle.GARDEN": "Little garden",
+  "rocco.value.LidStyle.CLASSIC": "Classic"
 }

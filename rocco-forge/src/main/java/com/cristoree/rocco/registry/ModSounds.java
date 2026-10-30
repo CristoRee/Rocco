@@ -39,6 +39,10 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> MAGIC_HUM = register("magic_hum");
     public static final RegistryObject<SoundEvent> MAGIC_BURST = register("magic_burst");
     public static final RegistryObject<SoundEvent> MATE_SIGH = register("mate_sigh");
+    // Tus sorbos del mate que te pasa, en orden.
+    public static final RegistryObject<SoundEvent> PLAYER_SIP_1 = register("player_sip1");
+    public static final RegistryObject<SoundEvent> PLAYER_SIP_2 = register("player_sip2");
+    public static final RegistryObject<SoundEvent> PLAYER_SIP_3 = register("player_sip3");
 
     // Vuelo, agua y barco.
     public static final RegistryObject<SoundEvent> LEAF_FWIP = register("leaf_fwip");

@@ -18,11 +18,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 // Hace hablar a Rocco en voz alta: cada frase que dice en el chat se convierte en audio con
 // Fish Audio y se manda a los jugadores que lo escuchan. Un solo hilo para todas las frases,
 // asi suenan en el mismo orden en que las dijo.
+//
+// La voz que eligio el jugador manda: con Fish Audio configurado y andando, todo sale con esa
+// voz. Las frases grabadas que trae el mod son para cuando no hay voz configurada, o cuando
+// Fish Audio falla (sin credito, clave rechazada, sin conexion).
 public final class RoccoVoice
 {
+    // Despues de un error que no se arregla solo (sin credito, clave rechazada), un rato sin
+    // volver a intentar: mientras tanto suenan las grabadas.
+    private static final long FISH_PAUSE_MS = 10 * 60_000L;
+
     private static final AtomicInteger STREAMS = new AtomicInteger();
     private static ExecutorService executor;
     private static long lastProblemNote;
+    private static volatile long fishPausedUntil;
+    // Con que clave y voz fallo: si el jugador las cambia, se vuelve a probar enseguida.
+    private static volatile String fishPausedFor = "";
 
     // impression: a quien esta imitando en esta frase (null = es el). Si hay una voz para ese
     // nombre, la frase sale con esa voz; si no, con la de Rocco.
@@ -34,20 +45,29 @@ public final class RoccoVoice
             return;
         }
 
-        // Primero las frases grabadas: no necesitan clave ni gastan nada. Si la frase es de las de
-        // siempre (o varias seguidas) y estan todas grabadas, suenan esas.
-        if (impression == null && RoccoCommonConfig.VOICE_RECORDED_LINES.get())
+        // Si la frase es de las de siempre (o varias seguidas) y estan todas grabadas, se sabe ya.
+        java.util.List<String> recorded = null;
+        try
         {
-            java.util.List<String> recorded = recordedLines(text);
+            if (impression == null && RoccoCommonConfig.VOICE_RECORDED_LINES.get())
+            {
+                recorded = recordedLines(text);
+            }
+        }
+        catch (RuntimeException e)
+        {
+            // Buscar la grabacion nunca tiene que dejarlo mudo ni cortar lo que estaba haciendo.
+            RoccoMod.LOGGER.error("[Rocco] Error buscando la frase grabada", e);
+        }
+        java.util.List<String> recordedFinal = recorded;
+
+        // Sin voz propia (o con Fish Audio caido): suenan las grabadas, si las hay.
+        if (!RoccoConfig.voiceReady() || fishPaused())
+        {
             if (recorded != null)
             {
                 sendLines(level, rocco, recorded);
-                return;
             }
-        }
-
-        if (!RoccoConfig.voiceReady())
-        {
             return;
         }
 
@@ -80,11 +100,20 @@ public final class RoccoVoice
             }
 
             FishAudio.Result result = attempt;
+            if (result.pcm() == null && result.fatal())
+            {
+                pauseFish();
+            }
             server.execute(() ->
             {
                 if (result.pcm() == null)
                 {
-                    problem(level, result.error());
+                    // Que no se quede mudo: si la frase esta grabada, suena esa.
+                    if (recordedFinal != null && level.getEntity(entityId) instanceof RoccoEntity speaker && speaker.isAlive())
+                    {
+                        sendLines(level, speaker, recordedFinal);
+                    }
+                    problem(level, result.error(), recordedFinal != null);
                     return;
                 }
                 if (level.getEntity(entityId) instanceof RoccoEntity speaker && speaker.isAlive())
@@ -113,8 +142,12 @@ public final class RoccoVoice
             String found = null;
             for (String line : recordable())
             {
+                if (line.isEmpty() || !rest.startsWith(line))
+                {
+                    continue;
+                }
                 boolean whole = rest.length() == line.length() || Character.isWhitespace(rest.charAt(line.length()));
-                if (rest.startsWith(line) && whole && (found == null || line.length() > found.length()))
+                if (whole && (found == null || line.length() > found.length()))
                 {
                     found = line;
                 }
@@ -212,8 +245,9 @@ public final class RoccoVoice
         }
     }
 
-    // Si la voz falla, se avisa en gris (una vez por minuto) y Rocco sigue escribiendo.
-    private static void problem(ServerLevel level, String error)
+    // Si la voz falla, se avisa en gris (una vez por minuto) y Rocco sigue escribiendo, o con
+    // sus frases grabadas.
+    private static void problem(ServerLevel level, String error, boolean recorded)
     {
         RoccoMod.LOGGER.warn("[Rocco] La voz no anduvo: {}", error);
         long now = System.currentTimeMillis();
@@ -222,9 +256,26 @@ public final class RoccoVoice
             return;
         }
         lastProblemNote = now;
-        Component note = Component.literal("[Rocco] La voz no anduvo: " + error + ". Sigo por escrito.")
+        Component note = Component.literal("[Rocco] La voz no anduvo: " + error
+                        + (recorded ? ". Mientras tanto uso mis frases grabadas." : ". Sigo por escrito."))
                 .withStyle(ChatFormatting.GRAY);
         level.players().forEach(player -> player.sendSystemMessage(note));
+    }
+
+    private static String fishSetup()
+    {
+        return RoccoConfig.fishApiKey() + "|" + RoccoCommonConfig.FISH_VOICE_ID.get().trim();
+    }
+
+    private static void pauseFish()
+    {
+        fishPausedFor = fishSetup();
+        fishPausedUntil = System.currentTimeMillis() + FISH_PAUSE_MS;
+    }
+
+    private static boolean fishPaused()
+    {
+        return System.currentTimeMillis() < fishPausedUntil && fishPausedFor.equals(fishSetup());
     }
 
     private static synchronized ExecutorService executor()

@@ -148,6 +148,14 @@ public class RoccoFollowGoal extends Goal
             }
         }
 
+        // Nadando al lado tuyo lo lleva RoccoTravel, a tu ritmo.
+        if (rocco.isSwimmingAlongside(this.target))
+        {
+            rocco.getNavigation().stop();
+            this.stuckTicks = 0;
+            return;
+        }
+
         if (--this.repathCooldown <= 0)
         {
             this.repathCooldown = 10;

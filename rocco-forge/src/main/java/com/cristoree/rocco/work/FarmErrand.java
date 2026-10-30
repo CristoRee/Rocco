@@ -9,15 +9,17 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-// La huerta: cosecha lo maduro, lo deja replantado (sin gastar semillas, con su poder) y guarda
-// la cosecha en el cofre que le marcaron o en uno que ya tenga eso. En modo "cuidar" se queda
-// ahi haciendolo solo, rellena lo que quede vacio y vuelve a revisar cada tanto.
+// La huerta: cosecha lo maduro, lo deja replantado (con una de las semillas que suelta la planta)
+// y guarda la cosecha en el cofre que le marcaron o en uno que ya tenga eso. En modo "cuidar" se
+// queda ahi haciendolo solo, rellena lo que quede vacio (con semillas suyas o de los cofres) y
+// vuelve a revisar cada tanto. Al guardar se queda con unas semillas para la proxima vuelta.
 public final class FarmErrand extends Errand
 {
     private enum Phase { HARVEST, FILL, DEPOSIT, AFTER, IDLE }
 
     private static final int RADIUS = 8;
     private static final int IDLE_TICKS = 200;
+    private static final int SEED_RESERVE = 16;
 
     private final boolean tend;
     private final BlockPos center;
@@ -27,6 +29,8 @@ public final class FarmErrand extends Errand
     private int sinceDeposit;
     private int idle;
     private boolean warnedNoChest;
+    private boolean fetchedSeeds;
+    private boolean warnedNoSeeds;
 
     public FarmErrand(RoccoEntity rocco, @Nullable Player requester, boolean tend, BlockPos center)
     {
@@ -81,16 +85,45 @@ public final class FarmErrand extends Errand
             }
             case FILL ->
             {
-                // Lo que quedo vacio se replanta con lo que mas hay en la huerta.
+                // Lo que quedo vacio se replanta con lo que mas hay en la huerta, semilla por semilla.
+                this.phase = Phase.DEPOSIT;
                 Crops.Plantable plant = Crops.mostCommon(this.level, this.center, RADIUS);
-                if (plant != null)
+                List<BlockPos> spots = plant == null ? List.of() : Crops.freeSpots(this.level, this.center, plant, RADIUS, 16);
+                if (spots.isEmpty())
                 {
-                    for (BlockPos spot : Crops.freeSpots(this.level, this.center, plant, RADIUS, 16))
+                    return Status.RUNNING;
+                }
+
+                int have = Crops.seeds(this.rocco, plant);
+                if (have < spots.size() && !this.fetchedSeeds)
+                {
+                    FetchErrand fetch = FetchErrand.plan(this.rocco, requester(), stack -> stack.is(plant.shown()),
+                            Names.name(plant.shown()), spots.size() - have, null, false, true);
+                    if (fetch != null)
                     {
-                        work(RoccoTask.PLANTING, spot, new ItemStack(plant.shown()), level -> Crops.plant(level, spot, plant));
+                        // Vuelve a este paso con las semillas que haya traido.
+                        this.fetchedSeeds = true;
+                        this.phase = Phase.FILL;
+                        delegate(fetch);
+                        return Status.RUNNING;
                     }
                 }
-                this.phase = Phase.DEPOSIT;
+                this.fetchedSeeds = false;
+
+                if (have == 0)
+                {
+                    if (!this.warnedNoSeeds)
+                    {
+                        this.warnedNoSeeds = true;
+                        say("farm_no_seeds", "item", Names.name(plant.shown()));
+                    }
+                    return Status.RUNNING;
+                }
+                this.warnedNoSeeds = false;
+                for (BlockPos spot : spots.subList(0, Math.min(spots.size(), have)))
+                {
+                    work(RoccoTask.PLANTING, spot, new ItemStack(plant.shown()), level -> Crops.plant(level, spot, plant, this.rocco));
+                }
                 return Status.RUNNING;
             }
             case DEPOSIT ->
@@ -99,7 +132,13 @@ public final class FarmErrand extends Errand
                 if (this.sinceDeposit > 0)
                 {
                     this.sinceDeposit = 0;
-                    delegate(new DepositErrand(this.rocco, requester(), DepositErrand.Mode.HARVEST, null, null, this.tend));
+                    DepositErrand deposit = new DepositErrand(this.rocco, requester(), DepositErrand.Mode.HARVEST, null, null, this.tend);
+                    // Cuidando la huerta se queda con unas semillas: si no, la proxima vuelta no tendria que plantar.
+                    if (this.tend)
+                    {
+                        deposit.keeping(Crops.seedsAround(this.level, this.center, RADIUS), SEED_RESERVE);
+                    }
+                    delegate(deposit);
                 }
                 return Status.RUNNING;
             }

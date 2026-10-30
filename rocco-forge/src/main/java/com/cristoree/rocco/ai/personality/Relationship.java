@@ -43,6 +43,19 @@ public enum Relationship
         return stage;
     }
 
+    // Cuanto falta para la etapa siguiente, de 0 a 1 (1 en mejores amigos).
+    public static float progress(double trust, Traits.TrustPace pace)
+    {
+        Relationship stage = of(trust, pace);
+        if (stage == BEST_FRIEND)
+        {
+            return 1.0F;
+        }
+        double points = pace == Traits.TrustPace.EMPEZAR_COMO_AMIGOS ? Math.max(trust, FRIEND.from) : trust;
+        Relationship next = values()[stage.ordinal() + 1];
+        return (float) Math.max(0.0D, Math.min(1.0D, (points - stage.from) / (next.from - stage.from)));
+    }
+
     public static double multiplier(Traits.TrustPace pace)
     {
         return switch (pace)
