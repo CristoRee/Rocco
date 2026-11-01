@@ -125,7 +125,8 @@ public class RoccoFollowGoal extends Goal
 
         double distanceSqr = rocco.distanceToSqr(this.target);
         double teleportAt = RoccoCommonConfig.TELEPORT_DISTANCE.get();
-        boolean teleportAllowed = teleportAt > 0.0D;
+        // Atado a un poste no aparece al lado tuyo: lo traes vos (desatandolo o con /rocco llamar).
+        boolean teleportAllowed = teleportAt > 0.0D && rocco.mayAutoTeleport();
 
         trackProgress();
 

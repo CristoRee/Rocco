@@ -143,7 +143,7 @@ public final class RoccoCompanionTracker
         double teleport = com.cristoree.rocco.config.RoccoCommonConfig.TELEPORT_DISTANCE.get();
         boolean far = rocco == null || rocco.level() != player.level()
                 || (teleport > 0.0D && rocco.distanceToSqr(player) > teleport * teleport);
-        if (far && teleport > 0.0D)
+        if (far && teleport > 0.0D && (rocco == null || rocco.mayAutoTeleport()))
         {
             recall(player, false);
         }
@@ -194,6 +194,13 @@ public final class RoccoCompanionTracker
     {
         if (event.getEntity() instanceof ServerPlayer player)
         {
+            // Murieron los dos: Rocco se entierra al lado de donde reapareciste.
+            RoccoEntity dead = find(player);
+            if (dead != null && dead.life().waitingForOwner())
+            {
+                dead.life().ownerRespawned(player);
+                return;
+            }
             bringOrRecall(player);
             RoccoEntity rocco = event.isEndConquered() ? null : find(player);
             if (rocco != null)
@@ -217,13 +224,35 @@ public final class RoccoCompanionTracker
     // donde lo vio por ultima vez y lo trae en cuanto aparece. Asi nunca queda perdido del otro lado.
     private static void bringOrRecall(ServerPlayer player)
     {
-        if (find(player) != null)
+        RoccoEntity found = find(player);
+        if (found != null && !found.mayAutoTeleport())
+        {
+            return;
+        }
+        if (found != null)
         {
             bringToPlayer(player);
         }
         else if (player.getPersistentData().getBoolean(TAG_ROCCO_FOLLOWING))
         {
             recall(player, false);
+        }
+    }
+
+    // Pusiste un cofre de ender cerca de tu Rocco: si todavia no tiene el poder, va y se lo come.
+    @SubscribeEvent
+    public static void onBlockPlaced(net.minecraftforge.event.level.BlockEvent.EntityPlaceEvent event)
+    {
+        if (!(event.getEntity() instanceof ServerPlayer player)
+                || !(event.getPlacedBlock().getBlock() instanceof net.minecraft.world.level.block.EnderChestBlock))
+        {
+            return;
+        }
+        RoccoEntity rocco = find(player);
+        if (rocco != null && rocco.level() == player.level()
+                && rocco.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(event.getPos())) < 8.0D * 8.0D)
+        {
+            rocco.life().noticeEnderChest(event.getPos());
         }
     }
 
@@ -256,6 +285,11 @@ public final class RoccoCompanionTracker
         // El orden importa: cambiar de dimension crea una instancia nueva a partir del NBT,
         // asi que lo que se toque despues del teleport se pierde. Primero se ordena el estado.
         // Si quedo sentado o dormido, traerlo asi pareceria que sigue perdido.
+        // Atado y lo llamas igual: se suelta (la rienda cae al lado del poste, como en el juego).
+        if (rocco.isLeashed())
+        {
+            rocco.dropLeash(true, true);
+        }
         rocco.standUp();
         rocco.setFollowing(true);
         rocco.stopTravelling();

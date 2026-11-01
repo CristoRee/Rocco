@@ -11,6 +11,8 @@ public final class RoccoClientConfig
     public static final ForgeConfigSpec.DoubleValue NAMEPLATE_DISTANCE;
     public static final ForgeConfigSpec.BooleanValue SHOW_MIC_INDICATOR;
     public static final ForgeConfigSpec.DoubleValue MODEL_SCALE;
+    public static final ForgeConfigSpec.BooleanValue SHOW_ARMOR;
+    public static final ForgeConfigSpec.BooleanValue SHOW_HELD_ITEMS;
 
     // audio
     public static final ForgeConfigSpec.DoubleValue VOICE_VOLUME;
@@ -37,6 +39,12 @@ public final class RoccoClientConfig
         SHOW_NAMEPLATE = b
                 .comment("Muestra el nombre de Rocco sobre su cabeza.")
                 .define("showNameplate", true);
+        SHOW_ARMOR = b
+                .comment("Dibuja la armadura que tiene puesta Rocco.")
+                .define("showArmor", true);
+        SHOW_HELD_ITEMS = b
+                .comment("Dibuja el arma, el escudo y lo que sostiene Rocco.")
+                .define("showHeldItems", true);
         NAMEPLATE_DISTANCE = b
                 .comment("Distancia maxima a la que se ve ese nombre.")
                 .defineInRange("nameplateDistance", 16.0D, 1.0D, 64.0D);

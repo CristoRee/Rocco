@@ -40,6 +40,7 @@ public class RoccoMod
         ModItems.register(modEventBus);
         ModSounds.register(modEventBus);
         ModParticles.register(modEventBus);
+        com.cristoree.rocco.registry.ModMenus.register(modEventBus);
         RoccoNetwork.register();
         RoccoCompanionTracker.registerChunkLoading();
 
@@ -94,6 +95,9 @@ public class RoccoMod
         static void onClientSetup(final net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent event)
         {
             com.cristoree.rocco.client.RoccoParticleFx.install();
+            // La pantalla del equipo de Rocco (armadura, arma y escudo).
+            event.enqueueWork(() -> net.minecraft.client.gui.screens.MenuScreens.register(
+                    com.cristoree.rocco.registry.ModMenus.EQUIPMENT.get(), com.cristoree.rocco.client.menu.RoccoEquipmentScreen::new));
             // El registro de propiedades de items no es seguro desde varios hilos.
             event.enqueueWork(com.cristoree.rocco.client.RoccoFishingLine::installRodModel);
             // El agua del mate baja con cada sorbo (el modelo trae lleno, 2/3, 1/3 y vacio).
@@ -128,6 +132,16 @@ public class RoccoMod
             tuned(event, ModParticles.DANCE_SPARKLE.get(), Look.DANCE_SPARKLE);
             event.registerSpriteSet(ModParticles.BUTTERFLY.get(), com.cristoree.rocco.client.RoccoParticles.ButterflyProvider::new);
             tuned(event, ModParticles.PETAL.get(), Look.PETAL);
+            tuned(event, ModParticles.COLA_FIZZ.get(), Look.COLA_FIZZ);
+            tuned(event, ModParticles.COLA_POP.get(), Look.COLA_POP);
+            tuned(event, ModParticles.REFRESH_SPARKLE.get(), Look.REFRESH_SPARKLE);
+            tuned(event, ModParticles.HIC_BUBBLE.get(), Look.HIC_BUBBLE);
+            tuned(event, ModParticles.SWING_SPARKLE.get(), Look.SWING_SPARKLE);
+            tuned(event, ModParticles.PROUD_SPARKLE.get(), Look.PROUD_SPARKLE);
+            tuned(event, ModParticles.ENDER_SPARK.get(), Look.ENDER_SPARK);
+            tuned(event, ModParticles.ENDER_BURST.get(), Look.ENDER_BURST);
+            tuned(event, ModParticles.ENDER_RING.get(), Look.ENDER_RING);
+            event.registerSpriteSet(ModParticles.DIRT_CLOD.get(), com.cristoree.rocco.client.RoccoParticles.DirtClodProvider::new);
         }
 
         private static void tuned(net.minecraftforge.client.event.RegisterParticleProvidersEvent event,

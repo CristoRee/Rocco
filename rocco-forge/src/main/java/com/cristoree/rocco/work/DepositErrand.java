@@ -122,6 +122,13 @@ public final class DepositErrand extends Errand
                 else
                 {
                     // Sin ningun cofre cerca no puede decir que estan llenos (antes lo decia igual).
+                    if (this.noChests)
+                    {
+                        Player player = requester();
+                        com.cristoree.rocco.RoccoMod.LOGGER.info("[Rocco] Guardar: ningun cofre a {} bloques (ni al doble). Rocco en {}, jugador en {}",
+                                RoccoCommonConfig.WORK_SEARCH_RADIUS.get(), this.rocco.blockPosition(),
+                                player == null ? "-" : player.blockPosition());
+                    }
                     say(this.noChests ? "deposit_no_chest" : "deposit_no_place", "items", names(left));
                 }
             }
@@ -299,20 +306,9 @@ public final class DepositErrand extends Errand
         return out;
     }
 
-    // Los cofres alrededor de Rocco y, si le hablaste desde otro lado, tambien los de alrededor tuyo.
     private List<BlockPos> nearbyChests()
     {
-        int radius = RoccoCommonConfig.WORK_SEARCH_RADIUS.get();
-        Set<BlockPos> chests = new LinkedHashSet<>(Storage.find(this.level, this.rocco.blockPosition(), radius));
-        Player player = requester();
-        if (player != null && player.level() == this.level && player.distanceToSqr(this.rocco) > 4.0D * 4.0D)
-        {
-            chests.addAll(Storage.find(this.level, player.blockPosition(), radius));
-        }
-        BlockPos here = this.rocco.blockPosition();
-        List<BlockPos> sorted = new ArrayList<>(chests);
-        sorted.sort(java.util.Comparator.comparingDouble(pos -> pos.distSqr(here)));
-        return sorted;
+        return Storage.findAround(this.level, this.rocco.blockPosition(), requester(), RoccoCommonConfig.WORK_SEARCH_RADIUS.get());
     }
 
     // Una copia del cofre para hacer la cuenta (respeta lo que no se puede meter, como una caja de

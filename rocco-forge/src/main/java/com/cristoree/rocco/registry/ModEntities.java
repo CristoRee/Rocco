@@ -16,7 +16,9 @@ public final class ModEntities
 
     public static final RegistryObject<EntityType<RoccoEntity>> ROCCO = ENTITIES.register("rocco",
             () -> EntityType.Builder.of(RoccoEntity::new, MobCategory.CREATURE)
-                    .sized(0.6F, 1.3F)
+                    // El modelo mide 15,5 px hasta la punta de las hojitas: la caja de 1,3 le sobraba
+                    // casi medio bloque. Con 1,0 encaja y pasa por huecos de un bloque.
+                    .sized(0.6F, 1.0F)
                     .clientTrackingRange(10)
                     .updateInterval(2)
                     .build(RoccoMod.MODID + ":rocco"));

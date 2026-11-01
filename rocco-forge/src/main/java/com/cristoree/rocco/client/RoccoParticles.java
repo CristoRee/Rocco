@@ -254,6 +254,16 @@ public final class RoccoParticles
         public static final Look MUSIC_NOTE = new Look(30, 30, 0.12F, 1.0F, 0.0F, false, 0.73F, false, 0.0F, 0.02F, 1.0D);
         public static final Look DANCE_SPARKLE = new Look(12, 12, 0.08F, 0.8F, 0.0F, true, 0.5F, true, 0.0F, 0.0F, 0.8D);
         public static final Look PETAL = new Look(30, 30, 0.07F, 1.0F, 0.01F, false, 0.7F, false, 0.08F, 0.03F, 0.97D);
+        // Las de la Roco Cola, el combate, el equipo y el cofre de ender (gravedad de la guia / 0,04).
+        public static final Look COLA_FIZZ = new Look(12, 18, 0.05F, 0.8F, 0.0F, false, 0.6F, false, 0.0F, 0.03F, 1.0D);
+        public static final Look COLA_POP = new Look(6, 8, 0.07F, 0.8F, 0.75F, true, 0.5F, false, 0.0F, 0.0F, 0.96D);
+        public static final Look REFRESH_SPARKLE = new Look(20, 20, 0.08F, 0.2F, 0.0F, false, 0.5F, true, 0.05F, 0.0F, 0.9D);
+        public static final Look HIC_BUBBLE = new Look(25, 25, 0.1F, 1.3F, 0.0F, false, 0.92F, false, 0.0F, 0.02F, 1.0D);
+        public static final Look SWING_SPARKLE = new Look(6, 6, 0.28F, 1.1F, 0.0F, true, 0.5F, true, 0.0F, 0.0F, 0.0D);
+        public static final Look PROUD_SPARKLE = new Look(20, 20, 0.08F, 0.7F, 1.0F, false, 0.6F, true, 0.12F, 0.0F, 0.98D);
+        public static final Look ENDER_SPARK = new Look(20, 30, 0.07F, 0.6F, -0.25F, false, 0.6F, true, 0.15F, 0.04F, 0.95D);
+        public static final Look ENDER_BURST = new Look(8, 8, 0.45F, 1.6F, 0.0F, true, 0.3F, true, 0.0F, 0.0F, 0.0D);
+        public static final Look ENDER_RING = new Look(15, 15, 0.07F, 0.8F, 0.0F, false, 0.5F, true, 0.0F, 0.0F, 0.9D);
     }
 
     public static final class Tuned extends TextureSheetParticle
@@ -433,6 +443,58 @@ public final class RoccoParticles
                                        double dx, double dy, double dz)
         {
             return new MagicBurst(level, x, y, z, this.sprites);
+        }
+    }
+
+    // Terroncitos de la tumba y del nacimiento: saltan, caen con peso, rebotan una vez en el piso
+    // y se van. Son los unicos que chocan con los bloques.
+    public static final class DirtClod extends TextureSheetParticle
+    {
+        private boolean bounced;
+
+        DirtClod(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites)
+        {
+            super(level, x, y, z);
+            pickSprite(sprites);
+            this.lifetime = 15 + this.random.nextInt(11);
+            this.quadSize = 0.06F + this.random.nextFloat() * 0.05F;
+            this.gravity = 1.5F;
+            this.hasPhysics = true;
+            this.xd = dx;
+            this.yd = dy;
+            this.zd = dz;
+        }
+
+        @Override
+        public void tick()
+        {
+            double falling = this.yd;
+            super.tick();
+            if (this.onGround && !this.bounced && falling < -0.02D)
+            {
+                this.bounced = true;
+                this.yd = -falling * 0.35D;
+                this.xd *= 0.6D;
+                this.zd *= 0.6D;
+            }
+            float life = (float) this.age / this.lifetime;
+            this.alpha = life > 0.75F ? 1.0F - (life - 0.75F) / 0.25F : 1.0F;
+        }
+
+        @Override
+        public ParticleRenderType getRenderType()
+        {
+            return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+        }
+    }
+
+    public record DirtClodProvider(SpriteSet sprites) implements ParticleProvider<SimpleParticleType>
+    {
+        @Override
+        public Particle createParticle(SimpleParticleType type, ClientLevel level, double x, double y, double z,
+                                       double dx, double dy, double dz)
+        {
+            return new DirtClod(level, x, y, z, dx, dy, dz, this.sprites);
         }
     }
 

@@ -58,6 +58,27 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> CHEER = register("cheer");
     public static final RegistryObject<SoundEvent> HUM = register("hum");
 
+    // La Roco Cola.
+    public static final RegistryObject<SoundEvent> COLA_CLINK = register("cola_clink");
+    public static final RegistryObject<SoundEvent> COLA_OPEN = register("cola_open");
+    public static final RegistryObject<SoundEvent> COLA_CAP = register("cola_cap");
+    public static final RegistryObject<SoundEvent> COLA_GULP = register("cola_gulp");
+    public static final RegistryObject<SoundEvent> COLA_AHH = register("cola_ahh");
+    public static final RegistryObject<SoundEvent> COLA_REFRESH = register("cola_refresh");
+    public static final RegistryObject<SoundEvent> COLA_HIC = register("cola_hic");
+    public static final RegistryObject<SoundEvent> COLA_FIZZ = register("cola_fizz");
+
+    // El poder del cofre de ender.
+    public static final RegistryObject<SoundEvent> ENDER_ABSORB = register("ender_absorb");
+    public static final RegistryObject<SoundEvent> ENDER_AWAKEN = register("ender_awaken");
+
+    // La tumba y el nacimiento.
+    public static final RegistryObject<SoundEvent> GRAVE_TWITCH = register("grave_twitch");
+    public static final RegistryObject<SoundEvent> GRAVE_BURST = register("grave_burst");
+    public static final RegistryObject<SoundEvent> CROSS_FALL = register("cross_fall");
+    public static final RegistryObject<SoundEvent> SHAKE_OFF = register("shake_off");
+    public static final RegistryObject<SoundEvent> DUST_PAT = register("dust_pat");
+
     // La voz de Fish Audio: el audio llega por red y se reproduce con este evento como canal
     // (categoria "Voz/Habla" del juego). El archivo del json nunca suena: se reemplaza al vuelo.
     public static final RegistryObject<SoundEvent> VOICE = register("voice");

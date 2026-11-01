@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 // Cada expresion existe como tres huesos en el modelo: eyes_<id>, mouth_<id> y talk_<id>.
-// El modelo trae las 20 encimadas y el codigo esconde las que no corresponden, asi que esta
+// El modelo trae las 23 encimadas y el codigo esconde las que no corresponden, asi que esta
 // lista tiene que estar COMPLETA: una cara que falte aca queda visible para siempre.
 public enum RoccoExpression
 {
@@ -36,7 +36,13 @@ public enum RoccoExpression
     // La puede pedir la IA: festejo, "¡bien ahi!".
     CHEER("cheer", true),
     // Tarareando en el baile.
-    HUM("hum", false);
+    HUM("hum", false),
+    // Cantando (las animaciones sing_*).
+    SING("sing", false),
+    // La puede pedir la IA: asombro, "¡guau!".
+    WOW("wow", true),
+    // El "¡aaah!" de despues de la Roco Cola.
+    REFRESH("refresh", false);
 
     private static final RoccoExpression[] VALUES = values();
     private static final List<RoccoExpression> SELECTABLE =
@@ -66,7 +72,7 @@ public enum RoccoExpression
     {
         return switch (this)
         {
-            case SLEEP, BLISS, FOCUS, WINDY, MEWING, YAWN, CHEER, HUM -> true;
+            case SLEEP, BLISS, FOCUS, WINDY, MEWING, YAWN, CHEER, HUM, SING, REFRESH -> true;
             default -> false;
         };
     }

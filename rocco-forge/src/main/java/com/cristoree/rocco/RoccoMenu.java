@@ -26,6 +26,11 @@ public final class RoccoMenu
     public static final int TENDING = 1 << 4;
     public static final int QUIET = 1 << 5;
     public static final int TRAVELLING = 1 << 6;
+    // A quien puede atacar (las tres casillas) y si ya tiene el poder del cofre de ender.
+    public static final int TARGET_HOSTILE = 1 << 7;
+    public static final int TARGET_PEACEFUL = 1 << 8;
+    public static final int TARGET_PLAYERS = 1 << 9;
+    public static final int ENDER_POCKET = 1 << 10;
 
     private static final double REACH = 24.0D;
 
@@ -48,6 +53,11 @@ public final class RoccoMenu
         if (!tending && (errand != null || rocco.isWorking() || rocco.isSharingMate() || rocco.getActiveTask() != RoccoTask.NONE)) flags |= BUSY;
         if (rocco.brain().isQuiet()) flags |= QUIET;
         if (rocco.isTravelling()) flags |= TRAVELLING;
+        int targets = rocco.attackTargets();
+        if ((targets & com.cristoree.rocco.entity.RoccoCombat.HOSTILE) != 0) flags |= TARGET_HOSTILE;
+        if ((targets & com.cristoree.rocco.entity.RoccoCombat.PEACEFUL) != 0) flags |= TARGET_PEACEFUL;
+        if ((targets & com.cristoree.rocco.entity.RoccoCombat.PLAYERS) != 0) flags |= TARGET_PLAYERS;
+        if (rocco.life().hasEnderPocket()) flags |= ENDER_POCKET;
 
         Relationship bond = rocco.relationship();
         long magicLeft = rocco.enchantCooldownLeft();
@@ -93,6 +103,20 @@ public final class RoccoMenu
                 if (!rocco.openInventory(player))
                 {
                     rocco.sayLine("menu_cant_open");
+                }
+            }
+            // Su armadura, su arma y su escudo.
+            case "equipo" -> com.cristoree.rocco.menu.RoccoEquipmentMenu.open(player, rocco);
+            // Las tres casillas de a quien puede atacar (llegan juntas, como un numero).
+            case "objetivos" ->
+            {
+                try
+                {
+                    rocco.setAttackTargets(Integer.parseInt(place));
+                }
+                catch (NumberFormatException e)
+                {
+                    RoccoMod.LOGGER.debug("[Rocco] Objetivos invalidos desde el menu: {}", place);
                 }
             }
             default -> RoccoMod.LOGGER.debug("[Rocco] Opcion de menu desconocida: {}", action.action());

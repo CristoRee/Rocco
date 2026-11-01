@@ -197,6 +197,7 @@ public final class RoccoTravel
                 && RoccoCommonConfig.FOLLOW_ENABLED.get()
                 && this.rocco.isFollowing()
                 && !this.rocco.isLidOpen()
+                && this.rocco.mayAutoTeleport()
                 && !this.rocco.staysForWork();
     }
 

@@ -9,7 +9,7 @@ version="${mod_version}"
 displayName="${mod_name}"
 displayURL="https://github.com/CristoRee/Rocco"
 logoFile="logo.png"
-credits="Modelo, animaciones, texturas y sonidos originales de CristoRee."
+credits="Modelo, animaciones, texturas y sonidos originales de CristoRee. Animaciones con GeckoLib (Bernie y colaboradores)."
 authors="${mod_authors}"
 description='''${mod_description}'''
 

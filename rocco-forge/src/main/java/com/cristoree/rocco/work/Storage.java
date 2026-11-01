@@ -79,6 +79,28 @@ public final class Storage
         return found;
     }
 
+    // Los cofres para un encargo: alrededor de Rocco y alrededor del jugador, del mas cercano a Rocco
+    // al mas lejano. Si no hay ninguno a 'radius', busca al doble (hasta 48): para vos la casa de al
+    // lado esta "ahi nomas" aunque quede a 20 bloques, y antes decia que no habia ningun cofre.
+    public static List<BlockPos> findAround(ServerLevel level, BlockPos center, @Nullable Player player, int radius)
+    {
+        List<BlockPos> found = findBoth(level, center, player, radius);
+        int wider = Math.min(radius * 2, 48);
+        return found.isEmpty() && wider > radius ? findBoth(level, center, player, wider) : found;
+    }
+
+    private static List<BlockPos> findBoth(ServerLevel level, BlockPos center, @Nullable Player player, int radius)
+    {
+        Set<BlockPos> found = new java.util.LinkedHashSet<>(find(level, center, radius));
+        if (player != null && player.level() == level)
+        {
+            found.addAll(find(level, player.blockPosition(), radius));
+        }
+        List<BlockPos> sorted = new ArrayList<>(found);
+        sorted.sort(Comparator.comparingDouble(pos -> pos.distSqr(center)));
+        return sorted;
+    }
+
     // Bloques con entidad que cumplan algo (hornos, por ejemplo), del mas cercano al mas lejano.
     public static List<BlockPos> findBlockEntities(ServerLevel level, BlockPos center, int radius,
                                                    java.util.function.Predicate<BlockEntity> filter)

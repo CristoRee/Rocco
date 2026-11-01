@@ -85,7 +85,7 @@ public final class RoccoConfig
 
     // Forge valida cada opcion por separado, pero no las relaciones entre dos de ellas.
     // Sube cada vez que una migracion nueva haga falta.
-    public static final int CURRENT_CONFIG_VERSION = 3;
+    public static final int CURRENT_CONFIG_VERSION = 4;
 
     // Los valores por defecto viejos quedaron guardados en el .toml del jugador y cambiar el
     // default en el codigo no los toca. Se corrigen UNA vez, y solo si siguen exactamente en
@@ -122,6 +122,19 @@ public final class RoccoConfig
         {
             RoccoCommonConfig.AI_SAFETY_LEVEL.set(RoccoCommonConfig.SafetyLevel.OFF);
             changes.add("ai.safetyLevel LOW -> OFF");
+        }
+
+        // v4: la vida nueva (tumba al morir) solo se ve si no es inmortal, que era el default viejo.
+        if (from < 4 && RoccoCommonConfig.IMMORTAL.get())
+        {
+            RoccoCommonConfig.IMMORTAL.set(false);
+            changes.add("behavior.immortal true -> false");
+        }
+        // v4: con la busqueda apagada (el default viejo) las imitaciones salian con la voz de Rocco.
+        if (from < 4 && !RoccoCommonConfig.IMPRESSION_VOICE_SEARCH.get())
+        {
+            RoccoCommonConfig.IMPRESSION_VOICE_SEARCH.set(true);
+            changes.add("voice.impressionVoiceSearch false -> true");
         }
 
         RoccoCommonConfig.CONFIG_VERSION.set(CURRENT_CONFIG_VERSION);

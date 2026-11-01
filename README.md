@@ -47,6 +47,22 @@ Clic derecho sobre Rocco abre su tapa: un inventario de 36 lugares. En modo Chil
 
 **Agachado + clic derecho** abre su menú: qué está haciendo, qué tan amigos son y si tiene la magia lista, con botones para lo de todos los días (seguir o dejar de seguir, vení, sentate, a dormir, su inventario, guardar todo, ordenar cofres, cuidar la huerta, cebarte un mate, baile, callarse un rato), sus lugares guardados (llevame, guardar uno nuevo, olvidar) y accesos a la personalidad y la configuración. En multijugador, el menú es solo del dueño.
 
+### Armadura, armas y pelea
+
+- **Su equipo:** en el menú (agachado + clic derecho), **Equipo** abre sus lugares de casco, pechera, pantalones, botas, arma y escudo, con tu inventario abajo. También por chat: "ponete la armadura" (se pone lo mejor que tenga) o "sacate la armadura". Al estrenar algo se mira y posa.
+- **Cada material, su estilo:** coronita con gemas (oro), cuerno de unicornio de cristal (diamante), orejitas, colita y botitas de gato (netherite), pluma de caballero (hierro), moño rosa (cota de malla), margarita (cuero, que se tiñe) y caparazón de tortuga. Las espadas, hachas, tridente, arco, ballesta y escudo tienen su propio modelo 3D.
+- **Te defiende:** ataca lo que te lastima, lo que vos atacás y lo que le pega a él. A quién puede atacar se elige en su menú: mobs hostiles (de fábrica), pacíficos o jugadores. A vos nunca. Con arco o ballesta usa las flechas de su inventario y se queda a buena distancia; con escudo se cubre.
+
+### Vida, tumba y el cofre de ender
+
+- **10 corazones y fotosíntesis:** no come; se cura solo a la luz, y a oscuras mucho más lento.
+- **Si se muere:** hace su caída, suelta lo que llevaba y reaparece **enterradito** al lado de donde reaparecés vos. Hacé clic derecho en el montículo y sale de un salto. Se puede elegir que muera para siempre o que sea inmortal (**Config > Vida y rutina**).
+- **El poder del cofre de ender:** dale un cofre de ender (o ponelo cerca para que se lo coma) y desde ahí no pierde sus cosas al morir.
+
+### Roco Cola
+
+Su gaseosa favorita. Pedile "tomate una Roco Cola" (si le decís "coca", te corrige) y se toma una entera, con tapita voladora, tres tragos y un "¡aaah!". Muy de vez en cuando se toma una solo.
+
 ### Regalos y sorpresas
 
 - **Al volver:** si estuviste desconectado al menos una hora, Rocco te deja en su tapa lo que juntó mientras no estabas (si no le entra, te tira lo que sobra). Cuanto más tiempo, más y mejor: a la hora, un poco de carbón o hierro; al día, diamantes, manzanas doradas o perlas; a la semana (lo máximo), netherita, oro, diamantes, botellas de experiencia y más.
@@ -88,7 +104,7 @@ Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. Las �
 |---|---|
 | `/rocco estado` | Cómo está Rocco: claves, qué está haciendo, su poder de encantar. |
 | `/rocco ia` | Estado de cada proveedor de IA, con links para conseguir claves. |
-| `/rocco llamar` | Lo trae al lado tuyo esté donde esté. |
+| `/rocco llamar` | Lo trae al lado tuyo esté donde esté (si está atado a un poste, lo desata). |
 | `/rocco lugares` | Los lugares que recuerda, con distancia y dirección. |
 | `/rocco despertar` | Hace brotar a un Rocco que todavía es una plantita. |
 | `/rocco personalidad` | El modo de personalidad actual. |
@@ -108,15 +124,23 @@ En **Mods > Rocco > Config > Personalidad** hay tres modos:
 
 El dialecto (latino neutro, rioplatense, España o automático) y el apodo con el que te llama valen en los tres modos. Los cambios se notan desde la próxima respuesta, sin reiniciar.
 
-También imita voces de personajes y famosos si se lo pedís ("hablá como Vegeta"). La voz real de cada personaje la elegís vos en **Config > Voz > Imitaciones**: el mod no trae voces de personas reales.
+También imita voces de personajes y famosos si se lo pedís ("hablá como Vegeta"). Con Fish Audio configurado busca sola una voz pública de ese personaje en Fish Audio (se puede apagar), o usa la que vos le pongas en **Config > Voz > Imitaciones**. El mod no trae voces de personas reales: las voces públicas las sube la comunidad de Fish Audio, bajo sus términos.
 
 ## Bienvenida
 
 La primera vez que abrís el juego aparece una pantalla para dejar a Rocco listo: la clave de IA (con un botón para probarla), la voz, el micrófono, la tecla para hablarle y la personalidad. Se puede volver a abrir con `/rocco setup` o desde la config.
 
-## Privacidad
+## Privacidad y servicios externos
 
-Las claves quedan solo en tu archivo de configuración (o en variables de entorno, ver los comentarios de la config). Lo que le decís a Rocco se manda únicamente al proveedor de IA, voz o micrófono que vos configures.
+Sin claves, Rocco no se conecta a ningún lado. Solo si vos ponés una clave, el mod se conecta a ese servicio:
+
+| Servicio | Cuándo | Qué se manda |
+|---|---|---|
+| IA (Groq, Gemini, OpenRouter, Ollama o un proveedor propio) | Cuando le hablás y no es una orden simple | Lo que le dijiste, la charla reciente, su personalidad y un resumen de lo que pasa en el juego (vida, inventario, cofres cerca, hora). |
+| Fish Audio | Cuando habla en voz alta, o busca la voz de un personaje para imitarlo | El texto que va a decir, o el nombre del personaje. |
+| Deepgram | Mientras mantenés la tecla del micrófono (o con detección de voz) | El audio de tu micrófono. |
+
+Las claves quedan solo en tu archivo de configuración (o en variables de entorno, ver los comentarios de la config). El mod no junta datos ni manda nada a CristoRee ni a ningún otro lado.
 
 ## Licencia
 
@@ -128,4 +152,6 @@ Minecraft es marca de Mojang AB. Rocco no está afiliado a Mojang ni a Microsoft
 
 ### English
 
-Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms (planting the seeds he has or finds in your chests), crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate (and shares one with you if you ask), remembers places, breeds animals, fishes, trades with villagers, sorts your chests, brings you gifts when you come back after being away, has a sneak + right-click menu, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.
+Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms (planting the seeds he has or finds in your chests), crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate (and shares one with you if you ask), remembers places, breeds animals, fishes, trades with villagers, sorts your chests, brings you gifts when you come back after being away, has a sneak + right-click menu, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He wears armor (with a cute style per material) and 3D weapons, fights by your side (you choose who he may attack), heals with sunlight, comes back buried next to your respawn point if he dies, keeps his items forever if he eats an ender chest, and loves Roco Cola. He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.
+
+**External services:** without keys, Rocco connects to nothing. Only if you add a key does it talk to that service (your messages go to the AI provider you chose, the spoken text to Fish Audio, your microphone audio to Deepgram). Nothing is collected or sent anywhere else.

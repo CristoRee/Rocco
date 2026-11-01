@@ -1,5 +1,29 @@
 # Cambios
 
+## 1.5.0
+
+### Nuevo
+- **Armaduras en Rocco:** casco, pechera, pantalones y botas de cualquier material, cada uno con sus adornos tiernos: coronita con gemas (oro), cuerno de unicornio de cristal (diamante), orejitas, colita y botitas de gato (netherite), pluma roja de caballero (hierro), moño rosa (cota de malla), margarita (cuero, que se tiñe) y escamas con una estrellita de mar (tortuga). Acompañan cada animación (la tapa, tragar, volar, el barquito), brillan si están encantadas y las gemas brillan un poco a oscuras. Protegen como al jugador y se gastan igual.
+- **Armas 3D:** espada y hacha de madera, piedra, hierro, oro, diamante y netherite, más tridente, arco (con la cuerda que se tensa y la flecha encajada), ballesta y escudo, todas con su propio modelo y una hojita colgando del pomo. Las armas de otros mods se ven como el ítem de siempre.
+- **Menú de equipo:** desde el menú de Rocco (agachado + clic derecho), el botón **Equipo** abre sus lugares de armadura, arma y escudo, con tu inventario abajo para arrastrar las cosas. Por chat: "ponete la armadura" (se equipa lo mejor que tenga) y "sacate la armadura". Al estrenar algo se mira, se da palmaditas y posa.
+- **Pelea:** te defiende de lo que te ataca, ataca lo que vos atacás y se defiende. En el menú elegís a quién puede atacar: mobs hostiles, pacíficos o jugadores (a vos nunca). A piñas, con espada (tajo), hacha (hachazo con salto), tridente (estocada), arco y ballesta (con las flechas de su inventario, se pone a buena distancia) y se cubre con el escudo. Lo que mata suelta experiencia como si lo hubieras matado vos.
+- **Vida nueva:** 10 corazones y no come: hace fotosíntesis, se cura solo a la luz (a oscuras, mucho más lento). Si se muere, hace su animación de caída, suelta lo que lleva y reaparece **enterradito** al lado de donde reaparecés vos, con una crucecita de "R.I.P." y el montículo moviéndose. Clic derecho y sale disparado, se sacude la tierra y saluda. Se puede elegir que muera para siempre o que sea inmortal.
+- **El poder del cofre de ender:** si le das un cofre de ender (o lo ponés cerca para que se lo coma), lo absorbe, siente algo raro en la panza y desde ahí no pierde sus cosas al morir. Si ya lo tiene, te lo dice.
+- **Roco Cola:** su gaseosa favorita. Se la toma si se la pedís ("tomate una coca": te corrige, es Roco Cola) y muy de vez en cuando por su cuenta: saca la botella, la destapa, toma tres tragos cada vez más largos y termina con un "¡aaah!" y un hipito.
+- **Nacimiento nuevo:** plantado se le ve la carita dormida asomando de la tierra; al despertar bosteza, mira para los costados, hace fuerza, sale de un salto, se sacude y saluda.
+- **Caras nuevas:** asombro, cantando y el "¡qué fresco!" de la Roco Cola. La IA puede usar la de asombro.
+
+### Cambiado
+- **La caja de Rocco ya no le sobra medio bloque:** ahora mide un bloque de alto (antes 1,3), así encaja con el modelo y pasa por huecos de un bloque. Enterrado, la caja es chiquita y a ras del montículo.
+- **Atado no se teletransporta:** con una rienda atada a un poste no aparece solo al lado tuyo ni vuela, nada o rema con vos. Para traerlo igual, `/rocco llamar` lo desata y lo trae. Se puede apagar en **Config > Movimiento > Teletransporte**.
+- **Ya no es inmortal por defecto:** con la tumba, morirse ya no es perderlo. Las configs que tenían el valor viejo se actualizan solas.
+
+### Arreglado
+- **No imitaba las voces:** pedirle que imite a alguien (Vegeta, Messi...) cambiaba el texto pero no la voz, porque la búsqueda de voces públicas de Fish Audio venía apagada y la lista de voces vacía. Ahora busca sola la voz del personaje (elige la que coincide con el nombre y el idioma, la más usada) y la recuerda. Si una búsqueda falla, la vuelve a intentar más tarde en vez de olvidarse del personaje para siempre.
+- **No encontraba los cofres de la casa de al lado:** buscaba solo a 16 bloques de él, así que parado afuera de la casa decía que no había cofres. Ahora busca alrededor suyo y tuyo, y si no encuentra ninguno busca al doble de distancia (vale para guardar, traer, buscar materiales al craftear y lo que sabe la IA). Además le da tiempo de caminar hasta un cofre lejos: antes, a los 8 segundos de camino, lo daba por imposible.
+- **Llamarlo de lejos estando atado lo desataba:** ahora te avisa que está atado (y si está enterrado, dónde te espera).
+- **Caras pisadas en todo el modelo:** además de la tierra, el cuerpo, la tapa, el patito, el barquito y las armas tenían caras a la misma altura que parpadeaban al mover la cámara. Ahora no se pisan.
+
 ## 1.4.0
 
 ### Nuevo

@@ -175,6 +175,83 @@ public final class RoccoParticleFx
             }
 
             // El jardincito de la tapa en modo Chill.
+            // Roco Cola: espuma al destaparla, burbujitas en el pico, brillitos del "¡aaah!" y el hipo.
+            case "rocco:cola_fizz" ->
+            {
+                int count = 2 + random.nextInt(3);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.COLA_FIZZ.get(), at.add(spread(random, 0.04D), 0.0D, spread(random, 0.04D)),
+                            new Vec3(spread(random, 0.005D), 0.04D, spread(random, 0.005D)));
+                }
+            }
+            case "rocco:cola_pop" ->
+            {
+                int count = 6 + random.nextInt(3);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.COLA_POP.get(), at, new Vec3(spread(random, 0.08D), 0.06D + random.nextDouble() * 0.05D, spread(random, 0.08D)));
+                }
+            }
+            case "rocco:refresh_sparkle" ->
+            {
+                int count = 3 + random.nextInt(3);
+                for (int i = 0; i < count; i++)
+                {
+                    Vec3 out = new Vec3(spread(random, 1.0D), spread(random, 1.0D), spread(random, 1.0D)).normalize().scale(0.04D);
+                    add(level, ModParticles.REFRESH_SPARKLE.get(), at, out);
+                }
+            }
+            case "rocco:hic_bubble" -> add(level, ModParticles.HIC_BUBBLE.get(), at, new Vec3(0.0D, 0.015D, 0.0D));
+            // El destello del golpe, quieto donde quedo el arma.
+            case "rocco:swing_sparkle" -> add(level, ModParticles.SWING_SPARKLE.get(), at, Vec3.ZERO);
+            case "rocco:proud_sparkle" ->
+            {
+                int count = 4 + random.nextInt(3);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.PROUD_SPARKLE.get(), at, new Vec3(spread(random, 0.05D), 0.12D + random.nextDouble() * 0.05D, spread(random, 0.05D)));
+                }
+            }
+            // Cofre de ender: chispitas que se arremolinan, el destello y el aro de luz.
+            case "rocco:ender_spark" ->
+            {
+                int count = 3 + random.nextInt(3);
+                for (int i = 0; i < count; i++)
+                {
+                    double angle = random.nextDouble() * Mth.TWO_PI;
+                    Vec3 around = new Vec3(Math.cos(angle) * 0.3D, spread(random, 0.15D), Math.sin(angle) * 0.3D);
+                    Vec3 swirl = new Vec3(-Math.sin(angle) * 0.04D, 0.02D, Math.cos(angle) * 0.04D);
+                    add(level, ModParticles.ENDER_SPARK.get(), at.add(around), swirl);
+                }
+            }
+            case "rocco:ender_burst" -> add(level, ModParticles.ENDER_BURST.get(), at, Vec3.ZERO);
+            case "rocco:ender_ring" ->
+            {
+                int count = 8 + random.nextInt(5);
+                for (int i = 0; i < count; i++)
+                {
+                    double angle = Mth.TWO_PI * i / count;
+                    add(level, ModParticles.ENDER_RING.get(), at, new Vec3(Math.cos(angle) * 0.12D, 0.0D, Math.sin(angle) * 0.12D));
+                }
+            }
+            // El cofre de ender entrando a la panza: las del portal vienen de afuera hacia el punto.
+            case "minecraft:portal" ->
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    add(level, ParticleTypes.PORTAL, at, new Vec3(spread(random, 0.6D), spread(random, 0.4D), spread(random, 0.6D)));
+                }
+            }
+            // La tumba y el nacimiento: terroncitos que saltan.
+            case "rocco:dirt_clod" ->
+            {
+                int count = 4 + random.nextInt(4);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.DIRT_CLOD.get(), at, new Vec3(spread(random, 0.1D), 0.1D + random.nextDouble() * 0.05D, spread(random, 0.1D)));
+                }
+            }
             case "rocco:butterfly" -> add(level, ModParticles.BUTTERFLY.get(), at, Vec3.ZERO);
             case "rocco:petal" ->
             {
@@ -236,6 +313,12 @@ public final class RoccoParticleFx
             case "fx_ring", "fx_boat" -> { side = 0.0D; up = 0.3D; ahead = 0.0D; }
             case "fx_paddle_right" -> { side = -0.7D; up = 0.2D; ahead = 0.2D; }
             case "fx_paddle_left" -> { side = 0.7D; up = 0.2D; ahead = 0.2D; }
+            case "fx_cola" -> { side = 0.2D; up = 0.75D; ahead = 0.25D; }
+            case "fx_mic" -> { side = -0.2D; up = 0.7D; ahead = 0.25D; }
+            case "fx_belly" -> { side = 0.0D; up = 0.35D; ahead = 0.2D; }
+            case "fx_body" -> { side = 0.0D; up = 0.45D; ahead = 0.0D; }
+            case "fx_grave", "fx_soil" -> { side = 0.0D; up = 0.1D; ahead = 0.0D; }
+            case "item_right" -> { side = -0.35D; up = 0.45D; ahead = 0.35D; }
             default -> { side = 0.0D; up = 0.6D; ahead = 0.2D; }
         }
 

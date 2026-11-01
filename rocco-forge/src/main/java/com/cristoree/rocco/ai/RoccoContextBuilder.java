@@ -126,6 +126,13 @@ public final class RoccoContextBuilder
         facts.put("Doors or trapdoors nearby",
                 String.valueOf(RoccoWork.findOpenables(level, rocco.blockPosition(), 8).size()));
         facts.put("You are following the player", rocco.isFollowing() ? "yes" : "no, they asked you to wait");
+        facts.put("Your health", Math.round(rocco.getHealth()) + " of " + Math.round(rocco.getMaxHealth())
+                + " (you heal with sunlight: photosynthesis)");
+        facts.put("What you are wearing", gearOf(rocco));
+        facts.put("You may attack", targetsOf(rocco));
+        facts.put("Your ender chest power", rocco.life().hasEnderPocket()
+                ? "yes: you keep everything if you die"
+                : "no: if you die you drop everything (an ender chest would give you the power)");
         facts.put("Your posture", postureOf(rocco));
 
         // Si el jugador pregunta donde murio, Rocco tiene el dato a mano.
@@ -250,10 +257,35 @@ public final class RoccoContextBuilder
         return wheat == null ? 0 : Crops.freeSpots(level, rocco.blockPosition(), wheat, 8, 64).size();
     }
 
+    // La armadura, el arma y el escudo que tiene puestos, o "nothing".
+    private static String gearOf(RoccoEntity rocco)
+    {
+        List<String> worn = new java.util.ArrayList<>();
+        for (net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.values())
+        {
+            ItemStack stack = rocco.gear(slot);
+            if (!stack.isEmpty())
+            {
+                worn.add(Inv.id(stack) + (stack.isEnchanted() ? " (enchanted)" : ""));
+            }
+        }
+        return worn.isEmpty() ? "nothing" : String.join(", ", worn);
+    }
+
+    private static String targetsOf(RoccoEntity rocco)
+    {
+        int targets = rocco.attackTargets();
+        List<String> who = new java.util.ArrayList<>();
+        if ((targets & com.cristoree.rocco.entity.RoccoCombat.HOSTILE) != 0) who.add("hostile mobs");
+        if ((targets & com.cristoree.rocco.entity.RoccoCombat.PEACEFUL) != 0) who.add("peaceful mobs");
+        if ((targets & com.cristoree.rocco.entity.RoccoCombat.PLAYERS) != 0) who.add("other players");
+        return who.isEmpty() ? "nobody (set in your menu)" : String.join(", ", who) + " (set in your menu; never your owner)";
+    }
+
     // Cuantos cofres hay y que tienen, resumido: lo justo para que sepa si conviene ir a buscar.
     private static String chestsNear(ServerLevel level, RoccoEntity rocco, Player player)
     {
-        List<BlockPos> chests = Storage.find(level, rocco.blockPosition(), RoccoCommonConfig.WORK_SEARCH_RADIUS.get());
+        List<BlockPos> chests = Storage.findAround(level, rocco.blockPosition(), player, RoccoCommonConfig.WORK_SEARCH_RADIUS.get());
         if (chests.isEmpty())
         {
             return "none";

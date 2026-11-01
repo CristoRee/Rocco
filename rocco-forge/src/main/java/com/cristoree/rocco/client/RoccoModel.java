@@ -2,7 +2,9 @@ package com.cristoree.rocco.client;
 
 import com.cristoree.rocco.RoccoMod;
 import com.cristoree.rocco.entity.RoccoEntity;
+import com.cristoree.rocco.config.RoccoClientConfig;
 import com.cristoree.rocco.entity.RoccoExpression;
+import com.cristoree.rocco.entity.RoccoGear;
 import com.cristoree.rocco.entity.RoccoTask;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -82,6 +84,14 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         hide("garden", !rocco.showsGarden());
         hide("lid_garden", !rocco.showsGarden());
 
+        // La armadura y las armas las dibuja RoccoGearLayer en su propia pasada, con su textura.
+        for (String bone : RoccoGearLayer.ALL_GEAR_BONES)
+        {
+            hide(bone, true);
+        }
+        // La tumba solo enterrado o saliendo de ella (las otras animaciones la dejan en escala 0).
+        hide("grave", !rocco.getRoccoState().isGrave());
+
         // El mate, el termo y las esferas de magia viven escondidos adentro del cuerpo; igual se
         // tapan de verdad cuando no se usan, porque algunas animaciones abren la boca o la tapa.
         // Se muestran si la animacion que se esta viendo es la suya, ademas de si el servidor dice
@@ -94,6 +104,17 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         {
             hide(bone, !mate);
         }
+        // La botella, la tapita y el microfono, igual: solo en su animacion.
+        boolean cola = playing.equals("animation.rocco.cola_drink");
+        hide("cola", !cola);
+        hide("cola_cap", !cola);
+        hide("mic", !playing.equals("animation.rocco.sing_groove") && !playing.equals("animation.rocco.sing_rap"));
+
+        // Con el casco de oro (una coronita) se esconden las hojitas de la cabeza, para que se vea.
+        boolean crown = RoccoClientConfig.SHOW_ARMOR.get() && !rocco.isPlantVisible()
+                && RoccoGear.wearsCrown(rocco.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD));
+        hide("head_leaves", crown);
+        hide("hair_a", crown);
         // Solo los cubos de las esferas: adentro estan los localizadores de las manos, que tambien
         // usan los aplausos y el baile para sus particulas.
         for (String bone : MAGIC_BONES)
@@ -127,7 +148,13 @@ public class RoccoModel extends GeoModel<RoccoEntity>
     // aca: las animaciones los sacan y los guardan (en las demas quedan en escala 0).
     public static final String[] LOCATORS = {"fx_head", "fx_mate", "fx_spout", "fx_magic_right", "fx_magic_left",
             "fx_wing_right", "fx_wing_left", "fx_tear_right", "fx_tear_left", "fx_snorkel", "fx_ring", "fx_boat",
-            "fx_paddle_right", "fx_paddle_left", "fx_garden"};
+            "fx_paddle_right", "fx_paddle_left", "fx_garden",
+            "fx_cola", "fx_mic", "fx_belly", "fx_body", "fx_grave", "fx_soil", "item_right"};
+
+    public static String playingAnimation(RoccoEntity rocco)
+    {
+        return playingAnimation(rocco, rocco.getId());
+    }
 
     // La animacion que el controlador principal esta mostrando en este momento ("" si ninguna).
     private static String playingAnimation(RoccoEntity rocco, long instanceId)

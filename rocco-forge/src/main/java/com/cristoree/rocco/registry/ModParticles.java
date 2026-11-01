@@ -43,6 +43,18 @@ public final class ModParticles
     public static final RegistryObject<SimpleParticleType> BUTTERFLY = register("butterfly");
     public static final RegistryObject<SimpleParticleType> PETAL = register("petal");
 
+    // Roco Cola, combate, equipo, cofre de ender y tumba.
+    public static final RegistryObject<SimpleParticleType> COLA_FIZZ = register("cola_fizz");
+    public static final RegistryObject<SimpleParticleType> COLA_POP = register("cola_pop");
+    public static final RegistryObject<SimpleParticleType> REFRESH_SPARKLE = register("refresh_sparkle");
+    public static final RegistryObject<SimpleParticleType> HIC_BUBBLE = register("hic_bubble");
+    public static final RegistryObject<SimpleParticleType> SWING_SPARKLE = register("swing_sparkle");
+    public static final RegistryObject<SimpleParticleType> PROUD_SPARKLE = register("proud_sparkle");
+    public static final RegistryObject<SimpleParticleType> ENDER_SPARK = register("ender_spark");
+    public static final RegistryObject<SimpleParticleType> ENDER_BURST = register("ender_burst");
+    public static final RegistryObject<SimpleParticleType> ENDER_RING = register("ender_ring");
+    public static final RegistryObject<SimpleParticleType> DIRT_CLOD = register("dirt_clod");
+
     public static void register(IEventBus modEventBus)
     {
         PARTICLES.register(modEventBus);

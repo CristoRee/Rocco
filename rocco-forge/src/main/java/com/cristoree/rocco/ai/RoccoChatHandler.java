@@ -6,6 +6,7 @@ import com.cristoree.rocco.config.RoccoConfig;
 import com.cristoree.rocco.entity.RoccoEntity;
 import com.cristoree.rocco.entity.RoccoState;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.AABB;
@@ -109,6 +110,24 @@ public final class RoccoChatHandler
     // "Rocco, veni" desde lejos: lo trae aunque su zona del mundo este descargada.
     private static void callFromAfar(ServerPlayer player)
     {
+        // Atado a un poste no viene solo (eso lo fuerza /rocco llamar); enterrado, te espera ahi.
+        RoccoEntity known = com.cristoree.rocco.RoccoCompanionTracker.find(player);
+        if (known != null && known.getRoccoState() == RoccoState.BURIED)
+        {
+            BlockPos at = known.blockPosition();
+            player.displayClientMessage(Component.translatable("rocco.call.buried",
+                    at.getX() + ", " + at.getY() + ", " + at.getZ()).withStyle(ChatFormatting.GRAY), false);
+            return;
+        }
+        if (known != null && known.getRoccoState() == RoccoState.ACTIVE && !known.mayAutoTeleport())
+        {
+            player.displayClientMessage(Component.translatable("rocco.call.leashed").withStyle(ChatFormatting.GRAY), false);
+            return;
+        }
+        if (known != null && known.getRoccoState() != RoccoState.ACTIVE)
+        {
+            return;
+        }
         boolean arrived = com.cristoree.rocco.RoccoCompanionTracker.recall(player, true);
         if (arrived)
         {

@@ -2,6 +2,7 @@ package com.cristoree.rocco.client;
 
 import com.cristoree.rocco.config.RoccoClientConfig;
 import com.cristoree.rocco.entity.RoccoEntity;
+import com.cristoree.rocco.entity.RoccoGear;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
@@ -52,8 +53,19 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
                                               MultiBufferSource bufferSource, float partialTick, int packedLight,
                                               int packedOverlay)
             {
+                // El cofre que flota: a un tercio de bloque (FIXED lo dibuja a medio bloque).
+                boolean grab = bone.getName().equals("grab");
+                if (grab)
+                {
+                    poseStack.pushPose();
+                    poseStack.scale(0.66F, 0.66F, 0.66F);
+                }
                 super.renderStackForBone(poseStack, bone, stack, animatable, bufferSource, partialTick, packedLight,
                         packedOverlay);
+                if (grab)
+                {
+                    poseStack.popPose();
+                }
                 if (stack.getItem() instanceof FishingRodItem && bone.getName().equals("item_right"))
                 {
                     rememberRodTip(poseStack, stack, animatable, getTransformTypeForStack(bone, stack, animatable));
@@ -65,8 +77,10 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
             {
                 return switch (bone.getName())
                 {
-                    case "item_right" -> animatable.getMainHandItem();
-                    case "item_left" -> animatable.getOffhandItem();
+                    case "item_right" -> heldFor(animatable, animatable.getMainHandItem(), RoccoGear.weaponLook(animatable.getMainHandItem()));
+                    case "item_left" -> heldFor(animatable, animatable.getOffhandItem(), RoccoGear.shieldLook(animatable.getOffhandItem()));
+                    // El cofre de ender que se traga o que absorbe, flotando entre las manitos.
+                    case "grab" -> animatable.grabbedItem();
                     default -> ItemStack.EMPTY;
                 };
             }
@@ -75,14 +89,43 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
             protected ItemDisplayContext getTransformTypeForStack(GeoBone bone, ItemStack stack,
                                                                   RoccoEntity animatable)
             {
-                return bone.getName().equals("item_left")
-                        ? ItemDisplayContext.THIRD_PERSON_LEFT_HAND
-                        : ItemDisplayContext.THIRD_PERSON_RIGHT_HAND;
+                return switch (bone.getName())
+                {
+                    case "item_left" -> ItemDisplayContext.THIRD_PERSON_LEFT_HAND;
+                    case "grab" -> ItemDisplayContext.FIXED;
+                    default -> ItemDisplayContext.THIRD_PERSON_RIGHT_HAND;
+                };
             }
         });
 
+        // La armadura y las armas 3D, cada una con la textura de su material.
+        addRenderLayer(new RoccoGearLayer(this));
+
         // Las esferitas de magia brillan en la oscuridad: rocco_glowmask.png marca solo esas partes.
         addRenderLayer(new AutoGlowingGeoLayer<>(this));
+    }
+
+    // En la mano: lo que tenga, salvo un arma con modelo propio (la dibuja RoccoGearLayer) y salvo
+    // un arma con las manos ocupadas (tomando mate, volando, nadando...).
+    private static ItemStack heldFor(RoccoEntity rocco, ItemStack stack, @Nullable RoccoGear.WeaponLook look)
+    {
+        if (stack.isEmpty() || look != null || !RoccoClientConfig.SHOW_HELD_ITEMS.get())
+        {
+            return ItemStack.EMPTY;
+        }
+        if ((RoccoGear.isWeapon(stack) || RoccoGear.isShield(stack))
+                && RoccoGearLayer.handsBusy(rocco, RoccoModel.playingAnimation(rocco)))
+        {
+            return ItemStack.EMPTY;
+        }
+        return stack;
+    }
+
+    // Al morir hace su animacion de caida: sin el giro de costado del juego.
+    @Override
+    protected float getDeathMaxRotation(RoccoEntity animatable)
+    {
+        return 0.0F;
     }
 
     @Override

@@ -67,8 +67,8 @@ import java.util.function.Consumer;
 
 public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvider
 {
-    // animation.rocco.awaken dura 3,3 s
-    public static final int AWAKEN_TICKS = 66;
+    // animation.rocco.awaken dura 5,8 s (el nacimiento nuevo: bosteza, mira, hace fuerza y sale)
+    public static final int AWAKEN_TICKS = 116;
     // animation.rocco.lid_close dura 1,3 s; a los 23 ticks termina de sacudir la cabeza
     public static final int LID_CLOSE_TICKS = 26;
     public static final int LID_FACE_RESTORE_TICK = 23;
@@ -127,6 +127,15 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Que animacion del mate compartido esta haciendo (0 = ninguna). La elige el servidor.
     private static final EntityDataAccessor<Integer> DATA_MATE_STEP =
             SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
+    // La postura de pelea que ve el cliente (guardia, apuntando, escudo): RoccoCombat.STANCE_*.
+    private static final EntityDataAccessor<Integer> DATA_COMBAT =
+            SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
+    // Cual de las tres poses de la tumba: 0 piecitos, 1 manito, 2 cabecita.
+    private static final EntityDataAccessor<Integer> DATA_GRAVE_POSE =
+            SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
+    // Lo que flota en el hueso grab: el cofre de ender que se traga o que absorbe.
+    private static final EntityDataAccessor<ItemStack> DATA_GRAB =
+            SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.ITEM_STACK);
 
     // Lo que tarda la boya en volar de la caña al agua.
     public static final int BOBBER_FLIGHT_TICKS = 10;
@@ -172,6 +181,42 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Pensar va por estado: dura lo que tarde la IA y se corta cuando llega la respuesta.
     private static final RawAnimation THINK = RawAnimation.begin().thenLoop("animation.rocco.think");
 
+    // Roco Cola, equipo nuevo y el poder del cofre de ender: se disparan como el mate.
+    private static final RawAnimation COLA_DRINK = RawAnimation.begin().thenPlay("animation.rocco.cola_drink");
+    private static final RawAnimation EQUIP_PROUD = RawAnimation.begin().thenPlay("animation.rocco.equip_proud");
+    private static final RawAnimation ENDER_ABSORB = RawAnimation.begin().thenPlay("animation.rocco.ender_absorb");
+    private static final RawAnimation ENDER_AWAKEN = RawAnimation.begin().thenPlay("animation.rocco.ender_awaken");
+
+    // Pelea: los golpes y los disparos se disparan; la guardia, apuntar y el escudo van por estado.
+    private static final RawAnimation ATTACK_PUNCH = RawAnimation.begin().thenPlay("animation.rocco.attack_punch");
+    private static final RawAnimation ATTACK_SWING = RawAnimation.begin().thenPlay("animation.rocco.attack_swing");
+    private static final RawAnimation ATTACK_CHOP = RawAnimation.begin().thenPlay("animation.rocco.attack_chop");
+    private static final RawAnimation ATTACK_THRUST = RawAnimation.begin().thenPlay("animation.rocco.attack_thrust");
+    private static final RawAnimation BOW_DRAW = RawAnimation.begin().thenPlay("animation.rocco.bow_draw");
+    private static final RawAnimation BOW_RELEASE = RawAnimation.begin().thenPlay("animation.rocco.bow_release");
+    private static final RawAnimation CROSSBOW_CHARGE = RawAnimation.begin().thenPlay("animation.rocco.crossbow_charge");
+    private static final RawAnimation CROSSBOW_SHOOT = RawAnimation.begin().thenPlay("animation.rocco.crossbow_shoot");
+    private static final RawAnimation COMBAT_IDLE = RawAnimation.begin().thenLoop("animation.rocco.combat_idle");
+    private static final RawAnimation COMBAT_RUN = RawAnimation.begin().thenLoop("animation.rocco.combat_run");
+    private static final RawAnimation BOW_AIM = RawAnimation.begin().thenLoop("animation.rocco.bow_aim");
+    private static final RawAnimation CROSSBOW_AIM = RawAnimation.begin().thenLoop("animation.rocco.crossbow_aim");
+    private static final RawAnimation SHIELD_BLOCK = RawAnimation.begin().thenLoop("animation.rocco.shield_block");
+
+    // Morirse y la tumba: van por estado (DYING, BURIED, RISING).
+    private static final RawAnimation DEATH = RawAnimation.begin().thenPlayAndHold("animation.rocco.death");
+    private static final RawAnimation[] GRAVE = {
+            RawAnimation.begin().thenLoop("animation.rocco.grave_feet"),
+            RawAnimation.begin().thenLoop("animation.rocco.grave_hand"),
+            RawAnimation.begin().thenLoop("animation.rocco.grave_head")};
+    private static final RawAnimation[] GRAVE_RISE = {
+            RawAnimation.begin().thenPlayAndHold("animation.rocco.grave_rise_feet"),
+            RawAnimation.begin().thenPlayAndHold("animation.rocco.grave_rise_hand"),
+            RawAnimation.begin().thenPlayAndHold("animation.rocco.grave_rise_head")};
+
+    // Enterrado, la caja es chiquita y a ras del monticulo, para poder hacerle clic.
+    private static final net.minecraft.world.entity.EntityDimensions BURIED_SIZE =
+            net.minecraft.world.entity.EntityDimensions.scalable(1.0F, 0.6F);
+
     // El servidor no tiene particulas: el cliente cambia este gancho al arrancar.
     public interface ParticleHook
     {
@@ -188,11 +233,24 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private final RoccoContainer inventory = new RoccoContainer();
     private final RoccoTravel journey = new RoccoTravel(this);
     private final MateShare share = new MateShare(this);
+    private final RoccoLife life = new RoccoLife(this);
     private final com.cristoree.rocco.RoccoSurprises.State surprises = new com.cristoree.rocco.RoccoSurprises.State();
     private final Deque<Job> jobs = new ArrayDeque<>();
 
     private RoccoBrain brain;
     private int awakenTicks;
+
+    // El arma de verdad mientras la mano muestra otra cosa (la herramienta con la que trabaja).
+    @Nullable
+    private ItemStack stashedWeapon;
+    // A quien puede atacar (RoccoCombat.HOSTILE | PEACEFUL | PLAYERS). -1 = todavia no se eligio.
+    private int attackTargets = -1;
+    private boolean fighting;
+    private int combatCalmTicks;
+    // Inmortal: despues de un golpe que lo habria matado, se aparta un rato sin pelear.
+    private int immortalRetreatTicks;
+    private boolean colaRequested;
+    private final java.util.Map<String, Long> onceLines = new java.util.HashMap<>();
     private int talkTicks;
     private int lidCloseTicks;
     private int viewers;
@@ -206,6 +264,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private int taskTicks;
     private Job currentJob;
     private int approachTicks;
+    private int approachLimit = WORK_TIMEOUT_TICKS;
     private int pathFailures;
     private int crackStage = -1;
 
@@ -281,6 +340,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         // de verdad vive en su inventario. Sin esto, morirse a mitad de plantar lo duplicaria.
         setDropChance(EquipmentSlot.MAINHAND, 0.0F);
         setDropChance(EquipmentSlot.OFFHAND, 0.0F);
+        // La armadura y el arma las suelta el mismo (dropEverything), para que no se dupliquen.
+        for (EquipmentSlot slot : RoccoGear.ARMOR_SLOTS)
+        {
+            setDropChance(slot, 0.0F);
+        }
+        setCanPickUpLoot(false);
     }
 
     public static AttributeSupplier.Builder createAttributes()
@@ -290,6 +355,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 .add(Attributes.MOVEMENT_SPEED, 0.28D)
                 .add(Attributes.FOLLOW_RANGE, 32.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.6D)
+                // Como el jugador: a piñas pega 1 y las armas suman lo suyo (con sus encantamientos).
+                .add(Attributes.ATTACK_DAMAGE, 1.0D)
+                .add(Attributes.ATTACK_SPEED, 4.0D)
+                .add(Attributes.ATTACK_KNOCKBACK, 0.0D)
                 // Caminando por el agua (para salir, o hasta que se pone el patito) no se arrastra.
                 .add(net.minecraftforge.common.ForgeMod.SWIM_SPEED.get(), 2.5D);
     }
@@ -316,9 +385,18 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         // de verdad es este objetivo; sin el, se quedaba empujando la puerta cerrada hasta
         // teletransportarse. La vuelve a cerrar al pasar, como los aldeanos.
         this.goalSelector.addGoal(1, new net.minecraft.world.entity.ai.goal.OpenDoorGoal(this, true));
+        // Pelear le gana a seguirte y a pasear; a quien atacar lo decide PickTarget.
+        this.goalSelector.addGoal(1, new RoccoCombat.Fight(this));
+        this.targetSelector.addGoal(1, new RoccoCombat.PickTarget(this));
         this.goalSelector.addGoal(2, new RoccoFollowGoal(this));
         // Pasea cerca del jugador aunque lo este siguiendo (dentro de behavior.wanderRadius).
         this.goalSelector.addGoal(3, new RoccoWanderGoal(this));
+    }
+
+    // Atado a un poste no aparece solo al lado tuyo: lo traes vos (/rocco llamar lo desata).
+    public boolean mayAutoTeleport()
+    {
+        return getRoccoState() == RoccoState.ACTIVE && (!isLeashed() || !RoccoCommonConfig.LEASH_BLOCKS_TELEPORT.get());
     }
 
     public boolean canWander()
@@ -403,6 +481,9 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.entityData.define(DATA_THINKING, false);
         this.entityData.define(DATA_GARDEN_LID, false);
         this.entityData.define(DATA_MATE_STEP, 0);
+        this.entityData.define(DATA_COMBAT, RoccoCombat.STANCE_NONE);
+        this.entityData.define(DATA_GRAVE_POSE, 0);
+        this.entityData.define(DATA_GRAB, ItemStack.EMPTY);
     }
 
     // ---------- volando, en el agua y en el barquito (RoccoTravel) ----------
@@ -1072,6 +1153,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             old.cancelled();
         }
         this.jobs.clear();
+        if (this.task == RoccoTask.NONE)
+        {
+            restoreWeapon();
+        }
     }
 
     // Lo que el jugador dice mientras hay un encargo ("busca en el cofre"). true si lo uso.
@@ -1110,6 +1195,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Lo que se ve en la mano hasta que termina el trabajo actual (es solo para mostrar).
     public void showInHand(ItemStack stack)
     {
+        stashWeapon();
         setItemSlot(EquipmentSlot.MAINHAND, stack.copyWithCount(1));
     }
 
@@ -1222,11 +1308,21 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             case DANCING -> "dance";
             case CLAPPING -> "clap";
             case CELEBRATING -> "celebrate";
+            case COLA -> "cola_drink";
+            case EQUIP_PROUD -> "equip_proud";
+            case ENDER_ABSORB -> "ender_absorb";
+            case ENDER_AWAKEN -> "ender_awaken";
             default -> null;
         };
         if (animation == null)
         {
             return;
+        }
+        // El cofre de ender ya entro: aunque se corte la animacion, el poder se activa igual.
+        if (this.task == RoccoTask.ENDER_ABSORB || this.task == RoccoTask.ENDER_AWAKEN)
+        {
+            this.jobs.removeIf(job -> job.task() == RoccoTask.ENDER_AWAKEN);
+            this.life.grantEnderPocket();
         }
         Job interrupted = this.currentJob;
         stopTriggeredAnimation("main", animation);
@@ -1258,7 +1354,16 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 ? previewOf(job.target())
                 : job.shown().copy();
 
-        setItemSlot(EquipmentSlot.MAINHAND, shown);
+        if (job.task() == RoccoTask.SWALLOWING || job.task() == RoccoTask.ENDER_ABSORB)
+        {
+            // Lo que traga o absorbe flota en el hueso grab, no en la mano.
+            this.entityData.set(DATA_GRAB, job.shown().copy());
+        }
+        else
+        {
+            stashWeapon();
+            setItemSlot(EquipmentSlot.MAINHAND, shown);
+        }
         getNavigation().stop();
 
         switch (job.task())
@@ -1304,12 +1409,39 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 setExpression(RoccoExpression.CHEER);
                 triggerAnim("main", "celebrate");
             }
+            case COLA ->
+            {
+                this.faceBeforeSwallow = calmFace();
+                setExpression(RoccoExpression.HAPPY);
+                triggerAnim("main", "cola_drink");
+                this.life.drankCola();
+            }
+            case EQUIP_PROUD ->
+            {
+                this.faceBeforeSwallow = calmFace();
+                setExpression(RoccoExpression.WOW);
+                triggerAnim("main", "equip_proud");
+            }
+            case ENDER_ABSORB ->
+            {
+                this.faceBeforeSwallow = calmFace();
+                setExpression(RoccoExpression.THINK);
+                triggerAnim("main", "ender_absorb");
+            }
+            case ENDER_AWAKEN ->
+            {
+                this.faceBeforeSwallow = calmFace();
+                setExpression(RoccoExpression.WOW);
+                triggerAnim("main", "ender_awaken");
+                this.life.startAwakening();
+            }
             default -> { }
         }
 
         // Con la boca llena (o con la bombilla) no habla: asi mouth_talk queda escondido y no se
         // encima con la boca de la animacion.
-        if (job.task() == RoccoTask.EATING || job.task() == RoccoTask.SWALLOWING || job.task() == RoccoTask.MATE)
+        if (job.task() == RoccoTask.EATING || job.task() == RoccoTask.SWALLOWING || job.task() == RoccoTask.MATE
+                || job.task() == RoccoTask.COLA)
         {
             setTalking(false);
             this.talkTicks = 0;
@@ -1319,7 +1451,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private static boolean isPerformance(RoccoTask task)
     {
         return task == RoccoTask.MATE || task == RoccoTask.DANCING || task == RoccoTask.CLAPPING
-                || task == RoccoTask.CELEBRATING;
+                || task == RoccoTask.CELEBRATING || task == RoccoTask.COLA || task == RoccoTask.EQUIP_PROUD
+                || task == RoccoTask.ENDER_ABSORB || task == RoccoTask.ENDER_AWAKEN;
     }
 
     // La cara a la que vuelve despues: si tenia una automatica (golpe, sueño), vuelve a happy.
@@ -1356,6 +1489,46 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 setExpression(face);
             }
         }
+        else if (this.task == RoccoTask.COLA)
+        {
+            RoccoExpression face = faceAt(t, COLA_FACE_TICKS, COLA_FACES);
+            if (face != null)
+            {
+                setExpression(face);
+            }
+        }
+        else if (this.task == RoccoTask.EQUIP_PROUD)
+        {
+            RoccoExpression face = t == 15 ? RoccoExpression.HAPPY : t == 25 ? RoccoExpression.SMUG
+                    : t == 36 ? RoccoExpression.HAPPY : null;
+            if (face != null)
+            {
+                setExpression(face);
+            }
+        }
+        else if (this.task == RoccoTask.ENDER_ABSORB)
+        {
+            if (t == 7)
+            {
+                setExpression(RoccoExpression.WOW);
+            }
+        }
+        else if (this.task == RoccoTask.ENDER_AWAKEN)
+        {
+            RoccoExpression face = switch (t)
+            {
+                case 31 -> RoccoExpression.FOCUS;
+                case 40 -> RoccoExpression.CHEER;
+                case 62 -> RoccoExpression.HAPPY;
+                case 67 -> RoccoExpression.CHEER;
+                case 80 -> RoccoExpression.HAPPY;
+                default -> null;
+            };
+            if (face != null)
+            {
+                setExpression(face);
+            }
+        }
         else if (this.task == RoccoTask.ENCHANTING)
         {
             if (t == 4)
@@ -1377,6 +1550,28 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
     }
 
+    // La linea de tiempo de caras de cola_drink (ROCCO-COLA-COMBATE-ARMADURAS-CANTO.md).
+    private static final int[] COLA_FACE_TICKS = {35, 47, 52, 59, 72, 89, 101, 109, 119, 126, 152, 159, 173, 181, 224,
+            229, 250, 252, 256, 266};
+    private static final RoccoExpression[] COLA_FACES = {RoccoExpression.CHEER, RoccoExpression.HAPPY,
+            RoccoExpression.SERIOUS, RoccoExpression.WOW, RoccoExpression.HAPPY, RoccoExpression.BLISS, RoccoExpression.HAPPY,
+            RoccoExpression.BLISS, RoccoExpression.HAPPY, RoccoExpression.BLISS, RoccoExpression.HAPPY, RoccoExpression.REFRESH,
+            RoccoExpression.HAPPY, RoccoExpression.BLISS, RoccoExpression.HAPPY, RoccoExpression.REFRESH, RoccoExpression.HAPPY,
+            RoccoExpression.WOW, RoccoExpression.SMUG, RoccoExpression.HAPPY};
+
+    @Nullable
+    private static RoccoExpression faceAt(int tick, int[] ticks, RoccoExpression[] faces)
+    {
+        for (int i = 0; i < ticks.length; i++)
+        {
+            if (ticks[i] == tick)
+            {
+                return faces[i];
+            }
+        }
+        return null;
+    }
+
     private ItemStack previewOf(BlockPos pos)
     {
         return level() instanceof ServerLevel serverLevel ? Crops.preview(serverLevel, pos) : ItemStack.EMPTY;
@@ -1385,10 +1580,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private void finishJob()
     {
         if (this.task == RoccoTask.SWALLOWING || this.task == RoccoTask.MATE || this.task == RoccoTask.ENCHANTING
-                || this.task == RoccoTask.DANCING || this.task == RoccoTask.CLAPPING || this.task == RoccoTask.CELEBRATING)
+                || this.task == RoccoTask.DANCING || this.task == RoccoTask.CLAPPING || this.task == RoccoTask.CELEBRATING
+                || this.task == RoccoTask.COLA || this.task == RoccoTask.EQUIP_PROUD || this.task == RoccoTask.ENDER_ABSORB
+                || this.task == RoccoTask.ENDER_AWAKEN)
         {
             setExpression(this.faceBeforeSwallow);
         }
+        this.entityData.set(DATA_GRAB, ItemStack.EMPTY);
         if (this.task == RoccoTask.MATE && level() != null)
         {
             this.lastMateTick = level().getGameTime();
@@ -1405,7 +1603,22 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.entityData.set(DATA_WORKING, false);
         this.entityData.set(DATA_TASK, RoccoTask.NONE.ordinal());
         this.entityData.set(DATA_WORK_TARGET, BlockPos.ZERO);
-        setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        restoreWeapon();
+    }
+
+    // Termino la animacion entera (no se corto): lo que dice despues.
+    private void jobCompleted(RoccoTask done)
+    {
+        if (done == RoccoTask.COLA && (this.colaRequested || this.random.nextFloat() < 0.4F))
+        {
+            sayLine("cola_after");
+        }
+        else if (done == RoccoTask.ENDER_AWAKEN)
+        {
+            this.life.grantEnderPocket();
+            sayLine("ender_unlock");
+        }
+        this.colaRequested = false;
     }
 
     private void applyJobEffect()
@@ -1521,9 +1734,18 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 tickMining();
             }
             else if (this.task == RoccoTask.MATE || this.task == RoccoTask.ENCHANTING || this.task == RoccoTask.DANCING
-                    || this.task == RoccoTask.CLAPPING || this.task == RoccoTask.CELEBRATING)
+                    || this.task == RoccoTask.CLAPPING || this.task == RoccoTask.CELEBRATING || this.task == RoccoTask.COLA
+                    || this.task == RoccoTask.EQUIP_PROUD || this.task == RoccoTask.ENDER_ABSORB
+                    || this.task == RoccoTask.ENDER_AWAKEN)
             {
                 tickActivityFace();
+            }
+
+            // La Roco Cola es de tierra firme: si se mete al agua o despega, la guarda.
+            if (this.task == RoccoTask.COLA && (isInWater() || isTravelling()))
+            {
+                interruptActivity();
+                return;
             }
 
             if (this.currentJob != null && this.taskTicks == this.currentJob.impactTick() + ANIM_LAG)
@@ -1533,7 +1755,9 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
             if (this.currentJob != null && this.taskTicks >= this.currentJob.totalTicks() + ANIM_LAG)
             {
+                RoccoTask done = this.task;
                 finishJob();
+                jobCompleted(done);
             }
             return;
         }
@@ -1589,11 +1813,16 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             return;
         }
 
+        // Para un cofre lejos le da tiempo de caminar hasta ahi (antes eran 8 segundos para todo).
+        if (this.approachTicks == 0)
+        {
+            this.approachLimit = WORK_TIMEOUT_TICKS + (int) (distance * 8.0D);
+        }
         this.approachTicks++;
 
         // Sin camino, o llego a donde podia y le sigue faltando: no tiene sentido esperar el timeout.
         boolean stuckShort = this.approachTicks > 40 && getNavigation().isDone();
-        if (this.approachTicks > WORK_TIMEOUT_TICKS || this.pathFailures >= 3 || stuckShort)
+        if (this.approachTicks > this.approachLimit || this.pathFailures >= 3 || stuckShort)
         {
             // No pudo llegar: se descarta, avisa a quien lo pidio y sigue con el proximo.
             this.jobs.poll();
@@ -1657,6 +1886,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (status != Errand.Status.RUNNING && this.errand == running)
         {
             this.errand = null;
+            if (this.task == RoccoTask.NONE && this.jobs.isEmpty())
+            {
+                restoreWeapon();
+            }
         }
     }
 
@@ -1732,7 +1965,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 || this.entityData.get(DATA_LID) != LID_CLOSED
                 || this.task != RoccoTask.NONE
                 || this.thinkShown
-                || getMotion().scriptedFace())
+                || getMotion().scriptedFace()
+                || this.entityData.get(DATA_COMBAT) != RoccoCombat.STANCE_NONE)
         {
             return;
         }
@@ -1981,6 +2215,37 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                     playRoccoSound(ModSounds.MAGIC_BURST.get(), 0.8F);
                 }
             }
+            // Ticks de ROCCO-COLA-COMBATE-ARMADURAS-CANTO.md.
+            case COLA ->
+            {
+                switch (tick)
+                {
+                    case 21 -> playRoccoSound(ModSounds.COLA_CLINK.get(), 0.5F);
+                    case 59 -> playSound(ModSounds.COLA_OPEN.get(), 0.8F, 1.0F);
+                    case 62, 140 -> playRoccoSound(ModSounds.COLA_FIZZ.get(), 0.25F);
+                    case 79 -> playRoccoSound(ModSounds.COLA_CAP.get(), 0.5F);
+                    case 95, 132, 146, 186, 194, 204, 212 -> playRoccoSound(ModSounds.COLA_GULP.get(), 0.6F);
+                    case 109 -> playRoccoSound(ModSounds.COLA_AHH.get(), 0.6F);
+                    case 159 -> playRoccoSound(ModSounds.COLA_AHH.get(), 0.7F);
+                    case 228 -> playSound(ModSounds.COLA_REFRESH.get(), 0.8F, 1.0F);
+                    case 252 -> playRoccoSound(ModSounds.COLA_HIC.get(), 0.6F);
+                    default -> { }
+                }
+            }
+            case ENDER_ABSORB ->
+            {
+                if (tick == 0)
+                {
+                    playRoccoSound(ModSounds.ENDER_ABSORB.get(), 0.8F);
+                }
+            }
+            case ENDER_AWAKEN ->
+            {
+                if (tick == 0)
+                {
+                    playSound(ModSounds.ENDER_AWAKEN.get(), 0.9F, 1.0F);
+                }
+            }
             // interact usa el sonido del propio bloque, que ya pone RoccoWork.
             default -> { }
         }
@@ -2113,8 +2378,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             return switch (getRoccoState())
             {
-                case PLANT -> InteractionResult.SUCCESS;
-                case AWAKENING -> InteractionResult.PASS;
+                case PLANT, BURIED -> InteractionResult.SUCCESS;
+                case AWAKENING, DYING, RISING -> InteractionResult.PASS;
                 case ACTIVE -> !player.isShiftKeyDown() && !isSharingMate() && (isWorking() || isTravelling())
                         ? InteractionResult.PASS
                         : InteractionResult.SUCCESS;
@@ -2125,11 +2390,22 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             case PLANT ->
             {
+                // Un Rocco sin dueño (del huevo generador) es de quien lo despierta.
+                if (this.ownerId == null && player instanceof ServerPlayer serverPlayer)
+                {
+                    com.cristoree.rocco.RoccoCompanionTracker.remember(serverPlayer, this);
+                }
                 beginAwakening();
                 return InteractionResult.CONSUME;
             }
-            case AWAKENING -> {
+            case AWAKENING, DYING, RISING -> {
                 return InteractionResult.PASS;
+            }
+            // Clic derecho al monticulo: su dueño lo desentierra.
+            case BURIED ->
+            {
+                this.life.interactGrave(player);
+                return InteractionResult.CONSUME;
             }
             case ACTIVE ->
             {
@@ -2214,15 +2490,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (getRoccoState() == RoccoState.AWAKENING)
         {
             this.awakenTicks++;
-
-            // Se sacude, salta fuera de la tierra, y le brotan las hojitas.
-            switch (this.awakenTicks - ANIM_LAG)
-            {
-                case 6 -> playRoccoSound(ModSounds.DIRT.get(), 0.5F);
-                case 40 -> playRoccoSound(ModSounds.AWAKEN_POP.get(), 0.8F);
-                case 42 -> playRoccoSound(ModSounds.LEAVES.get(), 0.4F);
-                default -> { }
-            }
+            tickAwakening(this.awakenTicks - ANIM_LAG);
 
             if (this.awakenTicks >= AWAKEN_TICKS + ANIM_LAG)
             {
@@ -2232,14 +2500,37 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 Player nearest = level().getNearestPlayer(this, 16.0D);
                 if (nearest != null)
                 {
-                    // Recien nacido: se da vuelta hacia el jugador, lo saluda con la mano y
-                    // despues le habla. El saludo no depende de que haya clave de IA.
+                    // Recien nacido: el saludo con la mano ya viene al final de awaken; se da
+                    // vuelta hacia el jugador y le habla. No depende de que haya clave de IA.
                     lookAtPlayer(nearest);
-                    triggerAnim("main", "wave");
                     talkFor(80);
                     greet(nearest);
                 }
             }
+        }
+        else if (getRoccoState() == RoccoState.PLANT)
+        {
+            // Plantado duerme con la carita afuera: respira y de vez en cuando ronca bajito.
+            if (getExpression() != RoccoExpression.SLEEP)
+            {
+                setExpression(RoccoExpression.SLEEP);
+            }
+            if (this.tickCount % 80 == 0)
+            {
+                playRoccoSound(ModSounds.SNORE.get(), 0.2F);
+            }
+        }
+        else if (getRoccoState() == RoccoState.DYING)
+        {
+            this.life.tickDying();
+        }
+        else if (getRoccoState() == RoccoState.BURIED)
+        {
+            this.life.tickBuried();
+        }
+        else if (getRoccoState() == RoccoState.RISING)
+        {
+            this.life.tickRising();
         }
 
         if (this.talkTicks > 0)
@@ -2251,12 +2542,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             }
         }
 
-        // Se cura despacio: siendo inmortal, sin esto quedaria en 1 de vida para siempre
-        // despues de una paliza.
-        if (this.tickCount % 100 == 0 && getHealth() < getMaxHealth())
+        // No come: hace fotosintesis (a la luz se cura solo; a oscuras, mucho mas lento).
+        if (getRoccoState() == RoccoState.ACTIVE)
         {
-            heal(1.0F);
+            this.life.tickPhotosynthesis();
         }
+        tickCombatCalm();
 
         if (this.giveSpaceTicks > 0)
         {
@@ -2287,6 +2578,17 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             tickWork();
             tickGifts();
             tickCompanionship();
+            if (this.tickCount % 20 == 0)
+            {
+                this.life.tickEnder();
+            }
+            // El cofre de ender ya entro pero la animacion del poder se perdio (otra orden borro
+            // la cola): el poder se activa igual.
+            if (this.life.awakeningPending() && this.task != RoccoTask.ENDER_AWAKEN && this.task != RoccoTask.ENDER_ABSORB
+                    && this.task != RoccoTask.SWALLOWING && this.jobs.stream().noneMatch(job -> job.task() == RoccoTask.ENDER_AWAKEN))
+            {
+                this.life.grantEnderPocket();
+            }
         }
 
         // Si dejo de pescar por cualquier lado (otra orden, un teleport), la boya no queda colgando.
@@ -2477,18 +2779,28 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         boolean danceReady = RoccoCommonConfig.IDLE_DANCE_ENABLED.get() && sinceDance > 5 * 1200L
                 && !isTalking() && !isInWater() && !hostileNearby(12.0D) && !level().isNight();
 
+        // Cada vez que elige algo para hacer, muy de vez en cuando en vez de eso se toma una Roco Cola.
         if (mateReady && roll < 0.012F)
         {
-            startMate();
+            if (!idleCola(owner))
+            {
+                startMate();
+            }
         }
         else if (danceReady && roll >= 0.012F && roll < 0.018F)
         {
-            perform(RoccoTask.DANCING, owner);
+            if (!idleCola(owner))
+            {
+                perform(RoccoTask.DANCING, owner);
+            }
         }
         else if (RoccoCommonConfig.IDLE_SIT_ENABLED.get() && roll > 1.0F - 0.008F)
         {
-            sitDown();
-            this.autoRestTicks = (30 + this.random.nextInt(60)) * 20;
+            if (!idleCola(owner))
+            {
+                sitDown();
+                this.autoRestTicks = (30 + this.random.nextInt(60)) * 20;
+            }
         }
     }
 
@@ -2770,7 +3082,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     @Override
     protected boolean isImmobile()
     {
-        return isPlantVisible()
+        return getRoccoState() != RoccoState.ACTIVE
                 || isWorking()
                 || this.entityData.get(DATA_LID) != LID_CLOSED
                 || getRoccoPose().isResting()
@@ -2781,7 +3093,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     @Override
     public boolean isPushable()
     {
-        return !isPlantVisible() && !getMotion().steered() && super.isPushable();
+        return getRoccoState() == RoccoState.ACTIVE && !getMotion().steered() && super.isPushable();
     }
 
     @Override
@@ -2797,6 +3109,21 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             return false;
         }
 
+        // Muriendose, enterrado o saliendo de la tumba no se lo lastima (solo /kill y el vacio).
+        if (getRoccoState().isInert() && !isPlantVisible() && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))
+        {
+            return false;
+        }
+
+        // Tus golpes no lo lastiman (para no pegarle sin querer en medio de una pelea), salvo que
+        // lo actives en la config.
+        if (!RoccoCommonConfig.OWNER_CAN_HURT_ROCCO.get() && this.ownerId != null
+                && source.getEntity() instanceof Player hitter && this.ownerId.equals(hitter.getUUID())
+                && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))
+        {
+            return false;
+        }
+
         // El vacio no se lo lleva: lo rescata (rescueFromVoid). /kill si.
         if (source.is(net.minecraft.world.damagesource.DamageTypes.FELL_OUT_OF_WORLD) && !level().isClientSide)
         {
@@ -2805,6 +3132,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
 
         boolean hit = super.hurt(source, amount);
+
+        if (hit && !level().isClientSide)
+        {
+            this.life.noteHurt();
+        }
 
         if (hit && !level().isClientSide && getRoccoState() == RoccoState.ACTIVE)
         {
@@ -2826,6 +3158,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             // Se olvida del maltrato despues de un rato tranquilo.
             this.recentHits++;
             this.hitDecayTicks = 600;
+
+            if (getHealth() < getMaxHealth() * 0.3F && getHealth() > 0.0F)
+            {
+                sayLineOnce("low_health", 1200);
+            }
 
             // Si dormia o estaba sentado, se levanta de un salto.
             this.autoRestTicks = 0;
@@ -2849,7 +3186,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
 
         float allowed = Math.max(0.0F, Math.min(amount, getHealth() - 1.0F));
+        boolean wouldDie = amount >= getHealth();
         super.actuallyHurt(source, allowed);
+        if (wouldDie && !level().isClientSide)
+        {
+            immortalKnock();
+        }
     }
 
     @Override
@@ -2879,21 +3221,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         return ModSounds.HURT.get();
     }
 
+    // Se muere para siempre (modo PERMANENT, /kill o el vacio): lo que llevaba no se pierde con el.
     @Override
     protected void dropCustomDeathLoot(DamageSource source, int looting, boolean recentlyHit)
     {
         super.dropCustomDeathLoot(source, looting, recentlyHit);
-
-        // Lo que juntó no se pierde con él.
-        for (int slot = 0; slot < this.inventory.getContainerSize(); slot++)
-        {
-            ItemStack stack = this.inventory.getItem(slot);
-            if (!stack.isEmpty())
-            {
-                spawnAtLocation(stack);
-            }
-        }
-        this.inventory.clearContent();
+        dropEverything();
     }
 
     @Override
@@ -2927,6 +3260,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         tag.putLong("LastEnchant", this.lastEnchantTick);
         tag.putDouble("Trust", this.trust);
         this.surprises.save(tag);
+        // El arma de verdad: en HandItems puede quedar la herramienta que mostraba trabajando.
+        tag.put("Weapon", weapon().save(new CompoundTag()));
+        tag.putInt("AttackTargets", attackTargets());
+        tag.putInt("GravePose", getGravePose());
+        this.life.save(tag);
 
         net.minecraft.nbt.ListTag placeList = new net.minecraft.nbt.ListTag();
         this.places.forEach((name, place) ->
@@ -2987,6 +3325,17 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
         this.trust = tag.getDouble("Trust");
         this.surprises.load(tag);
+        // Las versiones anteriores solo usaban la mano para mostrar cosas: sin "Weapon", va vacia.
+        this.stashedWeapon = null;
+        setItemSlot(EquipmentSlot.MAINHAND, tag.contains("Weapon") ? ItemStack.of(tag.getCompound("Weapon")) : ItemStack.EMPTY);
+        this.attackTargets = tag.contains("AttackTargets") ? tag.getInt("AttackTargets") : -1;
+        this.entityData.set(DATA_GRAVE_POSE, Math.floorMod(tag.getInt("GravePose"), 3));
+        this.life.load(tag);
+        // Saliendo de la tumba no se guarda a la mitad: al cargar ya esta afuera.
+        if (getRoccoState() == RoccoState.RISING)
+        {
+            setRoccoState(RoccoState.ACTIVE);
+        }
 
         this.places.clear();
         for (net.minecraft.nbt.Tag raw : tag.getList("Places", 10))
@@ -3001,6 +3350,14 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (!saved.selectableByAi() && saved != RoccoExpression.SLEEP)
         {
             setExpression(RoccoExpression.HAPPY);
+        }
+        if (getRoccoState() == RoccoState.PLANT)
+        {
+            setExpression(RoccoExpression.SLEEP);
+        }
+        else if (getRoccoState().isInert())
+        {
+            setExpression(RoccoExpression.DIZZY);
         }
 
         // Volando o en el barquito no se guarda: al cargar camina (y si esta en el agua, flota).
@@ -3020,6 +3377,624 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             this.lastDeathDimension = tag.getString("DeathDim");
             this.lastDeathDay = tag.getLong("DeathDay");
         }
+    }
+
+    // ---------- nacer ----------
+
+    // awaken (5,8 s): tiembla la tierra, abre los ojitos, bosteza, mira para los costados, hace
+    // fuerza, sale de un salto, le brotan las hojitas, se sacude, se limpia y saluda.
+    private void tickAwakening(int t)
+    {
+        switch (t)
+        {
+            case 5, 10, 14, 48, 55, 59 -> playRoccoSound(ModSounds.DIRT.get(), 0.35F);
+            case 35, 40 -> playRoccoSound(ModSounds.LEAVES.get(), 0.4F);
+            case 63 -> playRoccoSound(ModSounds.AWAKEN_POP.get(), 0.8F);
+            case 68 -> playRoccoSound(ModSounds.LEAF_GROW.get(), 0.5F);
+            case 75 -> playRoccoSound(ModSounds.STEP.get(), 0.4F);
+            case 78 -> playRoccoSound(ModSounds.SHAKE_OFF.get(), 0.6F);
+            case 94 -> playRoccoSound(ModSounds.DUST_PAT.get(), 0.5F);
+            case 102 -> playRoccoSound(ModSounds.CHEER.get(), 0.6F);
+            case 109 -> playRoccoSound(ModSounds.STEP.get(), 0.15F);
+            default -> { }
+        }
+        RoccoExpression face = switch (t)
+        {
+            case 0 -> RoccoExpression.SLEEP;
+            case 20 -> RoccoExpression.BORED;
+            case 30 -> RoccoExpression.YAWN;
+            case 40 -> RoccoExpression.THINK;
+            case 47 -> RoccoExpression.SERIOUS;
+            case 63, 102 -> RoccoExpression.CHEER;
+            case 75, 92 -> RoccoExpression.HAPPY;
+            case 78 -> RoccoExpression.WINDY;
+            default -> null;
+        };
+        if (face != null)
+        {
+            setExpression(face);
+        }
+    }
+
+    // ---------- el equipo: armadura, arma y escudo ----------
+
+    // El arma que tiene de verdad (aunque ahora la mano muestre una herramienta).
+    public ItemStack weapon()
+    {
+        return this.stashedWeapon != null ? this.stashedWeapon : getItemBySlot(EquipmentSlot.MAINHAND);
+    }
+
+    public void setWeapon(ItemStack stack)
+    {
+        if (this.stashedWeapon != null)
+        {
+            this.stashedWeapon = stack;
+        }
+        else
+        {
+            setItemSlot(EquipmentSlot.MAINHAND, stack);
+        }
+    }
+
+    // Lo que tiene puesto en ese lugar (para el menu de equipo y #equipar).
+    public ItemStack gear(EquipmentSlot slot)
+    {
+        return slot == EquipmentSlot.MAINHAND ? weapon() : getItemBySlot(slot);
+    }
+
+    public void setGear(EquipmentSlot slot, ItemStack stack)
+    {
+        if (slot == EquipmentSlot.MAINHAND)
+        {
+            setWeapon(stack);
+        }
+        else
+        {
+            setItemSlot(slot, stack);
+        }
+    }
+
+    // Antes de mostrar otra cosa en la mano, el arma se guarda; al terminar vuelve.
+    private void stashWeapon()
+    {
+        if (this.stashedWeapon == null)
+        {
+            this.stashedWeapon = getItemBySlot(EquipmentSlot.MAINHAND);
+        }
+    }
+
+    private void restoreWeapon()
+    {
+        if (this.stashedWeapon != null)
+        {
+            ItemStack weapon = this.stashedWeapon;
+            this.stashedWeapon = null;
+            setItemSlot(EquipmentSlot.MAINHAND, weapon);
+        }
+        else if (!RoccoGear.isWeapon(getItemBySlot(EquipmentSlot.MAINHAND)))
+        {
+            setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        }
+    }
+
+    public int countInInventory(net.minecraft.world.item.Item item)
+    {
+        return Inv.count(this.inventory, item);
+    }
+
+    // #equipar: lo mejor de su inventario a cada lugar (lo que tenia puesto vuelve al inventario).
+    public boolean equipBest()
+    {
+        boolean changed = false;
+        for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS,
+                EquipmentSlot.FEET, EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND})
+        {
+            int best = -1;
+            double bestValue = valueFor(slot, gear(slot));
+            for (int i = 0; i < this.inventory.getContainerSize(); i++)
+            {
+                ItemStack candidate = this.inventory.getItem(i);
+                if (candidate.isEmpty() || !RoccoGear.fits(slot, candidate))
+                {
+                    continue;
+                }
+                double value = valueFor(slot, candidate);
+                if (value > bestValue)
+                {
+                    bestValue = value;
+                    best = i;
+                }
+            }
+            if (best >= 0)
+            {
+                ItemStack chosen = this.inventory.removeItem(best, 1);
+                ItemStack old = gear(slot);
+                setGear(slot, chosen);
+                if (!old.isEmpty())
+                {
+                    keep(old);
+                }
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    private static double valueFor(EquipmentSlot slot, ItemStack stack)
+    {
+        if (stack.isEmpty())
+        {
+            return -1.0D;
+        }
+        return switch (slot)
+        {
+            case MAINHAND -> RoccoGear.weaponValue(stack);
+            case OFFHAND -> RoccoGear.isShield(stack) ? 1.0D + stack.getEnchantmentTags().size() : -1.0D;
+            default -> RoccoGear.armorValue(stack);
+        };
+    }
+
+    // #desequipar: todo lo que tiene puesto vuelve a su inventario.
+    public boolean unequipAll()
+    {
+        boolean changed = false;
+        for (EquipmentSlot slot : EquipmentSlot.values())
+        {
+            ItemStack worn = gear(slot);
+            if (!worn.isEmpty())
+            {
+                setGear(slot, ItemStack.EMPTY);
+                keep(worn);
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    // Se puso algo nuevo (por el menu o con #equipar): se mira, se da palmaditas y posa.
+    public void celebrateGear(@Nullable Player toward)
+    {
+        if (getRoccoState() != RoccoState.ACTIVE || isTravelling() || !isFreeTime())
+        {
+            sayLine("armor_equip");
+            return;
+        }
+        perform(RoccoTask.EQUIP_PROUD, toward);
+        sayLine("armor_equip");
+    }
+
+    // El arma se gasta al pegar, como la del jugador (se puede apagar en la config).
+    public void wearWeapon()
+    {
+        ItemStack weapon = weapon();
+        if (!RoccoCommonConfig.WEAPON_DURABILITY.get() || weapon.isEmpty() || !weapon.isDamageableItem())
+        {
+            return;
+        }
+        weapon.hurtAndBreak(1, this, rocco -> rocco.broadcastBreakEvent(EquipmentSlot.MAINHAND));
+        if (weapon.isEmpty())
+        {
+            setWeapon(ItemStack.EMPTY);
+            sayLine("combat_weapon_broke");
+        }
+    }
+
+    // La armadura se gasta con los golpes, como la del jugador.
+    @Override
+    protected void hurtArmor(DamageSource source, float amount)
+    {
+        if (!RoccoCommonConfig.WEAPON_DURABILITY.get() || amount <= 0.0F)
+        {
+            return;
+        }
+        int damage = Math.max(1, (int) (amount / 4.0F));
+        for (EquipmentSlot slot : RoccoGear.ARMOR_SLOTS)
+        {
+            ItemStack stack = getItemBySlot(slot);
+            if (stack.getItem() instanceof net.minecraft.world.item.ArmorItem
+                    && !(source.is(DamageTypeTags.IS_FIRE) && stack.getItem().isFireResistant()))
+            {
+                stack.hurtAndBreak(damage, this, rocco -> rocco.broadcastBreakEvent(slot));
+            }
+        }
+    }
+
+    @Override
+    protected void hurtHelmet(DamageSource source, float amount)
+    {
+        ItemStack helmet = getItemBySlot(EquipmentSlot.HEAD);
+        if (RoccoCommonConfig.WEAPON_DURABILITY.get() && amount > 0.0F && helmet.getItem() instanceof net.minecraft.world.item.ArmorItem)
+        {
+            helmet.hurtAndBreak(Math.max(1, (int) (amount / 4.0F)), this, rocco -> rocco.broadcastBreakEvent(EquipmentSlot.HEAD));
+        }
+    }
+
+    // Lo que flota en el hueso grab (del lado del cliente lo dibuja el renderer).
+    public ItemStack grabbedItem()
+    {
+        return this.entityData.get(DATA_GRAB);
+    }
+
+    // ---------- peleando ----------
+
+    public int attackTargets()
+    {
+        if (this.attackTargets < 0)
+        {
+            this.attackTargets = RoccoCombat.defaultTargets();
+        }
+        return this.attackTargets;
+    }
+
+    public void setAttackTargets(int targets)
+    {
+        this.attackTargets = targets & (RoccoCombat.HOSTILE | RoccoCombat.PEACEFUL | RoccoCombat.PLAYERS);
+        LivingEntity target = getTarget();
+        if (target != null && !RoccoCombat.mayAttack(this, target))
+        {
+            setTarget(null);
+        }
+    }
+
+    // Puede pelear: despierto, en tierra, de pie, sin la tapa abierta y sin un trabajo a la mitad.
+    // Un encargo que solo espera (materiales, el horno) no lo frena.
+    public boolean canFight()
+    {
+        return getRoccoState() == RoccoState.ACTIVE
+                && !isTravelling()
+                && !isLidOpen()
+                && getRoccoPose() == RoccoPose.STANDING
+                && this.task == RoccoTask.NONE
+                && this.jobs.isEmpty()
+                && (this.errand == null || this.errand.allowsFollowing())
+                && !this.share.active()
+                && this.immortalRetreatTicks <= 0;
+    }
+
+    // Su dueño, si esta conectado y en este mundo (nunca el jugador que tenga mas cerca).
+    @Nullable
+    public ServerPlayer trueOwner()
+    {
+        if (this.ownerId == null || !(level() instanceof ServerLevel serverLevel))
+        {
+            return null;
+        }
+        return serverLevel.getPlayerByUUID(this.ownerId) instanceof ServerPlayer player && player.isAlive() ? player : null;
+    }
+
+    // Su dueño este donde este (otra dimension incluida), o muerto esperando reaparecer.
+    @Nullable
+    public ServerPlayer trueOwnerAnywhere()
+    {
+        net.minecraft.server.MinecraftServer server = getServer();
+        return this.ownerId == null || server == null ? null : server.getPlayerList().getPlayer(this.ownerId);
+    }
+
+    public void enterCombat()
+    {
+        this.fighting = true;
+        this.combatCalmTicks = 0;
+        if (this.entityData.get(DATA_COMBAT) == RoccoCombat.STANCE_NONE)
+        {
+            setCombatStance(RoccoCombat.STANCE_GUARD);
+        }
+    }
+
+    // Termino la pelea: queda en guardia un ratito y despues vuelve a lo de siempre.
+    public void leaveCombat(int calmTicks)
+    {
+        this.fighting = false;
+        this.combatCalmTicks = Math.max(1, calmTicks);
+        if (this.entityData.get(DATA_COMBAT) != RoccoCombat.STANCE_NONE)
+        {
+            setCombatStance(RoccoCombat.STANCE_GUARD);
+        }
+    }
+
+    private void tickCombatCalm()
+    {
+        if (this.immortalRetreatTicks > 0)
+        {
+            this.immortalRetreatTicks--;
+        }
+        if (this.fighting || this.combatCalmTicks <= 0 || --this.combatCalmTicks > 0)
+        {
+            return;
+        }
+        if (this.entityData.get(DATA_COMBAT) != RoccoCombat.STANCE_NONE)
+        {
+            this.entityData.set(DATA_COMBAT, RoccoCombat.STANCE_NONE);
+            if (getExpression() == RoccoExpression.SERIOUS || getExpression() == RoccoExpression.ANGRY)
+            {
+                setExpression(RoccoExpression.HAPPY);
+            }
+        }
+    }
+
+    public void setCombatStance(int stance)
+    {
+        if (this.entityData.get(DATA_COMBAT) == stance)
+        {
+            return;
+        }
+        this.entityData.set(DATA_COMBAT, stance);
+        if (stance != RoccoCombat.STANCE_NONE && this.faceOverrideTicks <= 0)
+        {
+            setExpression(RoccoExpression.SERIOUS);
+        }
+    }
+
+    public int combatStance()
+    {
+        return this.entityData.get(DATA_COMBAT);
+    }
+
+    public void playAttack(RoccoGear.Attack attack)
+    {
+        triggerAnim("main", attack.animation());
+        overrideFace(RoccoExpression.ANGRY, attack.ticks());
+    }
+
+    public void triggerRoccoAnim(String animation)
+    {
+        triggerAnim("main", animation);
+    }
+
+    // Una frase de esa categoria como mucho cada tantos ticks (las de pelea, por ejemplo).
+    public void sayLineOnce(String category, int cooldownTicks)
+    {
+        long now = level().getGameTime();
+        Long last = this.onceLines.get(category);
+        if (last != null && now - last < cooldownTicks)
+        {
+            return;
+        }
+        this.onceLines.put(category, now);
+        sayLine(category);
+    }
+
+    // Inmortal: el golpe que lo habria matado lo deja en medio corazon, invulnerable 3 segundos y
+    // un rato sin pelear, detras tuyo, curandose.
+    private void immortalKnock()
+    {
+        this.invulnerableTime = 60;
+        this.immortalRetreatTicks = 200;
+        setTarget(null);
+        stopUsingItem();
+        leaveCombat(20);
+        sayLineOnce("immortal_knock", 600);
+    }
+
+    // ---------- la vida y la tumba ----------
+
+    public RoccoLife life()
+    {
+        return this.life;
+    }
+
+    public int getGravePose()
+    {
+        return Math.floorMod(this.entityData.get(DATA_GRAVE_POSE), 3);
+    }
+
+    void setGravePose(int pose)
+    {
+        this.entityData.set(DATA_GRAVE_POSE, Math.floorMod(pose, 3));
+    }
+
+    // En modo tumba no se muere de verdad (sin dueño, la tumba queda en el spawn del mundo): hace la caida, suelta sus cosas y se va a
+    // su tumba. /kill, el vacio y el modo PERMANENT si lo sacan del mundo.
+    @Override
+    public void die(DamageSource source)
+    {
+        if (!level().isClientSide && getRoccoState() == RoccoState.ACTIVE
+                && RoccoCommonConfig.DEATH_MODE.get() == RoccoCommonConfig.DeathMode.GRAVE
+                && !source.is(net.minecraft.world.damagesource.DamageTypes.GENERIC_KILL)
+                && !source.is(net.minecraft.world.damagesource.DamageTypes.FELL_OUT_OF_WORLD))
+        {
+            if (net.minecraftforge.common.ForgeHooks.onLivingDeath(this, source))
+            {
+                return;
+            }
+            this.life.beginDying();
+            return;
+        }
+        if (!level().isClientSide)
+        {
+            ServerPlayer owner = trueOwnerAnywhere();
+            if (owner != null)
+            {
+                owner.sendSystemMessage(Component.translatable("rocco.death.message", getDisplayName())
+                        .withStyle(net.minecraft.ChatFormatting.RED));
+            }
+        }
+        super.die(source);
+    }
+
+    // La muerte de verdad dura lo que la animacion (1,8 s) y no los 20 ticks del juego.
+    @Override
+    protected void tickDeath()
+    {
+        ++this.deathTime;
+        if (this.deathTime >= RoccoLife.DEATH_TICKS && !level().isClientSide() && !isRemoved())
+        {
+            level().broadcastEntityEvent(this, (byte) 60);
+            remove(RemovalReason.KILLED);
+        }
+    }
+
+    // Antes de la caida: deja todo lo que estaba haciendo y queda con 1 de vida (no se muere).
+    void prepareForDeath()
+    {
+        this.share.stop(true);
+        interruptActivity();
+        if (this.task != RoccoTask.NONE)
+        {
+            stopTriggeredAnimation("main", null);
+            finishJob();
+        }
+        cancelErrand();
+        stopTravelling();
+        getNavigation().stop();
+        setTarget(null);
+        this.fighting = false;
+        this.combatCalmTicks = 0;
+        this.entityData.set(DATA_COMBAT, RoccoCombat.STANCE_NONE);
+        stopUsingItem();
+        setTalking(false);
+        this.talkTicks = 0;
+        this.entityData.set(DATA_POSE, RoccoPose.STANDING.ordinal());
+        this.entityData.set(DATA_LID, LID_CLOSED);
+        clearFire();
+        setHealth(1.0F);
+        this.deathTime = 0;
+    }
+
+    // Todo lo que lleva, al piso: el inventario, la armadura, el arma y el escudo.
+    void dropEverything()
+    {
+        for (int slot = 0; slot < this.inventory.getContainerSize(); slot++)
+        {
+            ItemStack stack = this.inventory.getItem(slot);
+            if (!stack.isEmpty())
+            {
+                spawnAtLocation(stack);
+            }
+        }
+        this.inventory.clearContent();
+        for (EquipmentSlot slot : EquipmentSlot.values())
+        {
+            ItemStack worn = gear(slot);
+            if (!worn.isEmpty())
+            {
+                spawnAtLocation(worn.copy());
+            }
+        }
+        this.stashedWeapon = null;
+        for (EquipmentSlot slot : EquipmentSlot.values())
+        {
+            setItemSlot(slot, ItemStack.EMPTY);
+        }
+    }
+
+    public void lookAtEntity(Player player)
+    {
+        lookAtPlayer(player);
+    }
+
+    @Override
+    public net.minecraft.world.entity.EntityDimensions getDimensions(net.minecraft.world.entity.Pose pose)
+    {
+        return getRoccoState() == RoccoState.BURIED ? BURIED_SIZE : super.getDimensions(pose);
+    }
+
+    // Los ojos a tres cuartos de la altura (con la caja nueva, que ya no le sobra medio bloque).
+    @Override
+    protected float getStandingEyeHeight(net.minecraft.world.entity.Pose pose, net.minecraft.world.entity.EntityDimensions size)
+    {
+        return size.height * 0.75F;
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key)
+    {
+        super.onSyncedDataUpdated(key);
+        if (DATA_STATE.equals(key))
+        {
+            refreshDimensions();
+        }
+    }
+
+    // En la tumba, plantado o saliendo de la tierra no es un objetivo para los monstruos.
+    @Override
+    public boolean canBeSeenAsEnemy()
+    {
+        return getRoccoState() == RoccoState.ACTIVE && super.canBeSeenAsEnemy();
+    }
+
+    // ---------- Roco Cola ----------
+
+    // Se la toma cuando se la piden (o muy de vez en cuando, sola). Siempre es Roco Cola.
+    public boolean drinkCola(@Nullable Player toward, boolean requested)
+    {
+        if (getRoccoState() != RoccoState.ACTIVE || isTravelling() || isInWater())
+        {
+            return false;
+        }
+        if (requested && this.life.colaRequestTooSoon())
+        {
+            sayLine("cola_cooldown");
+            return false;
+        }
+        cancelErrand();
+        standUp();
+        this.colaRequested = requested;
+        perform(RoccoTask.COLA, toward);
+        return true;
+    }
+
+    // Pedirle otra recien tomada: "¿queres que explote?".
+    public boolean colaTooSoon()
+    {
+        return this.life.colaRequestTooSoon();
+    }
+
+    // En vez de lo que eligio para su rato libre, 0,5 % de las veces una Roco Cola.
+    private boolean idleCola(Player owner)
+    {
+        if (!this.life.colaIdleReady() || this.random.nextDouble() >= RoccoCommonConfig.COLA_IDLE_CHANCE.get())
+        {
+            return false;
+        }
+        return drinkCola(owner, false);
+    }
+
+    // ---------- el poder del cofre de ender ----------
+
+    // Camina hasta el cofre de ender, se lo traga (el bloque desaparece sin soltar nada: lo que
+    // hay adentro es tuyo, no del bloque) y siente el poder.
+    void swallowEnderChest(BlockPos target)
+    {
+        ItemStack chest = new ItemStack(net.minecraft.world.item.Items.ENDER_CHEST);
+        queueJob(Job.custom(RoccoTask.SWALLOWING, target, chest, level ->
+        {
+            if (level.getBlockState(target).getBlock() instanceof net.minecraft.world.level.block.EnderChestBlock)
+            {
+                level.removeBlock(target, false);
+                this.life.startAwakening();
+                queueEnderAwaken();
+            }
+        }, null).reaching(2.5D));
+    }
+
+    // Uno que tiene en el inventario: lo hace flotar entre las manitos y le entra en la panza.
+    void absorbEnderChest()
+    {
+        for (int slot = 0; slot < this.inventory.getContainerSize(); slot++)
+        {
+            ItemStack stack = this.inventory.getItem(slot);
+            if (stack.is(net.minecraft.world.item.Items.ENDER_CHEST))
+            {
+                stack.shrink(1);
+                this.inventory.setChanged();
+                break;
+            }
+        }
+        this.life.startAwakening();
+        ServerPlayer owner = trueOwner();
+        if (owner != null)
+        {
+            lookAtPlayer(owner);
+        }
+        queueJob(Job.custom(RoccoTask.ENDER_ABSORB, blockPosition(), new ItemStack(net.minecraft.world.item.Items.ENDER_CHEST),
+                level -> { }, null).reaching(64.0D));
+        queueEnderAwaken();
+    }
+
+    private void queueEnderAwaken()
+    {
+        queueJob(Job.custom(RoccoTask.ENDER_AWAKEN, blockPosition(), ItemStack.EMPTY,
+                level -> this.life.grantEnderPocket(), null).reaching(64.0D));
     }
 
     // ---------- animaciones ----------
@@ -3047,6 +4022,18 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 .triggerableAnim("dance", DANCE)
                 .triggerableAnim("clap", CLAP)
                 .triggerableAnim("celebrate", CELEBRATE)
+                .triggerableAnim("cola_drink", COLA_DRINK)
+                .triggerableAnim("equip_proud", EQUIP_PROUD)
+                .triggerableAnim("ender_absorb", ENDER_ABSORB)
+                .triggerableAnim("ender_awaken", ENDER_AWAKEN)
+                .triggerableAnim("attack_punch", ATTACK_PUNCH)
+                .triggerableAnim("attack_swing", ATTACK_SWING)
+                .triggerableAnim("attack_chop", ATTACK_CHOP)
+                .triggerableAnim("attack_thrust", ATTACK_THRUST)
+                .triggerableAnim("bow_draw", BOW_DRAW)
+                .triggerableAnim("bow_release", BOW_RELEASE)
+                .triggerableAnim("crossbow_charge", CROSSBOW_CHARGE)
+                .triggerableAnim("crossbow_shoot", CROSSBOW_SHOOT)
                 // Las animaciones traen sus particulas (florcitas, vapor, runas): las dibuja el cliente.
                 .setParticleKeyframeHandler(event -> PARTICLE_HOOK.spawn(this,
                         event.getKeyframeData().getEffect(), event.getKeyframeData().getLocator())));
@@ -3055,16 +4042,24 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 isTalking() ? state.setAndContinue(TALK) : PlayState.STOP));
 
         controllers.add(new AnimationController<>(this, "blink", 0, state ->
-                isPlantVisible() || getExpression().eyesClosed() ? PlayState.STOP : state.setAndContinue(BLINK)));
+                getRoccoState().isInert() || getExpression().eyesClosed() ? PlayState.STOP : state.setAndContinue(BLINK)));
     }
 
     private PlayState mainAnimation(AnimationState<RoccoEntity> state)
     {
+        // Muerte para siempre (modo PERMANENT o /kill): la caida, en vez del giro rojo del juego.
+        if (isDeadOrDying())
+        {
+            return state.setAndContinue(DEATH);
+        }
         return switch (getRoccoState())
         {
             case PLANT -> state.setAndContinue(PLANT_IDLE);
             case AWAKENING -> state.setAndContinue(AWAKEN);
             case ACTIVE -> state.setAndContinue(activeAnimation(state));
+            case DYING -> state.setAndContinue(DEATH);
+            case BURIED -> state.setAndContinue(GRAVE[getGravePose()]);
+            case RISING -> state.setAndContinue(GRAVE_RISE[getGravePose()]);
         };
     }
 
@@ -3104,6 +4099,16 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (pose == RoccoPose.SLEEPING)
         {
             return SLEEP;
+        }
+
+        // Peleando: en guardia (o corriendo con el arma), apuntando o detras del escudo.
+        switch (this.entityData.get(DATA_COMBAT))
+        {
+            case RoccoCombat.STANCE_GUARD -> { return state.isMoving() ? COMBAT_RUN : COMBAT_IDLE; }
+            case RoccoCombat.STANCE_BOW -> { return BOW_AIM; }
+            case RoccoCombat.STANCE_CROSSBOW -> { return CROSSBOW_AIM; }
+            case RoccoCombat.STANCE_SHIELD -> { return SHIELD_BLOCK; }
+            default -> { }
         }
 
         if (!state.isMoving())

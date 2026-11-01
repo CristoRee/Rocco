@@ -94,6 +94,7 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.DoubleValue FOLLOW_STOP_DISTANCE;
     public static final ForgeConfigSpec.DoubleValue FOLLOW_SPEED;
     public static final ForgeConfigSpec.DoubleValue TELEPORT_DISTANCE;
+    public static final ForgeConfigSpec.BooleanValue LEASH_BLOCKS_TELEPORT;
     public static final ForgeConfigSpec.BooleanValue LOOK_AT_PLAYER;
     public static final ForgeConfigSpec.DoubleValue LOOK_RADIUS;
     public static final ForgeConfigSpec.BooleanValue ANTI_STUCK_ENABLED;
@@ -101,6 +102,21 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.DoubleValue MAX_HEALTH;
     public static final ForgeConfigSpec.BooleanValue IMMORTAL;
     public static final ForgeConfigSpec.BooleanValue INVULNERABLE;
+    public static final ForgeConfigSpec.EnumValue<DeathMode> DEATH_MODE;
+    public static final ForgeConfigSpec.BooleanValue PHOTOSYNTHESIS;
+    public static final ForgeConfigSpec.IntValue PHOTOSYNTHESIS_SECONDS;
+    public static final ForgeConfigSpec.BooleanValue DEFEND_OWNER;
+    public static final ForgeConfigSpec.BooleanValue ASSIST_OWNER;
+    public static final ForgeConfigSpec.BooleanValue HUNT_HOSTILES;
+    public static final ForgeConfigSpec.BooleanValue ATTACK_CREEPERS;
+    public static final ForgeConfigSpec.BooleanValue OWNER_CAN_HURT_ROCCO;
+    public static final ForgeConfigSpec.BooleanValue WEAPON_DURABILITY;
+    public static final ForgeConfigSpec.BooleanValue DEFAULT_ATTACK_HOSTILES;
+    public static final ForgeConfigSpec.BooleanValue DEFAULT_ATTACK_PEACEFUL;
+    public static final ForgeConfigSpec.BooleanValue DEFAULT_ATTACK_PLAYERS;
+    public static final ForgeConfigSpec.DoubleValue COLA_IDLE_CHANCE;
+    public static final ForgeConfigSpec.IntValue COLA_IDLE_COOLDOWN_MINUTES;
+    public static final ForgeConfigSpec.BooleanValue ENDER_MESSAGE_TO_ALL;
     public static final ForgeConfigSpec.BooleanValue AVOID_WATER;
     public static final ForgeConfigSpec.BooleanValue CAN_OPEN_DOORS;
     public static final ForgeConfigSpec.DoubleValue WANDER_RADIUS;
@@ -402,8 +418,9 @@ public final class RoccoCommonConfig
                 .define("impressionVoices", "");
         IMPRESSION_VOICE_SEARCH = b
                 .comment("Si no hay voz en la lista, busca una publica en Fish Audio por el nombre",
-                         "(y la recuerda). Apagado por defecto.")
-                .define("impressionVoiceSearch", false);
+                         "(y la recuerda), asi las imitaciones suenan con la voz del personaje.",
+                         "Apagado, imita solo con el texto y su propia voz.")
+                .define("impressionVoiceSearch", true);
         b.pop();
 
         b.comment("Escuchar al jugador por microfono (Deepgram, voz a texto).").push("stt");
@@ -462,6 +479,10 @@ public final class RoccoCommonConfig
                          "cuando se traba o se queda en el agua y no puede llegar.",
                          "0 desactiva el teleport.")
                 .defineInRange("teleportDistance", 24.0D, 0.0D, 256.0D);
+        LEASH_BLOCKS_TELEPORT = b
+                .comment("Atado con una rienda a un poste no aparece al lado tuyo (ni vuela, nada o",
+                         "rema con vos). Para traerlo igual: /rocco llamar, que lo desata.")
+                .define("leashBlocksTeleport", true);
         LOOK_AT_PLAYER = b
                 .comment("Gira la cabeza hacia el jugador mas cercano.")
                 .define("lookAtPlayer", true);
@@ -479,13 +500,59 @@ public final class RoccoCommonConfig
                 .worldRestart()
                 .defineInRange("maxHealth", 20.0D, 1.0D, 200.0D);
         IMMORTAL = b
-                .comment("Rocco recibe los golpes y se queja, pero nunca baja de 1 de vida.",
-                         "Con esto puesto no se te muere. /kill sigue funcionando.")
-                .define("immortal", true);
+                .comment("Rocco recibe los golpes y se queja, pero nunca se muere: queda con medio",
+                         "corazon, se aparta un rato detras tuyo y se cura. /kill sigue funcionando.")
+                .define("immortal", false);
         INVULNERABLE = b
                 .comment("Mas fuerte que lo anterior: directamente no recibe dano,",
                          "ni siquiera se queja.")
                 .define("invulnerable", false);
+        DEATH_MODE = b
+                .comment("Que pasa si se muere. GRAVE: suelta sus cosas y reaparece enterradito al lado de",
+                         "donde reapareces vos; lo desenterras con clic derecho. PERMANENT: se muere para siempre.")
+                .defineEnum("deathMode", DeathMode.GRAVE);
+        PHOTOSYNTHESIS = b
+                .comment("No come: hace fotosintesis. A la luz se cura solo (de noche o a oscuras, mucho mas lento).")
+                .define("photosynthesisRegen", true);
+        PHOTOSYNTHESIS_SECONDS = b
+                .comment("Segundos por medio corazon curado a la luz (a oscuras tarda 5 veces mas).")
+                .defineInRange("photosynthesisSeconds", 4, 1, 120);
+        DEFEND_OWNER = b
+                .comment("Ataca a lo que te lastima (respetando a quien le dejaste atacar en su menu).")
+                .define("defendOwner", true);
+        ASSIST_OWNER = b
+                .comment("Ataca a lo que vos atacas (respetando a quien le dejaste atacar en su menu).")
+                .define("assistOwner", true);
+        HUNT_HOSTILES = b
+                .comment("Ataca a los monstruos que se te acercan a menos de 8 bloques, aunque no te hayan pegado.")
+                .define("huntHostiles", false);
+        ATTACK_CREEPERS = b
+                .comment("Pelea cuerpo a cuerpo con creepers. Apagado, solo les dispara si tiene arco o ballesta.")
+                .define("attackCreepers", false);
+        OWNER_CAN_HURT_ROCCO = b
+                .comment("Tus golpes le hacen dano. Apagado, no lo lastimas sin querer en medio de una pelea.")
+                .define("ownerCanHurtRocco", false);
+        WEAPON_DURABILITY = b
+                .comment("Sus armas y armaduras se gastan como las tuyas.")
+                .define("weaponDurability", true);
+        DEFAULT_ATTACK_HOSTILES = b
+                .comment("A quien puede atacar un Rocco nuevo (despues se cambia en su menu): mobs hostiles.")
+                .define("defaultAttackHostiles", true);
+        DEFAULT_ATTACK_PEACEFUL = b
+                .comment("Mobs pacificos: animales, aldeanos, golems, peces (tambien tus mascotas).")
+                .define("defaultAttackPeaceful", false);
+        DEFAULT_ATTACK_PLAYERS = b
+                .comment("Otros jugadores (nunca a vos).")
+                .define("defaultAttackPlayers", false);
+        COLA_IDLE_CHANCE = b
+                .comment("Chance de tomarse una Roco Cola cada vez que elige algo para hacer en su rato libre.")
+                .defineInRange("colaIdleChance", 0.005D, 0.0D, 1.0D);
+        COLA_IDLE_COOLDOWN_MINUTES = b
+                .comment("Minutos minimos entre dos Roco Colas que se toma solo.")
+                .defineInRange("colaIdleCooldownMinutes", 10, 0, 1440);
+        ENDER_MESSAGE_TO_ALL = b
+                .comment("El aviso de que gano el poder del cofre de ender les llega tambien a los que estan cerca.")
+                .define("enderMessageToAll", false);
         AVOID_WATER = b
                 .comment("Evita entrar al agua cuando busca ruta.")
                 .define("avoidWater", false);
@@ -725,6 +792,8 @@ public final class RoccoCommonConfig
     public enum MicActivation { PUSH_TO_TALK, VOICE_ACTIVATION }
 
     public enum LidStyle { AUTO, GARDEN, CLASSIC }
+
+    public enum DeathMode { GRAVE, PERMANENT }
 
     // Si la tapa muestra el jardincito en vez de la carne.
     public static boolean gardenLid()

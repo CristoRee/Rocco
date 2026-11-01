@@ -39,6 +39,13 @@ public final class RoccoVoice
     // nombre, la frase sale con esa voz; si no, con la de Rocco.
     public static void speak(RoccoEntity rocco, String text, @org.jetbrains.annotations.Nullable String impression)
     {
+        speak(rocco, text, impression, "es");
+    }
+
+    // language: el idioma de la imitacion ("es" o "pt"), para elegir la voz que lo habla.
+    public static void speak(RoccoEntity rocco, String text, @org.jetbrains.annotations.Nullable String impression,
+                             String language)
+    {
         if (!RoccoCommonConfig.ENABLED.get() || !RoccoCommonConfig.VOICE_ENABLED.get()
                 || !(rocco.level() instanceof ServerLevel level))
         {
@@ -85,7 +92,7 @@ public final class RoccoVoice
             FishAudio.Result attempt;
             try
             {
-                String voice = impression == null ? null : ImpressionVoices.voiceFor(impression);
+                String voice = impression == null ? null : ImpressionVoices.voiceFor(impression, language);
                 attempt = FishAudio.synthesize(line, voice);
                 // Si la voz de la imitacion fallo, que lo diga con la suya antes que quedarse mudo.
                 if (attempt.pcm() == null && voice != null)

@@ -63,6 +63,8 @@ public final class OfflineRocco
 
     private static final Pattern VEGGIE_INSULT = Pattern.compile("\\b(papa|patata|tuberculo|vegetal|verdura|pure|batata|potato)s?\\b");
     private static final Pattern RUDE = Pattern.compile("\\b(tonto|boludo|pelotudo|idiota|estupido|inutil|feo|salame|tarado|bobo|stupid|idiot|dumb)\\b");
+    private static final Pattern ROCCO_DEATH = Pattern.compile("\\b(si te moris|perdes tus cosas|perdes las cosas|que pasa si te moris|si te mueres|pierdes tus cosas)\\b");
+    private static final Pattern ROCCO_FOOD = Pattern.compile("\\b(que comes|tenes hambre|no comes|como te alimentas|que te gusta comer|comes algo)\\b");
     private static final Pattern DEATH = Pattern.compile("\\b(donde (me )?mori|donde quede|mis cosas|mis items|where did i die|donde fue que mori)\\b");
     private static final Pattern WHO = Pattern.compile("\\b(quien sos|que sos|como te llamas|who are you|what are you|de donde saliste)\\b");
     private static final Pattern HELP = Pattern.compile("\\b(ayuda|help|que podes hacer|que sabes hacer|comandos)\\b");
@@ -160,6 +162,14 @@ public final class OfflineRocco
         }
 
         // Despues, la charla. De lo mas puntual a lo mas general.
+        if (ROCCO_DEATH.matcher(text).find())
+        {
+            return say(rocco != null && rocco.life().hasEnderPocket() ? "death_info_safe" : "death_info", RoccoExpression.SERIOUS);
+        }
+        if (ROCCO_FOOD.matcher(text).find())
+        {
+            return say("photosynthesis", RoccoExpression.SMUG);
+        }
         if (DEATH.matcher(text).find())
         {
             return death(rocco);
@@ -325,7 +335,7 @@ public final class OfflineRocco
             + "|asa\\w*|hornea\\w*|funde|fundi\\w*|derreti\\w*|guarda\\w*|deja\\w*|saca\\w*|agarra\\w*|rompe\\w*|quita\\w*"
             + "|pone\\w*|pon|coloca\\w*|trae\\w*|alcanza\\w*|dame\\w*|pasame\\w*|tira\\w*|suelta\\w*|larga\\w*|junta\\w*"
             + "|recoge\\w*|consegui\\w*|consigue\\w*|busca\\w*|fijate|mina\\w*|pica\\w*|tala\\w*|corta\\w*|ilumina\\w*"
-            + "|alumbra\\w*|ara\\w*|labra\\w*|prepara\\w*|cuida\\w*|atende\\w*|encanta\\w*|hechiza\\w*|toma\\w*|ceba\\w*"
+            + "|alumbra\\w*|ara\\w*|labra\\w*|prepara\\w*|cuida\\w*|atende\\w*|encanta\\w*|hechiza\\w*|toma\\w*|ceba\\w*|equipa\\w*|desequipa\\w*"
             + "|teletransport\\w*|tepea\\w*|tpea\\w*|aparece\\w*|llevame|guiame|acompaname|cria\\w*|pesca\\w*|compra\\w*"
             + "|vende\\w*|ordena\\w*|acomoda\\w*|organiza\\w*|baila\\w*|bailemos|aplaud\\w*|festej\\w*|celebra\\w*"
             + "|anda|andate|podes|podrias|puedes|me podes|me (hace|haces|trae|traes|das|pasa|pasas|craftea|crafteas|cocina"
@@ -466,6 +476,12 @@ public final class OfflineRocco
     private static final Pattern DANCE = Pattern.compile("\\b(baila\\w*|bailemos|un bailecito|un baile)\\b");
     private static final Pattern CLAP = Pattern.compile("\\b(aplaud\\w*|unos aplausos)\\b");
     private static final Pattern CELEBRATE = Pattern.compile("\\b(festej\\w*|celebra\\w*)\\b");
+    // Roco Cola (o una coca, que corrige): "tomate una coca", "te tomas una roco cola?".
+    private static final Pattern COLA = Pattern.compile("\\b(roco ?cola|coca ?cola|cocacola|coca)\\b");
+    private static final Pattern DRINK = Pattern.compile("\\b(toma|tomate|tomar|tomas|tomarte|tomemos|tomamos)\\b");
+    private static final Pattern UNEQUIP = Pattern.compile("\\b(desequipa\\w*)\\b|\\b(sacate|quitate) (la |el |tu |todo |toda )?(armadura|casco|pechera|equipo|espada|escudo|todo)\\b");
+    private static final Pattern EQUIP = Pattern.compile("\\b(equipa\\w*)\\b|\\bponete (la |el |tu |una |un )?(armadura|casco|pechera|equipo|espada|escudo|arma)\\b");
+    private static final Pattern ENDER_CHEST = Pattern.compile("\\b(come\\w*|trag\\w*|absorb\\w*)\\b.*\\bcofre de(l)? ender\\b");
     private static final Pattern SORT = Pattern.compile("\\b(ordena\\w*|acomoda\\w*|organiza\\w*)\\b.*\\b(cofres?|baul\\w*|barril\\w*|cosas)\\b");
 
     // "Rocco, veni" dicho desde lejos: alcanza con eso para que aparezca.
@@ -480,6 +496,24 @@ public final class OfflineRocco
         if (CALL.matcher(text).find())
         {
             return act("teleport_ack", RoccoExpression.SMUG, "teletransportarse", "");
+        }
+        // Lo nuevo va antes que comer o poner: "comete ese cofre de ender", "ponete la armadura".
+        if (COLA.matcher(text).find() && DRINK.matcher(text).find())
+        {
+            boolean coca = text.contains("coca") && !text.contains("roco");
+            return new Answer("", RoccoExpression.HAPPY, "tomar_roco_cola", coca ? "coca" : "pedido");
+        }
+        if (ENDER_CHEST.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.WOW, "comer_cofre_ender", "");
+        }
+        if (UNEQUIP.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.HAPPY, "desequipar", "");
+        }
+        if (EQUIP.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.SMUG, "equipar", "");
         }
         // "Cebame uno" solo vale si ya estan tomando mate.
         if (SHARE_MATE.matcher(text).find() && (text.contains("mate") || (rocco != null && rocco.isSharingMate())))
@@ -795,9 +829,29 @@ public final class OfflineRocco
             {
                 return RoccoExpression.HAPPY;
             }
-            case "spont_danger", "spont_low_health", "spont_cave" ->
+            case "spont_danger", "spont_low_health", "spont_cave", "low_health", "immortal_knock" ->
             {
                 return RoccoExpression.SCARED;
+            }
+            case "combat_start", "combat_no_arrows", "combat_weapon_broke" ->
+            {
+                return RoccoExpression.ANGRY;
+            }
+            case "combat_win", "armor_equip", "death_info_safe", "ender_already", "photosynthesis" ->
+            {
+                return RoccoExpression.SMUG;
+            }
+            case "cola_request", "cola_after", "grave_back", "unequip_done" ->
+            {
+                return RoccoExpression.HAPPY;
+            }
+            case "cola_coca", "cola_cooldown" ->
+            {
+                return RoccoExpression.SMUG;
+            }
+            case "ender_unlock", "ender_ack" ->
+            {
+                return RoccoExpression.WOW;
             }
             case "react_respawn", "left_behind" ->
             {
@@ -1328,6 +1382,69 @@ public final class OfflineRocco
                     "Aca estoy. Que harias sin mi."}),
             Map.entry("teleport_no_spot", new String[]{
                     "No hay donde pararme al lado tuyo. Apenas pises firme, aparezco."}),
+            Map.entry("teleport_leashed", new String[]{
+                    "Estoy atado, genio. Desatame o usa /rocco llamar."}),
+
+            // Roco Cola: siempre Roco Cola, nunca la otra.
+            Map.entry("cola_request", new String[]{
+                    "Una Roco Cola? Dale!",
+                    "Uh, justo tenia ganas de una Roco Cola."}),
+            Map.entry("cola_coca", new String[]{
+                    "Coca Cola? Querras decir Roco Cola. Mira."}),
+            Map.entry("cola_after", new String[]{
+                    "Que rica! Bien fresquita.",
+                    "Ahh... esto me cambio el dia."}),
+            Map.entry("cola_cooldown", new String[]{
+                    "Recien me tome una, queres que explote?"}),
+
+            // El poder del cofre de ender.
+            Map.entry("ender_unlock", new String[]{
+                    "Siento algo raro en la panza... ahora no pierdo mis cosas!"}),
+            Map.entry("ender_already", new String[]{
+                    "Ya tengo el poder del cofre de ender, guardalo para vos."}),
+            Map.entry("ender_ack", new String[]{
+                    "A ver que tiene de especial ese cofre..."}),
+            Map.entry("ender_none", new String[]{
+                    "No veo ningun cofre de ender cerca. Pone uno al lado mio y me lo como."}),
+            Map.entry("death_info", new String[]{
+                    "Si me muero, se me cae todo lo que llevo. Pero si me das un cofre de ender, o lo pones para que me lo coma, gano el poder de no perder nada, ni aunque me muera."}),
+            Map.entry("death_info_safe", new String[]{
+                    "Mis cosas estan a salvo: tengo el poder del cofre de ender."}),
+
+            // Armadura y armas.
+            Map.entry("armor_equip", new String[]{
+                    "Mira que facha!",
+                    "Me queda bien? Decime que si."}),
+            Map.entry("equip_nothing", new String[]{
+                    "No tengo nada mejor para ponerme. Dame algo y me lo pongo."}),
+            Map.entry("unequip_done", new String[]{
+                    "Listo, todo de vuelta a mi tapa."}),
+            Map.entry("unequip_nothing", new String[]{
+                    "No tengo nada puesto."}),
+
+            // Peleando.
+            Map.entry("combat_start", new String[]{
+                    "Nadie toca a mi amigo!",
+                    "Alejate de el!"}),
+            Map.entry("combat_win", new String[]{
+                    "Toma! Y no vuelvas."}),
+            Map.entry("combat_no_arrows", new String[]{
+                    "No tengo flechas! Voy a las pinas."}),
+            Map.entry("combat_weapon_broke", new String[]{
+                    "Se me rompio el arma!"}),
+            Map.entry("low_health", new String[]{
+                    "Ay... me quedan pocas hojitas."}),
+            Map.entry("immortal_knock", new String[]{
+                    "Ay, ay... dame un segundito."}),
+
+            // La vida: fotosintesis y la vuelta de la tumba.
+            Map.entry("photosynthesis", new String[]{
+                    "No como, hago fotosintesis. Con un poquito de sol me curo solo."}),
+            Map.entry("grave_back", new String[]{
+                    "Puaj! Tengo tierra hasta en las hojitas.",
+                    "Volvi! Las plantas siempre rebrotan.",
+                    "Nota mental: no volver a morirme.",
+                    "Me extranaste? Yo extrane el sol."}),
 
             Map.entry("breed_ack", new String[]{
                     "A ver si hay amor en el aire.",

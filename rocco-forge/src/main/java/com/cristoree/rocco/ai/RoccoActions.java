@@ -116,7 +116,7 @@ public final class RoccoActions
             "cocinar", "agarrar", "traer", "guardar", "dar", "tirar", "juntar", "poner", "iluminar", "romper",
             "talar", "conseguir", "encantar", "mate", "cebar_mate", "aplaudir", "festejar", "bailar", "recordar_lugar", "olvidar_lugar", "ir_a", "criar", "pescar",
             "comprar", "vender", "ordenar", "teletransportarse", "abrir", "comer", "seguir", "esperar",
-            "sentarse", "dormir", "levantarse", "parar");
+            "sentarse", "dormir", "levantarse", "parar", "tomar_roco_cola", "equipar", "desequipar", "comer_cofre_ender");
 
     private static final java.util.Set<String> UNDOCUMENTED_WARNED = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
@@ -153,7 +153,8 @@ public final class RoccoActions
             "plantar", "sembrar", "cosechar", "cuidar_huerta", "cuidar", "arar", "cofre_cosecha", "craftear", "fabricar",
             "buscar", "receta", "cocinar", "agarrar", "sacar", "traer", "guardar", "dar", "tirar", "soltar", "juntar",
             "poner", "colocar", "iluminar", "romper", "talar", "conseguir", "abrir", "comer", "tragar", "seguir",
-            "esperar", "quedarse", "sentarse", "dormir", "levantarse", "despertarse", "parar", "cancelar");
+            "esperar", "quedarse", "sentarse", "dormir", "levantarse", "despertarse", "parar", "cancelar",
+            "tomar_roco_cola", "roco_cola", "equipar", "desequipar", "comer_cofre_ender");
 
     public static Outcome run(RoccoEntity rocco, @Nullable ServerPlayer player, String verb, String argument)
     {
@@ -218,6 +219,10 @@ public final class RoccoActions
             case "dormir" -> sleep(rocco);
             case "levantarse", "despertarse" -> wake(rocco);
             case "parar", "cancelar" -> stop(rocco);
+            case "tomar_roco_cola", "roco_cola" -> cola(rocco, player, argument);
+            case "equipar" -> equip(rocco, player);
+            case "desequipar" -> unequip(rocco);
+            case "comer_cofre_ender" -> eatEnderChest(rocco, player, level);
             default ->
             {
                 RoccoMod.LOGGER.debug("[Rocco] Accion desconocida de la IA: {}", verb);
@@ -272,6 +277,83 @@ public final class RoccoActions
             return SAID;
         }
         return OK;
+    }
+
+    // "Tomate una Roco Cola". Si se la pidieron sin IA, el saludo lo dice aca (corrigiendo la
+    // "coca": siempre es Roco Cola); con IA ya lo dijo ella. Recien tomada, no se toma otra.
+    private static Outcome cola(RoccoEntity rocco, @Nullable ServerPlayer player, String argument)
+    {
+        if (rocco.isTravelling() || rocco.isInWater())
+        {
+            rocco.sayLine("celebrate_cant");
+            return SAID;
+        }
+        if (rocco.colaTooSoon())
+        {
+            rocco.sayLine("cola_cooldown");
+            return SAID;
+        }
+        if (argument.equals("coca"))
+        {
+            rocco.sayLine("cola_coca");
+        }
+        else if (argument.equals("pedido"))
+        {
+            rocco.sayLine("cola_request");
+        }
+        return rocco.drinkCola(player, true) ? OK : SAID;
+    }
+
+    // "Ponete la armadura": lo mejor que tenga en el inventario (lo de antes vuelve a la tapa).
+    private static Outcome equip(RoccoEntity rocco, @Nullable ServerPlayer player)
+    {
+        if (!rocco.equipBest())
+        {
+            rocco.sayLine("equip_nothing");
+            return SAID;
+        }
+        rocco.celebrateGear(player);
+        return SAID;
+    }
+
+    private static Outcome unequip(RoccoEntity rocco)
+    {
+        rocco.sayLine(rocco.unequipAll() ? "unequip_done" : "unequip_nothing");
+        return SAID;
+    }
+
+    // "Comete ese cofre de ender": el que miras, o el mas cercano. Asi gana el poder de no perder
+    // sus cosas al morir (si ya lo tiene, lo dice y no se lo come).
+    private static Outcome eatEnderChest(RoccoEntity rocco, @Nullable ServerPlayer player, ServerLevel level)
+    {
+        if (rocco.life().hasEnderPocket())
+        {
+            rocco.sayLine("ender_already");
+            return SAID;
+        }
+        BlockPos target = null;
+        if (player != null)
+        {
+            net.minecraft.world.phys.BlockHitResult hit = Storage.lookedAt(player, 6.0D);
+            if (hit != null && level.getBlockState(hit.getBlockPos()).getBlock() instanceof net.minecraft.world.level.block.EnderChestBlock)
+            {
+                target = hit.getBlockPos();
+            }
+        }
+        if (target == null)
+        {
+            target = Storage.findBlock(level, rocco.blockPosition(), 8, 4,
+                    state -> state.getBlock() instanceof net.minecraft.world.level.block.EnderChestBlock);
+        }
+        if (target == null)
+        {
+            rocco.sayLine(rocco.countInInventory(net.minecraft.world.item.Items.ENDER_CHEST) > 0 ? "ender_ack" : "ender_none");
+            return SAID;
+        }
+        rocco.cancelErrand();
+        rocco.life().orderEnderChest(target);
+        rocco.sayLine("ender_ack");
+        return SAID;
     }
 
     // Aplaudir, festejar o bailar cuando se lo piden (o cuando la IA lo decide). Volando, en el
@@ -420,6 +502,11 @@ public final class RoccoActions
         if (rocco.distanceTo(player) < 3.0D)
         {
             return OK;
+        }
+        if (!rocco.mayAutoTeleport())
+        {
+            rocco.sayLine("teleport_leashed");
+            return SAID;
         }
         if (!RoccoFollowGoal.teleportNear(rocco, player))
         {

@@ -24,7 +24,15 @@ public enum RoccoTask
     // animacion con sus caras y sonidos.
     DANCING(132, 132),
     CLAPPING(28, 28),
-    CELEBRATING(52, 52);
+    CELEBRATING(52, 52),
+    // cola_drink dura 14,2 s: solo caras y sonidos, sin efecto.
+    COLA(284, 284),
+    // equip_proud dura 2 s: se mira la armadura nueva.
+    EQUIP_PROUD(40, 40),
+    // ender_absorb (3 s) y ender_awaken (4,2 s). El poder se activa en el tick 41 de awaken, con la
+    // explosion de luz (ver RoccoEntity: si se corta antes, se activa igual).
+    ENDER_ABSORB(60, 60),
+    ENDER_AWAKEN(84, 41);
 
     private static final RoccoTask[] VALUES = values();
 

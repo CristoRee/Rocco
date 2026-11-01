@@ -42,6 +42,8 @@ public class RoccoMenuScreen extends Screen
     static final int LINE = 0x40FFFFFF;
 
     private final RoccoNetwork.OpenMenu state;
+    // Las casillas de a quien puede atacar: cambian sin cerrar el menu.
+    private int targets;
     private int left;
     private int top;
     private int panelWidth;
@@ -58,6 +60,9 @@ public class RoccoMenuScreen extends Screen
     {
         super(Component.literal(RoccoCommonConfig.COMPANION_NAME.get()));
         this.state = state;
+        this.targets = (has(RoccoMenu.TARGET_HOSTILE) ? com.cristoree.rocco.entity.RoccoCombat.HOSTILE : 0)
+                | (has(RoccoMenu.TARGET_PEACEFUL) ? com.cristoree.rocco.entity.RoccoCombat.PEACEFUL : 0)
+                | (has(RoccoMenu.TARGET_PLAYERS) ? com.cristoree.rocco.entity.RoccoCombat.PLAYERS : 0);
     }
 
     private boolean has(int flag)
@@ -77,7 +82,7 @@ public class RoccoMenuScreen extends Screen
     {
         this.columnWidth = Mth.clamp((this.width - 2 * PAD - 2 * GAP - 16) / 3, 92, 118);
         this.panelWidth = 3 * this.columnWidth + 2 * GAP + 2 * PAD;
-        this.panelHeight = HEADER + LABEL + 4 * ROW + 3 * GAP + 10 + ROW + 18 + PAD;
+        this.panelHeight = HEADER + LABEL + 4 * ROW + 3 * GAP + 6 + LABEL + ROW + 10 + ROW + 18 + PAD;
         this.left = (this.width - this.panelWidth) / 2;
         this.top = Math.max(4, (this.height - this.panelHeight) / 2);
         this.gridTop = this.top + HEADER + LABEL;
@@ -114,6 +119,21 @@ public class RoccoMenuScreen extends Screen
                         : order("Callate un rato", Items.BELL, "No habla por su cuenta por un buen rato. Si le hablás, contesta igual.", "callar"),
                 new Entry("Lugares", Items.COMPASS, "Los lugares que recuerda: te lleva, guarda uno nuevo o se olvida de uno.",
                         null, true, () -> this.minecraft.setScreen(new RoccoPlacesScreen(this, this.state.entityId(), this.state.places())))));
+
+        // Pelea: su equipo y a quien puede atacar (tres casillas que se guardan en este Rocco).
+        int fightTop = this.gridTop + 4 * ROW + 3 * GAP + 6 + LABEL;
+        int quarter = (this.panelWidth - 2 * PAD - 3 * GAP) / 4;
+        MenuButton gear = new MenuButton(this.left + PAD, fightTop, quarter, Component.literal("Equipo"),
+                new ItemStack(Items.IRON_CHESTPLATE), b -> send("equipo"));
+        gear.setTooltip(Tooltip.create(Component.literal(travelling ? away : "Su armadura, su arma y su escudo. Arrastrá las cosas desde tu inventario.")));
+        gear.active = !travelling;
+        addRenderableWidget(gear);
+        target(this.left + PAD + quarter + GAP, fightTop, quarter, "Hostiles", Items.ZOMBIE_HEAD,
+                com.cristoree.rocco.entity.RoccoCombat.HOSTILE, "Zombis, esqueletos, arañas y demás monstruos.");
+        target(this.left + PAD + 2 * (quarter + GAP), fightTop, quarter, "Pacíficos", Items.WHEAT,
+                com.cristoree.rocco.entity.RoccoCombat.PEACEFUL, "Animales, aldeanos, gólems y peces (también tus mascotas).");
+        target(this.left + PAD + 3 * (quarter + GAP), fightTop, quarter, "Jugadores", Items.PLAYER_HEAD,
+                com.cristoree.rocco.entity.RoccoCombat.PLAYERS, "Otros jugadores. A vos nunca te ataca.");
 
         // Si esta en medio de algo, al lado de lo que esta haciendo va el boton para cortarlo.
         if (has(RoccoMenu.BUSY))
@@ -160,6 +180,22 @@ public class RoccoMenuScreen extends Screen
         }
     }
 
+    // Una casilla de "puede atacar a": verde si esta permitido. Se manda al servidor al tocarla.
+    private void target(int x, int y, int width, String label, Item icon, int bit, String tip)
+    {
+        boolean on = (this.targets & bit) != 0;
+        MenuButton button = new MenuButton(x, y, width,
+                Component.literal((on ? "✔ " : "✘ ") + label).withStyle(on ? ChatFormatting.GREEN : ChatFormatting.GRAY),
+                new ItemStack(icon), b ->
+        {
+            this.targets ^= bit;
+            RoccoNetwork.sendMenuAction(new RoccoNetwork.MenuAction(this.state.entityId(), "objetivos", String.valueOf(this.targets)));
+            rebuildWidgets();
+        });
+        button.setTooltip(Tooltip.create(Component.literal("Puede atacar a: " + tip + (on ? " (sí)" : " (no)"))));
+        addRenderableWidget(button);
+    }
+
     private void send(String action)
     {
         RoccoNetwork.sendMenuAction(new RoccoNetwork.MenuAction(this.state.entityId(), action, ""));
@@ -202,6 +238,19 @@ public class RoccoMenuScreen extends Screen
                         this.state.magic().equals("lista") ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.DARK_GRAY));
         graphics.drawString(this.font, magic, right - this.font.width(magic), bondY, 0xFFFFFF);
 
+        // Su vida (corazones de hoja) y si sus cosas estan a salvo con el poder del cofre de ender.
+        if (this.minecraft.level != null && this.minecraft.level.getEntity(this.state.entityId()) instanceof LivingEntity living)
+        {
+            Component life = Component.literal("♥ " + Math.round(living.getHealth()) + "/" + Math.round(living.getMaxHealth()))
+                    .withStyle(ChatFormatting.GREEN);
+            if (has(RoccoMenu.ENDER_POCKET))
+            {
+                life = life.copy().append(Component.literal("  ✦ cosas a salvo").withStyle(ChatFormatting.LIGHT_PURPLE));
+            }
+            int afterTitle = textLeft + this.font.width(this.title.copy().withStyle(ChatFormatting.BOLD)) + 8;
+            graphics.drawString(this.font, life, afterTitle, this.top + 10, 0xFFFFFF);
+        }
+
         int lineY = this.top + HEADER - 2;
         graphics.fill(this.left + PAD, lineY, right, lineY + 1, LINE);
         String[] sections = {"Movimiento", "Tareas", "Rato libre"};
@@ -210,6 +259,12 @@ public class RoccoMenuScreen extends Screen
             graphics.drawString(this.font, Component.literal(sections[i]).withStyle(ChatFormatting.YELLOW),
                     this.left + PAD + i * (this.columnWidth + GAP) + 1, this.gridTop - LABEL + 1, 0xFFFFFF);
         }
+        int fightLabel = this.gridTop + 4 * ROW + 3 * GAP + 6;
+        graphics.drawString(this.font, Component.literal("Pelea").withStyle(ChatFormatting.YELLOW),
+                this.left + PAD + 1, fightLabel + 1, 0xFFFFFF);
+        Component canAttack = Component.literal("Puede atacar a:").withStyle(ChatFormatting.GRAY);
+        int quarter = (this.panelWidth - 2 * PAD - 3 * GAP) / 4;
+        graphics.drawString(this.font, canAttack, this.left + PAD + quarter + GAP + 1, fightLabel + 1, 0xFFFFFF);
 
         int footerLine = this.top + this.panelHeight - PAD - 14 - ROW - 6;
         graphics.fill(this.left + PAD, footerLine, right, footerLine + 1, LINE);

@@ -26,7 +26,7 @@ public final class ReplyTags
     private static final Pattern IMPRESSION = Pattern.compile(
             "@voz\\s*:\\s*(?:([^|@\\[\\]\\n]+?)\\s*\\|\\s*(es|pt)\\b|([^\\s|@\\[\\]]+))", Pattern.CASE_INSENSITIVE);
     private static final Pattern ANY_FACE = Pattern.compile(
-            "(?i)(?:@|\\[)(happy|bored|serious|scared|sad|angry|smug|psycho|dizzy)\\]?(?=\\W|$)");
+            "(?i)(?:@|\\[)(happy|bored|serious|scared|sad|angry|smug|psycho|dizzy|mewing|cheer|wow)\\]?(?=\\W|$)");
     private static final Pattern VOICE_TAG = Pattern.compile("\\[([a-zA-Z ]{2,24})]");
 
     // Lo que pide el prompt -> marcadores de emocion de Fish Audio (modelos s1). Los que Fish no

@@ -710,7 +710,7 @@ public class RoccoBrain
             if (!chat.isEmpty())
             {
                 remember(spontaneous ? "[SPONTANEOUS MOMENT]" : question, tags.historyText(), chat);
-                speak(chat, tags.voiceText(), tags.impression());
+                speak(chat, tags.voiceText(), tags.impression(), tags.language());
             }
             else if (turn.started() != null)
             {
@@ -746,7 +746,7 @@ public class RoccoBrain
             if (!chat.isEmpty())
             {
                 remember(question, tags.historyText(), chat);
-                speak(chat, tags.voiceText(), tags.impression());
+                speak(chat, tags.voiceText(), tags.impression(), tags.language());
             }
             return;
         }
@@ -759,7 +759,7 @@ public class RoccoBrain
             if (!chat.isEmpty())
             {
                 remember(question, tags.historyText(), chat);
-                speak(chat, tags.voiceText(), tags.impression());
+                speak(chat, tags.voiceText(), tags.impression(), tags.language());
             }
             return;
         }
@@ -979,17 +979,22 @@ public class RoccoBrain
 
     private void speak(String chat, String voice, @Nullable String impression)
     {
+        speak(chat, voice, impression, "es");
+    }
+
+    private void speak(String chat, String voice, @Nullable String impression, String language)
+    {
         // La boca se mueve un rato proporcional a lo que dijo.
         this.rocco.talkFor(Math.min(200, 20 + chat.length()));
         broadcast(Component.literal(chat), impression, false);
         // Y en voz alta, si la voz esta configurada.
-        com.cristoree.rocco.voice.RoccoVoice.speak(this.rocco, voice, impression);
+        com.cristoree.rocco.voice.RoccoVoice.speak(this.rocco, voice, impression, language);
     }
 
     // Una sola linea, sin espacios dobles ni etiquetas sueltas: el chat no muestra saltos de linea.
     private String clean(String answer)
     {
-        String out = answer.replaceAll("(?i)(?:@|\\[)(happy|bored|serious|scared|sad|angry|smug|psycho|dizzy|mewing|cheer)]?(?=\\W|$)", " ")
+        String out = answer.replaceAll("(?i)(?:@|\\[)(happy|bored|serious|scared|sad|angry|smug|psycho|dizzy|mewing|cheer|wow)]?(?=\\W|$)", " ")
                 .replaceAll("\\[[a-zA-Z ]{2,24}]", " ")
                 .replaceAll("\\s+", " ").trim();
 
