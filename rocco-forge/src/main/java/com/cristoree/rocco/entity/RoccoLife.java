@@ -11,9 +11,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.level.block.EnderChestBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -23,17 +27,28 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Optional;
 import java.util.Set;
 
-// La vida de Rocco: se cura con la luz (fotosintesis), se muere con su animacion, reaparece
-// enterradito al lado de donde reaparece su dueño y lo desentierran con clic derecho. Tambien el
-// poder del cofre de ender (no perder sus cosas al morir) y los tiempos de la Roco Cola.
+// La vida de Rocco: se cura solo (mas lento a oscuras) y mas rapido despues de comer, come y toma
+// pociones o manzanas doradas si lo dejaste, se muere con su animacion, a los 15 segundos reaparece
+// enterradito cerca tuyo y a los 5 minutos su tumba se muda a tu punto de reaparicion (y lo sigue
+// si lo cambias). Tambien el poder del cofre de ender y los tiempos de la Roco Cola.
 // Corre solo en el servidor; la entidad le avisa en cada tick y al guardar.
 public final class RoccoLife
 {
     // death dura 1,8 s; grave_rise_* 3,8 s.
     static final int DEATH_TICKS = 36;
     static final int RISE_TICKS = 76;
-    // Despues de un golpe espera esto para empezar a curarse.
+    // Desde que se murio hasta que aparece enterrado cerca tuyo: 15 segundos.
+    static final int REAPPEAR_TICKS = 300;
+    // Enterrado 5 minutos, la tumba se muda a tu punto de reaparicion.
+    private static final int MOVE_GRAVE_TICKS = 6000;
+    // Despues de un golpe espera esto para empezar a curarse (no se cura en medio de una pelea).
     private static final int REGEN_DELAY_TICKS = 100;
+    // Cada medio corazon curado con la saciedad gasta esto (como el jugador: 1,5 por punto).
+    private static final float SATURATION_PER_HEAL = 1.5F;
+    // Entre una cosa y otra que come o toma solo.
+    private static final int AUTO_FOOD_COOLDOWN = 200;
+    private static final int AUTO_POTION_COOLDOWN = 100;
+    private static final int AUTO_GOLDEN_COOLDOWN = 600;
     // Pedirle otra Roco Cola: 30 segundos entre una y otra.
     private static final long COLA_REQUEST_COOLDOWN = 600L;
     // El cofre de ender que pusiste cerca: se lo come si fue hace menos de un minuto.
@@ -42,12 +57,13 @@ public final class RoccoLife
     private final RoccoEntity rocco;
 
     private int deathTicks;
-    // Murieron los dos: espera a que reaparezcas para enterrarse al lado tuyo.
-    private boolean waitingForOwner;
     private int graveTicks;
     private int riseTicks;
     // Cuantas veces se murio: la explicacion del clic derecho va solo la primera.
     private int graves;
+    // Ya se mudo a tu punto de reaparicion, y cual era (para seguirlo si lo cambias).
+    private boolean graveMoved;
+    private String graveRespawn = "";
 
     private boolean enderPocket;
     private boolean enderAwakening;
@@ -59,48 +75,216 @@ public final class RoccoLife
     private long lastHurtTick = -1_000_000L;
     private long lastCola = -1_000_000L;
 
+    // Saciedad: mientras le queda, se cura el doble de rapido.
+    private float saturation;
+    private float regenProgress;
+    // Lo que puede comer o tomar solo (RoccoFood.FOOD | POTIONS | GOLDEN).
+    private int consumePerms = RoccoFood.FOOD;
+    private long nextAutoFood;
+    private long nextAutoPotion;
+    private long nextAutoGolden;
+
     RoccoLife(RoccoEntity rocco)
     {
         this.rocco = rocco;
     }
 
-    // ---------- curarse con la luz ----------
+    // ---------- curarse ----------
 
     void noteHurt()
     {
         this.lastHurtTick = this.rocco.level().getGameTime();
     }
 
-    // Medio corazon cada photosynthesisSeconds a la luz (cielo de dia o una antorcha cerca); a
-    // oscuras, cinco veces mas lento. No come: hace fotosintesis.
-    void tickPhotosynthesis()
+    boolean recentlyHurt(long ticks)
     {
-        if (!RoccoCommonConfig.PHOTOSYNTHESIS.get() || this.rocco.getHealth() >= this.rocco.getMaxHealth())
+        return this.rocco.level().getGameTime() - this.lastHurtTick < ticks;
+    }
+
+    // Medio corazon cada regenSeconds (1,5 s) a la luz y el doble a oscuras: hace fotosintesis.
+    // Con saciedad (despues de comer) va al doble de rapido, y cada medio corazon la gasta. Despues
+    // de un golpe espera 5 segundos, asi no se cura en medio de una pelea.
+    void tickRegen()
+    {
+        if (this.rocco.getHealth() >= this.rocco.getMaxHealth())
+        {
+            this.regenProgress = 0.0F;
+            return;
+        }
+        if (recentlyHurt(REGEN_DELAY_TICKS))
         {
             return;
         }
-        long now = this.rocco.level().getGameTime();
-        if (now - this.lastHurtTick < REGEN_DELAY_TICKS)
+        boolean natural = RoccoCommonConfig.PHOTOSYNTHESIS.get();
+        boolean fed = this.saturation > 0.0F;
+        if (!natural && !fed)
         {
             return;
         }
         boolean lit = this.rocco.level().getMaxLocalRawBrightness(this.rocco.blockPosition()) >= 9;
-        int every = RoccoCommonConfig.PHOTOSYNTHESIS_SECONDS.get() * 20 * (lit ? 1 : 5);
-        if (now % Math.max(1, every) == 0)
+        double every = RoccoCommonConfig.REGEN_SECONDS.get() * 20.0D * (lit || fed ? 1.0D : 2.0D) * (fed ? 0.5D : 1.0D);
+        this.regenProgress += 1.0F;
+        if (this.regenProgress >= every)
         {
+            this.regenProgress = 0.0F;
             this.rocco.heal(1.0F);
+            if (fed)
+            {
+                this.saturation = Math.max(0.0F, this.saturation - SATURATION_PER_HEAL);
+            }
+        }
+    }
+
+    public float saturation()
+    {
+        return this.saturation;
+    }
+
+    // ---------- comer y tomar ----------
+
+    public int consumePerms()
+    {
+        return this.consumePerms;
+    }
+
+    public void setConsumePerms(int perms)
+    {
+        this.consumePerms = perms & (RoccoFood.FOOD | RoccoFood.POTIONS | RoccoFood.GOLDEN);
+    }
+
+    public boolean mayUse(int perm)
+    {
+        return (this.consumePerms & perm) != 0;
+    }
+
+    // Lo que le hace comer o tomar algo: la comida le da saciedad y sus efectos (la manzana dorada,
+    // absorcion y regeneracion), la pocion hace lo suyo, y lo que sobra (el bol, la botella)
+    // vuelve a su inventario.
+    void consume(ItemStack stack)
+    {
+        if (stack.isEmpty() || !(this.rocco.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+        ItemStack one = stack.copyWithCount(1);
+        if (one.getItem() instanceof net.minecraft.world.item.PotionItem)
+        {
+            for (MobEffectInstance effect : PotionUtils.getMobEffects(one))
+            {
+                if (effect.getEffect().isInstantenous())
+                {
+                    effect.getEffect().applyInstantenousEffect(null, null, this.rocco, effect.getAmplifier(), 1.0D);
+                }
+                else
+                {
+                    this.rocco.addEffect(new MobEffectInstance(effect));
+                }
+            }
+        }
+        else if (one.isEdible())
+        {
+            this.saturation = Math.min(RoccoFood.MAX_SATURATION, this.saturation + RoccoFood.saturationOf(one));
+            net.minecraft.world.food.FoodProperties food = one.getFoodProperties(this.rocco);
+            if (food != null)
+            {
+                for (com.mojang.datafixers.util.Pair<MobEffectInstance, Float> effect : food.getEffects())
+                {
+                    if (effect.getFirst() != null && this.rocco.getRandom().nextFloat() < effect.getSecond())
+                    {
+                        this.rocco.addEffect(new MobEffectInstance(effect.getFirst()));
+                    }
+                }
+            }
+            // La miel cura el veneno, como al jugador.
+            if (one.getItem() instanceof net.minecraft.world.item.HoneyBottleItem)
+            {
+                this.rocco.removeEffect(MobEffects.POISON);
+            }
+        }
+        ItemStack leftover = RoccoFood.leftoverOf(one);
+        if (!leftover.isEmpty())
+        {
+            this.rocco.keep(leftover);
+        }
+    }
+
+    // Una vez por segundo, si esta libre: come, toma una pocion o una manzana dorada cuando le hace
+    // falta, segun lo que le permitiste. Equilibrado para que no gaste todo de una:
+    //  - comida comun: con menos del 60 % de vida y sin saciedad, cada 10 segundos;
+    //  - pocion de resistencia al fuego si se esta quemando; de curacion con menos del 40 %, o de
+    //    regeneracion con menos del 50 % (si no tiene de curacion y no esta peleando);
+    //  - en una pelea no se pone a comer: solo la pocion de curacion o de fuego, o la manzana;
+    //  - manzana dorada en apuros (menos del 35 % y peleando); la encantada solo si no tiene otra
+    //    y le queda menos del 20 %. Una cada 30 segundos.
+    void tickConsumables()
+    {
+        if (!this.rocco.isFreeTime())
+        {
+            return;
+        }
+        float ratio = this.rocco.getHealth() / this.rocco.getMaxHealth();
+        long now = this.rocco.level().getGameTime();
+        java.util.List<ItemStack> carried = com.cristoree.rocco.work.Inv.contents(this.rocco.inventory());
+        boolean fighting = recentlyHurt(REGEN_DELAY_TICKS) || this.rocco.combatStance() != RoccoCombat.STANCE_NONE;
+
+        if (mayUse(RoccoFood.POTIONS) && now >= this.nextAutoPotion)
+        {
+            ItemStack potion = ItemStack.EMPTY;
+            if (this.rocco.isOnFire() && !this.rocco.hasEffect(MobEffects.FIRE_RESISTANCE))
+            {
+                potion = RoccoFood.find(carried, stack -> RoccoFood.potionFor(stack, RoccoFood.Need.FIRE));
+            }
+            if (potion.isEmpty() && ratio < 0.4F)
+            {
+                potion = RoccoFood.find(carried, stack -> RoccoFood.potionFor(stack, RoccoFood.Need.HEAL));
+            }
+            if (potion.isEmpty() && !fighting && ratio < 0.5F && !this.rocco.hasEffect(MobEffects.REGENERATION))
+            {
+                potion = RoccoFood.find(carried, stack -> RoccoFood.potionFor(stack, RoccoFood.Need.REGEN));
+            }
+            if (!potion.isEmpty())
+            {
+                this.nextAutoPotion = now + AUTO_POTION_COOLDOWN;
+                this.rocco.useConsumable(potion);
+                return;
+            }
+        }
+
+        if (mayUse(RoccoFood.GOLDEN) && now >= this.nextAutoGolden && fighting && ratio < 0.35F)
+        {
+            ItemStack apple = RoccoFood.find(carried, stack -> stack.is(Items.GOLDEN_APPLE));
+            if (apple.isEmpty() && ratio < 0.2F)
+            {
+                apple = RoccoFood.find(carried, stack -> stack.is(Items.ENCHANTED_GOLDEN_APPLE));
+            }
+            if (!apple.isEmpty())
+            {
+                this.nextAutoGolden = now + AUTO_GOLDEN_COOLDOWN;
+                this.rocco.useConsumable(apple);
+                return;
+            }
+        }
+
+        if (mayUse(RoccoFood.FOOD) && !fighting && now >= this.nextAutoFood && ratio < 0.6F && this.saturation < 4.0F)
+        {
+            ItemStack food = RoccoFood.bestFood(carried);
+            if (!food.isEmpty())
+            {
+                this.nextAutoFood = now + AUTO_FOOD_COOLDOWN;
+                this.rocco.useConsumable(food);
+            }
         }
     }
 
     // ---------- morirse ----------
 
-    // En vez de desaparecer: queda quieto haciendo la animacion de la caida, y al terminarla
-    // suelta sus cosas y se va a su tumba.
+    // En vez de desaparecer: hace la animacion de la caida, suelta sus cosas, se lo lleva la
+    // tierra (una nubecita) y a los 15 segundos aparece enterradito cerca tuyo.
     void beginDying()
     {
         this.rocco.prepareForDeath();
         this.deathTicks = 0;
-        this.waitingForOwner = false;
+        this.saturation = 0.0F;
         this.rocco.setRoccoState(RoccoState.DYING);
         this.rocco.setExpression(RoccoExpression.HURT);
         this.rocco.playSound(ModSounds.HURT.get(), 1.0F, 0.7F);
@@ -115,58 +299,123 @@ public final class RoccoLife
         {
             this.rocco.setExpression(RoccoExpression.DIZZY);
         }
-        if (t < DEATH_TICKS)
+        if (t == DEATH_TICKS)
         {
-            return;
+            vanish();
         }
-        if (this.waitingForOwner)
+        if (t < REAPPEAR_TICKS)
         {
-            // Por si el aviso de que reapareciste no llego (su zona estaba descargada): apenas
-            // te ve vivo, o si te desconectaste, se va a su tumba igual.
-            ServerPlayer owner = this.rocco.trueOwnerAnywhere();
-            if (owner == null || !owner.isDeadOrDying())
-            {
-                this.waitingForOwner = false;
-                goToGrave(owner, owner == null ? null : owner.blockPosition());
-            }
             return;
         }
 
-        // Suelta lo que lleva, salvo que tenga el poder del cofre de ender.
+        // Si estas muerto, espera a que reaparezcas para enterrarse al lado tuyo. Si no estas
+        // conectado, se entierra ahi donde se murio.
+        ServerPlayer owner = this.rocco.trueOwnerAnywhere();
+        if (owner != null && owner.isDeadOrDying())
+        {
+            return;
+        }
+        if (owner != null)
+        {
+            bury(owner.serverLevel(), owner.blockPosition(), "rocco.grave.message");
+        }
+        else if (this.rocco.level() instanceof ServerLevel level)
+        {
+            bury(level, this.rocco.blockPosition(), "rocco.grave.message");
+        }
+    }
+
+    // Termino la caida: suelta lo que lleva (salvo con el poder del cofre de ender) y desaparece.
+    private void vanish()
+    {
         if (!this.enderPocket)
         {
             this.rocco.dropEverything();
         }
-
-        ServerPlayer owner = this.rocco.trueOwnerAnywhere();
-        if (owner != null && owner.isDeadOrDying())
-        {
-            // Murieron los dos: se entierra al lado tuyo cuando reaparezcas.
-            this.waitingForOwner = true;
-            return;
-        }
-        goToGrave(owner, null);
+        this.rocco.setInvisible(true);
+        this.rocco.setNoGravity(true);
+        this.rocco.setDeltaMovement(Vec3.ZERO);
+        // La nubecita del juego al morir.
+        this.rocco.level().broadcastEntityEvent(this.rocco, (byte) 60);
     }
 
     public boolean waitingForOwner()
     {
-        return this.rocco.getRoccoState() == RoccoState.DYING && this.waitingForOwner;
+        return this.rocco.getRoccoState() == RoccoState.DYING;
     }
 
-    // Reapareciste: Rocco se entierra al lado de donde apareciste.
+    // Reapareciste: si ya pasaron los 15 segundos, se entierra al lado tuyo enseguida (si no,
+    // cuando se cumplan, tambien al lado tuyo).
     public void ownerRespawned(ServerPlayer owner)
     {
-        if (waitingForOwner())
+        if (waitingForOwner() && this.deathTicks - RoccoEntity.ANIM_LAG >= REAPPEAR_TICKS)
         {
-            this.waitingForOwner = false;
-            goToGrave(owner, owner.blockPosition());
+            bury(owner.serverLevel(), owner.blockPosition(), "rocco.grave.message");
         }
     }
 
-    // A 2 o 3 bloques de donde reaparece el dueño (su cama, su ancla o el spawn del mundo), en un
-    // bloque firme y entero, sin agua ni lava, y nunca en el lugar exacto donde aparece el jugador.
-    private void goToGrave(@Nullable ServerPlayer owner, @Nullable BlockPos respawnedAt)
+    // Lo llamaste (con el boton, la tecla o /rocco llamar): muerto o enterrado, su tumba aparece al
+    // lado tuyo. Despues hay que desenterrarlo igual.
+    public void summonTo(ServerPlayer player)
     {
+        if (this.rocco.getRoccoState() == RoccoState.DYING && this.deathTicks - RoccoEntity.ANIM_LAG < DEATH_TICKS)
+        {
+            vanish();
+        }
+        bury(player.serverLevel(), player.blockPosition(), "rocco.grave.message");
+    }
+
+    // A 2 o 3 bloques de ese lugar, en un bloque firme y entero, sin agua ni lava, y nunca en el
+    // lugar exacto del jugador. Cambiar de dimension crea otro Rocco a partir del NBT: el estado
+    // ya queda guardado antes.
+    private void bury(ServerLevel level, BlockPos near, String messageKey)
+    {
+        boolean fresh = this.rocco.getRoccoState() != RoccoState.BURIED;
+        BlockPos spot = graveSpot(level, near);
+        if (fresh)
+        {
+            this.graves++;
+            this.rocco.setGravePose(this.rocco.getRandom().nextInt(3));
+        }
+        this.graveTicks = 0;
+        this.graveMoved = false;
+        this.graveRespawn = "";
+        this.rocco.setInvisible(false);
+        this.rocco.setNoGravity(false);
+        this.rocco.setRoccoState(RoccoState.BURIED);
+        this.rocco.setHealth(this.rocco.getMaxHealth());
+        this.rocco.setExpression(RoccoExpression.DIZZY);
+        this.rocco.setPersistenceRequired();
+
+        Component message = Component.translatable(messageKey, this.rocco.getDisplayName(), coords(spot)).withStyle(ChatFormatting.GRAY);
+        if (fresh && this.graves == 1)
+        {
+            message = message.copy().append(" ").append(Component.translatable("rocco.grave.hint").withStyle(ChatFormatting.YELLOW));
+        }
+        notifyOwner(message);
+        moveTo(level, spot);
+    }
+
+    // A los 5 minutos la tumba se muda a tu punto de reaparicion (tu cama, tu ancla o el spawn del
+    // mundo), y desde ahi lo sigue si lo cambias. Sin dueño conectado, espera.
+    private void tickGraveMoves()
+    {
+        if (this.graveTicks % 20 != 0)
+        {
+            return;
+        }
+        ServerPlayer owner = this.rocco.trueOwnerAnywhere();
+        if (owner == null)
+        {
+            return;
+        }
+        String respawn = respawnKey(owner);
+        boolean due = !this.graveMoved && this.graveTicks >= MOVE_GRAVE_TICKS;
+        boolean changed = this.graveMoved && !respawn.equals(this.graveRespawn);
+        if (!due && !changed)
+        {
+            return;
+        }
         MinecraftServer server = this.rocco.getServer();
         if (server == null)
         {
@@ -174,13 +423,7 @@ public final class RoccoLife
         }
         ServerLevel level = server.overworld();
         BlockPos base = null;
-
-        if (respawnedAt != null && owner != null)
-        {
-            level = owner.serverLevel();
-            base = respawnedAt;
-        }
-        else if (owner != null && owner.getRespawnPosition() != null)
+        if (owner.getRespawnPosition() != null)
         {
             ServerLevel respawnLevel = server.getLevel(owner.getRespawnDimension());
             if (respawnLevel != null)
@@ -196,41 +439,42 @@ public final class RoccoLife
         }
         if (base == null)
         {
-            BlockPos spawn = level.getSharedSpawnPos();
-            base = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, spawn);
+            base = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, level.getSharedSpawnPos());
         }
-
+        this.graveMoved = true;
+        this.graveRespawn = respawn;
         BlockPos spot = graveSpot(level, base);
-        int pose = this.rocco.getRandom().nextInt(3);
-        this.graves++;
-        this.graveTicks = 0;
-        this.rocco.setGravePose(pose);
-        this.rocco.setRoccoState(RoccoState.BURIED);
-        this.rocco.setHealth(this.rocco.getMaxHealth());
-        this.rocco.setExpression(RoccoExpression.DIZZY);
-        this.rocco.setPersistenceRequired();
+        notifyOwner(Component.translatable("rocco.grave.moved", this.rocco.getDisplayName(), coords(spot)).withStyle(ChatFormatting.GRAY));
+        moveTo(level, spot);
+    }
 
-        Component where = Component.literal(spot.getX() + ", " + spot.getY() + ", " + spot.getZ());
-        Component message = Component.translatable("rocco.grave.message", this.rocco.getDisplayName(), where).withStyle(ChatFormatting.GRAY);
-        if (this.graves == 1)
-        {
-            message = message.copy().append(" ").append(Component.translatable("rocco.grave.hint").withStyle(ChatFormatting.YELLOW));
-        }
-        notifyOwner(message);
-        RoccoMod.LOGGER.info("[Rocco] Enterrado en {} ({})", spot, level.dimension().location());
+    // "dimension|x,y,z" del punto de reaparicion, o "dimension|spawn" si no tiene cama ni ancla.
+    private static String respawnKey(ServerPlayer owner)
+    {
+        BlockPos pos = owner.getRespawnPosition();
+        return owner.getRespawnDimension().location() + "|" + (pos == null ? "spawn" : pos.getX() + "," + pos.getY() + "," + pos.getZ());
+    }
 
+    private void moveTo(ServerLevel level, BlockPos spot)
+    {
+        RoccoMod.LOGGER.info("[Rocco] Tumba en {} ({})", spot, level.dimension().location());
         double x = spot.getX() + 0.5D;
         double z = spot.getZ() + 0.5D;
         if (level == this.rocco.level())
         {
             this.rocco.teleportTo(x, spot.getY(), z);
+            this.rocco.setDeltaMovement(Vec3.ZERO);
             this.rocco.refreshDimensions();
         }
         else
         {
-            // Cambiar de dimension crea otro Rocco a partir del NBT: el estado ya quedo guardado.
             this.rocco.teleportTo(level, x, spot.getY(), z, Set.<RelativeMovement>of(), this.rocco.getYRot(), 0.0F);
         }
+    }
+
+    private static Component coords(BlockPos pos)
+    {
+        return Component.literal(pos.getX() + ", " + pos.getY() + ", " + pos.getZ());
     }
 
     private static BlockPos graveSpot(ServerLevel level, BlockPos base)
@@ -292,6 +536,7 @@ public final class RoccoLife
     void tickBuried()
     {
         this.graveTicks++;
+        tickGraveMoves();
         int t = this.graveTicks % 60;
         if (t == 11 || t == 38)
         {
@@ -535,7 +780,12 @@ public final class RoccoLife
         tag.putBoolean("EnderPocket", this.enderPocket);
         tag.putInt("Graves", this.graves);
         tag.putLong("LastCola", this.lastCola);
-        tag.putBoolean("WaitingForOwner", this.waitingForOwner);
+        tag.putInt("DeathTicks", this.deathTicks);
+        tag.putInt("GraveTicks", this.graveTicks);
+        tag.putBoolean("GraveMoved", this.graveMoved);
+        tag.putString("GraveRespawn", this.graveRespawn);
+        tag.putFloat("Saturation", this.saturation);
+        tag.putInt("Consume", this.consumePerms);
     }
 
     void load(CompoundTag tag)
@@ -546,8 +796,17 @@ public final class RoccoLife
         {
             this.lastCola = tag.getLong("LastCola");
         }
-        this.waitingForOwner = tag.getBoolean("WaitingForOwner");
-        // Se cerro el mundo a mitad de la caida: al cargar termina enseguida.
-        this.deathTicks = DEATH_TICKS + RoccoEntity.ANIM_LAG;
+        this.deathTicks = tag.getInt("DeathTicks");
+        this.graveTicks = tag.getInt("GraveTicks");
+        this.graveMoved = tag.getBoolean("GraveMoved");
+        this.graveRespawn = tag.getString("GraveRespawn");
+        this.saturation = tag.getFloat("Saturation");
+        this.consumePerms = tag.contains("Consume") ? tag.getInt("Consume") : RoccoFood.FOOD;
+        // Se cerro el mundo con Rocco muerto: sigue invisible esperando para reaparecer.
+        if (this.rocco.getRoccoState() == RoccoState.DYING && this.deathTicks - RoccoEntity.ANIM_LAG >= DEATH_TICKS)
+        {
+            this.rocco.setInvisible(true);
+            this.rocco.setNoGravity(true);
+        }
     }
 }

@@ -23,7 +23,8 @@ public final class RoccoNetwork
     // Sube cuando cambian los mensajes: un cliente y un servidor con versiones distintas de Rocco
     // se avisan al conectar en vez de fallar a mitad de partida. 2: se agrego OpenSetup.
     // 3: se agrego VoiceLines (las frases grabadas). 4: el menu de Rocco (OpenMenu y MenuAction).
-    private static final String PROTOCOL = "4";
+    // 5: CallRocco (traerlo desde la config o con su tecla).
+    private static final String PROTOCOL = "5";
     public static final int CHUNK_BYTES = 30_000;
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -125,6 +126,19 @@ public final class RoccoNetwork
         }
     }
 
+    // "Traer a Rocco": el boton de la config o la tecla. Lo trae esté donde esté (como /rocco llamar).
+    public record CallRocco()
+    {
+        static void encode(CallRocco msg, FriendlyByteBuf buf)
+        {
+        }
+
+        static CallRocco decode(FriendlyByteBuf buf)
+        {
+            return new CallRocco();
+        }
+    }
+
     // "/rocco setup": que el jugador abra la pantalla de bienvenida (los comandos corren en el servidor).
     public record OpenSetup()
     {
@@ -152,6 +166,26 @@ public final class RoccoNetwork
                 RoccoNetwork::onOpenMenu, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(5, MenuAction.class, MenuAction::encode, MenuAction::decode,
                 RoccoNetwork::onMenuAction, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(6, CallRocco.class, CallRocco::encode, CallRocco::decode,
+                RoccoNetwork::onCallRocco, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+    }
+
+    public static void callRocco()
+    {
+        CHANNEL.sendToServer(new CallRocco());
+    }
+
+    private static void onCallRocco(CallRocco msg, Supplier<NetworkEvent.Context> context)
+    {
+        ServerPlayer sender = context.get().getSender();
+        context.get().enqueueWork(() ->
+        {
+            if (sender != null)
+            {
+                com.cristoree.rocco.RoccoCompanionTracker.callFromButton(sender);
+            }
+        });
+        context.get().setPacketHandled(true);
     }
 
     public static void openMenu(ServerPlayer player, OpenMenu menu)

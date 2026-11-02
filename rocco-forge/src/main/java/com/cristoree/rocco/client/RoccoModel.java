@@ -78,7 +78,8 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         // La animacion de habla intercambia smile y mouth_talk por escala, asi que mouth_talk
         // solo tiene que existir mientras habla. Este hueso no tiene cubos propios: lo unico
         // que lo esconde de verdad es tapar a sus hijos.
-        hide("mouth_talk", !rocco.isTalking());
+        // Comiendo o tomando la animacion usa mouth_talk para masticar y para la cara de asco.
+        hide("mouth_talk", !rocco.isTalking() && !rocco.getActiveTask().consuming());
         hide("plant", !rocco.isPlantVisible());
         // Las animaciones lo dejan en escala 0, pero si alguna no lo toca asomaria por arriba.
         hide("garden", !rocco.showsGarden());

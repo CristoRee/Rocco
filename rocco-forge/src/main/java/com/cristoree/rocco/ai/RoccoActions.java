@@ -116,7 +116,8 @@ public final class RoccoActions
             "cocinar", "agarrar", "traer", "guardar", "dar", "tirar", "juntar", "poner", "iluminar", "romper",
             "talar", "conseguir", "encantar", "mate", "cebar_mate", "aplaudir", "festejar", "bailar", "recordar_lugar", "olvidar_lugar", "ir_a", "criar", "pescar",
             "comprar", "vender", "ordenar", "teletransportarse", "abrir", "comer", "seguir", "esperar",
-            "sentarse", "dormir", "levantarse", "parar", "tomar_roco_cola", "equipar", "desequipar", "comer_cofre_ender");
+            "sentarse", "dormir", "levantarse", "parar", "tomar_roco_cola", "equipar", "desequipar", "comer_cofre_ender",
+            "tomar_pocion", "atacar");
 
     private static final java.util.Set<String> UNDOCUMENTED_WARNED = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
@@ -154,7 +155,8 @@ public final class RoccoActions
             "buscar", "receta", "cocinar", "agarrar", "sacar", "traer", "guardar", "dar", "tirar", "soltar", "juntar",
             "poner", "colocar", "iluminar", "romper", "talar", "conseguir", "abrir", "comer", "tragar", "seguir",
             "esperar", "quedarse", "sentarse", "dormir", "levantarse", "despertarse", "parar", "cancelar",
-            "tomar_roco_cola", "roco_cola", "equipar", "desequipar", "comer_cofre_ender");
+            "tomar_roco_cola", "roco_cola", "equipar", "desequipar", "comer_cofre_ender", "tomar_pocion", "beber",
+            "atacar", "pelear", "disparar");
 
     public static Outcome run(RoccoEntity rocco, @Nullable ServerPlayer player, String verb, String argument)
     {
@@ -223,6 +225,8 @@ public final class RoccoActions
             case "equipar" -> equip(rocco, player);
             case "desequipar" -> unequip(rocco);
             case "comer_cofre_ender" -> eatEnderChest(rocco, player, level);
+            case "tomar_pocion", "beber" -> drinkPotion(rocco, argument);
+            case "atacar", "pelear", "disparar" -> attack(rocco, player, level, argument);
             default ->
             {
                 RoccoMod.LOGGER.debug("[Rocco] Accion desconocida de la IA: {}", verb);
@@ -836,12 +840,13 @@ public final class RoccoActions
             }
         }
 
-        // 1) Comida propia del inventario.
-        ItemStack food = findFood(rocco, wanted);
+        // 1) Comida propia del inventario. "Come algo" elige la que mas sacia (una manzana dorada
+        // solo si lo dejaste); si nombraste algo, eso aunque sea una manzana dorada.
+        ItemStack food = wanted.isBlank() ? requestedFood(rocco) : findFood(rocco, wanted);
         if (!food.isEmpty())
         {
             rocco.cancelErrand();
-            rocco.queueJob(RoccoEntity.Job.onBlock(RoccoTask.EATING, rocco.blockPosition(), food));
+            rocco.useConsumable(food);
             return OK;
         }
 
@@ -955,6 +960,169 @@ public final class RoccoActions
             }
         }
         return false;
+    }
+
+    // "Ataca al creeper", "disparale a ese esqueleto", "tirale flechas", "usa el arco": al que
+    // nombres, al que estas mirando o, si no dijiste a quien, al monstruo mas cercano. Si nombraste
+    // un arma ("con el arco"), se la pone antes (de su inventario). A vos nunca te ataca.
+    private static Outcome attack(RoccoEntity rocco, @Nullable ServerPlayer player, ServerLevel level, String argument)
+    {
+        String normalized = Names.normalize(argument);
+        equipNamedWeapon(rocco, normalized);
+        String wanted = normalized
+                .replaceAll("\\b(al|a|el|la|los|las|ese|esa|esos|esas|este|esta|aquel|aquella|con|tu|mi|un|una|de|del|flechas?|arco|ballesta|espada|hacha|tridente|disparale|tirale|y|que|ya|ahi|alla|ataca\\w*|atacalo|atacala|mata\\w*|pegale\\w*|dispara\\w*|tira\\w*|lanza\\w*|usa\\w*|flechal\\w*|defendeme|rocco|porfa|favor|por)\\b", " ")
+                .replaceAll("\\s+", " ").trim();
+
+        LivingEntity target = null;
+        if (player != null && wanted.isBlank())
+        {
+            net.minecraft.world.phys.Vec3 eye = player.getEyePosition();
+            net.minecraft.world.phys.Vec3 end = eye.add(player.getViewVector(1.0F).scale(32.0D));
+            net.minecraft.world.phys.EntityHitResult hit = net.minecraft.world.entity.projectile.ProjectileUtil.getEntityHitResult(player,
+                    eye, end, player.getBoundingBox().expandTowards(player.getViewVector(1.0F).scale(32.0D)).inflate(1.0D),
+                    entity -> entity instanceof LivingEntity && entity.isAlive() && !(entity instanceof RoccoEntity), 32.0D * 32.0D);
+            if (hit != null && hit.getEntity() instanceof LivingEntity looked)
+            {
+                target = looked;
+            }
+        }
+        List<LivingEntity> around = level.getEntitiesOfClass(LivingEntity.class, rocco.getBoundingBox().inflate(24.0D),
+                entity -> entity.isAlive() && entity != rocco && entity != player && !(entity instanceof RoccoEntity));
+        if (target == null && !wanted.isBlank())
+        {
+            target = around.stream().filter(entity -> matches(entity, wanted))
+                    .min(java.util.Comparator.comparingDouble(entity -> entity.distanceToSqr(rocco))).orElse(null);
+        }
+        if (target == null && wanted.isBlank())
+        {
+            target = around.stream().filter(entity -> entity instanceof net.minecraft.world.entity.monster.Enemy)
+                    .min(java.util.Comparator.comparingDouble(entity -> entity.distanceToSqr(rocco))).orElse(null);
+        }
+        if (target == null)
+        {
+            rocco.sayLine("attack_none");
+            return SAID;
+        }
+        if (rocco.getOwnerId() != null && rocco.getOwnerId().equals(target.getUUID()))
+        {
+            rocco.sayLine("attack_owner");
+            return SAID;
+        }
+        if (!rocco.orderAttack(target))
+        {
+            rocco.sayLine("attack_none");
+            return SAID;
+        }
+        return OK;
+    }
+
+    // "Con el arco", "usa la espada": se pone esa arma de su inventario (la de antes vuelve a la tapa).
+    private static void equipNamedWeapon(RoccoEntity rocco, String normalized)
+    {
+        java.util.function.Predicate<ItemStack> kind = null;
+        if (normalized.contains("arco"))
+        {
+            kind = stack -> stack.getItem() instanceof net.minecraft.world.item.BowItem;
+        }
+        else if (normalized.contains("ballesta"))
+        {
+            kind = stack -> stack.getItem() instanceof net.minecraft.world.item.CrossbowItem;
+        }
+        else if (normalized.contains("espada"))
+        {
+            kind = stack -> stack.getItem() instanceof net.minecraft.world.item.SwordItem;
+        }
+        else if (normalized.contains("hacha"))
+        {
+            kind = stack -> stack.getItem() instanceof net.minecraft.world.item.AxeItem;
+        }
+        else if (normalized.contains("tridente"))
+        {
+            kind = stack -> stack.getItem() instanceof net.minecraft.world.item.TridentItem;
+        }
+        if (kind == null || kind.test(rocco.weapon()))
+        {
+            return;
+        }
+        for (int slot = 0; slot < rocco.inventory().getContainerSize(); slot++)
+        {
+            ItemStack stack = rocco.inventory().getItem(slot);
+            if (kind.test(stack))
+            {
+                ItemStack chosen = rocco.inventory().removeItem(slot, 1);
+                ItemStack old = rocco.weapon();
+                rocco.setWeapon(chosen);
+                if (!old.isEmpty())
+                {
+                    rocco.keep(old);
+                }
+                return;
+            }
+        }
+    }
+
+    private static ItemStack requestedFood(RoccoEntity rocco)
+    {
+        List<ItemStack> carried = com.cristoree.rocco.work.Inv.contents(rocco.inventory());
+        ItemStack best = com.cristoree.rocco.entity.RoccoFood.bestFood(carried);
+        if (best.isEmpty() && rocco.life().mayUse(com.cristoree.rocco.entity.RoccoFood.GOLDEN))
+        {
+            best = com.cristoree.rocco.entity.RoccoFood.find(carried, com.cristoree.rocco.entity.RoccoFood::isGoldenApple);
+        }
+        return best;
+    }
+
+    // "Tomate la pocion": la que nombres ("la de curacion", "la de fuego"), o la que le haga falta
+    // (curacion si esta lastimado, regeneracion, y si no cualquiera que sirva). Pedida, la toma
+    // aunque no tenga permiso de tomarlas solo.
+    private static Outcome drinkPotion(RoccoEntity rocco, String argument)
+    {
+        List<ItemStack> carried = com.cristoree.rocco.work.Inv.contents(rocco.inventory());
+        String wanted = Names.normalize(argument).replaceAll("\\b(la|el|una|un|de|del|pocion|pociones|esa|esta)\\b", " ")
+                .replaceAll("\\s+", " ").trim();
+        ItemStack potion = ItemStack.EMPTY;
+        // Por el efecto, en castellano (el nombre del item en el servidor sale en ingles).
+        com.cristoree.rocco.entity.RoccoFood.Need named = wanted.matches(".*\\b(cura\\w*|vida|salud|heal\\w*)\\b.*") ? com.cristoree.rocco.entity.RoccoFood.Need.HEAL
+                : wanted.matches(".*\\bregen\\w*\\b.*") ? com.cristoree.rocco.entity.RoccoFood.Need.REGEN
+                : wanted.matches(".*\\b(fuego|lava|fire)\\b.*") ? com.cristoree.rocco.entity.RoccoFood.Need.FIRE
+                : wanted.matches(".*\\b(fuerza|strength)\\b.*") ? com.cristoree.rocco.entity.RoccoFood.Need.STRENGTH : null;
+        if (named != null)
+        {
+            potion = com.cristoree.rocco.entity.RoccoFood.find(carried, stack -> com.cristoree.rocco.entity.RoccoFood.potionFor(stack, named));
+        }
+        if (potion.isEmpty() && !wanted.isBlank())
+        {
+            potion = com.cristoree.rocco.entity.RoccoFood.find(carried, stack -> stack.is(net.minecraft.world.item.Items.POTION)
+                    && Names.normalize(stack.getHoverName().getString()).contains(wanted));
+        }
+        if (potion.isEmpty())
+        {
+            boolean hurt = rocco.getHealth() < rocco.getMaxHealth();
+            com.cristoree.rocco.entity.RoccoFood.Need need = rocco.isOnFire() ? com.cristoree.rocco.entity.RoccoFood.Need.FIRE
+                    : hurt ? com.cristoree.rocco.entity.RoccoFood.Need.HEAL : null;
+            if (need != null)
+            {
+                com.cristoree.rocco.entity.RoccoFood.Need first = need;
+                potion = com.cristoree.rocco.entity.RoccoFood.find(carried, stack -> com.cristoree.rocco.entity.RoccoFood.potionFor(stack, first));
+            }
+            if (potion.isEmpty() && hurt)
+            {
+                potion = com.cristoree.rocco.entity.RoccoFood.find(carried,
+                        stack -> com.cristoree.rocco.entity.RoccoFood.potionFor(stack, com.cristoree.rocco.entity.RoccoFood.Need.REGEN));
+            }
+            if (potion.isEmpty() && wanted.isBlank())
+            {
+                potion = com.cristoree.rocco.entity.RoccoFood.find(carried, com.cristoree.rocco.entity.RoccoFood::isDrinkablePotion);
+            }
+        }
+        if (potion.isEmpty())
+        {
+            rocco.sayLine("potion_none");
+            return SAID;
+        }
+        rocco.cancelErrand();
+        rocco.useConsumable(potion);
+        return OK;
     }
 
     private static ItemStack findFood(RoccoEntity rocco, String wanted)

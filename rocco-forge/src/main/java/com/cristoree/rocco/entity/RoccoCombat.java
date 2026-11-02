@@ -70,6 +70,11 @@ public final class RoccoCombat
         {
             return false;
         }
+        // Se lo ordenaste vos ("ataca al golem"): vale aunque no este en las casillas del menu.
+        if (rocco.isOrderedTarget(target))
+        {
+            return !(target instanceof Player player) || (!player.isCreative() && !player.isSpectator());
+        }
         int allowed = rocco.attackTargets();
         if (target instanceof Player player)
         {
@@ -109,7 +114,8 @@ public final class RoccoCombat
         @Override
         public boolean canUse()
         {
-            if (--this.cooldown > 0 || !this.rocco.canFight())
+            // Sentado o tomando mate tambien te defiende: deja eso y va.
+            if (--this.cooldown > 0 || !this.rocco.canDropForFight() || this.rocco.hasOrderedTarget())
             {
                 return false;
             }
@@ -118,6 +124,10 @@ public final class RoccoCombat
             if (found == null || found == this.rocco.getTarget())
             {
                 return false;
+            }
+            if (!this.rocco.canFight())
+            {
+                this.rocco.dropForFight();
             }
             this.rocco.setTarget(found);
             return false;
@@ -145,6 +155,17 @@ public final class RoccoCombat
             }
             if (RoccoCommonConfig.DEFEND_OWNER.get())
             {
+                // Antes de que te pegue: el monstruo (o lo que sea) que te tiene de objetivo, o a el.
+                LivingEntity threat = this.rocco.level().getEntitiesOfClass(net.minecraft.world.entity.Mob.class,
+                                owner.getBoundingBox().inflate(16.0D),
+                                mob -> (mob.getTarget() == owner || mob.getTarget() == this.rocco) && mayAttack(this.rocco, mob))
+                        .stream()
+                        .min(java.util.Comparator.comparingDouble(owner::distanceToSqr))
+                        .orElse(null);
+                if (threat != null && threat != this.rocco.getTarget())
+                {
+                    return threat;
+                }
                 LivingEntity hurtOwner = owner.getLastHurtByMob();
                 int stamp = owner.getLastHurtByMobTimestamp();
                 if (hurtOwner != null && stamp != this.ownerHurtStamp)
@@ -247,6 +268,7 @@ public final class RoccoCombat
                 this.rocco.sayLineOnce("combat_win", 600);
             }
             this.rocco.setTarget(null);
+            this.rocco.clearOrderedTarget();
             this.rocco.getNavigation().stop();
             this.rocco.stopUsingItem();
             this.rocco.leaveCombat(CALM_DOWN_TICKS);
@@ -271,6 +293,12 @@ public final class RoccoCombat
             this.rocco.getLookControl().setLookAt(target, 30.0F, 30.0F);
             this.rocco.enterCombat();
 
+            // La espera entre golpes corre tambien durante la animacion (si no, pegaba la mitad de seguido).
+            if (this.cooldown > 0)
+            {
+                this.cooldown--;
+            }
+
             // Un golpe a la mitad: el daño cae en su tick, aunque el objetivo se haya movido un poco.
             if (this.swingTicks >= 0)
             {
@@ -284,10 +312,6 @@ public final class RoccoCombat
                     this.swingTicks = -1;
                 }
                 return;
-            }
-            if (this.cooldown > 0)
-            {
-                this.cooldown--;
             }
 
             RoccoGear.Attack attack = RoccoGear.attackFor(this.rocco.weapon());

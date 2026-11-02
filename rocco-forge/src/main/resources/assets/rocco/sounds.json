@@ -259,27 +259,6 @@
    "rocco:cola_cap2"
   ]
  },
- "cola_gulp": {
-  "subtitle": "subtitles.rocco.cola_gulp",
-  "sounds": [
-   "rocco:cola_gulp1",
-   "rocco:cola_gulp2",
-   "rocco:cola_gulp3"
-  ]
- },
- "cola_ahh": {
-  "subtitle": "subtitles.rocco.cola_ahh",
-  "sounds": [
-   "rocco:cola_ahh1",
-   "rocco:cola_ahh2"
-  ]
- },
- "cola_refresh": {
-  "subtitle": "subtitles.rocco.cola_refresh",
-  "sounds": [
-   "rocco:cola_refresh1"
-  ]
- },
  "cola_hic": {
   "subtitle": "subtitles.rocco.cola_hic",
   "sounds": [
@@ -341,6 +320,88 @@
   "sounds": [
    "rocco:dust_pat1",
    "rocco:dust_pat2"
+  ]
+ },
+ "cola_ahh_1": {
+  "subtitle": "subtitles.rocco.cola_ahh_1",
+  "sounds": [
+   "rocco:cola_ahh_1"
+  ]
+ },
+ "cola_ahh_2": {
+  "subtitle": "subtitles.rocco.cola_ahh_2",
+  "sounds": [
+   "rocco:cola_ahh_2"
+  ]
+ },
+ "cola_ahh_3": {
+  "subtitle": "subtitles.rocco.cola_ahh_3",
+  "sounds": [
+   "rocco:cola_ahh_3"
+  ]
+ },
+ "cola_drink_1": {
+  "subtitle": "subtitles.rocco.cola_drink_1",
+  "sounds": [
+   "rocco:cola_drink_1"
+  ]
+ },
+ "cola_drink_2": {
+  "subtitle": "subtitles.rocco.cola_drink_2",
+  "sounds": [
+   "rocco:cola_drink_2"
+  ]
+ },
+ "cola_drink_3": {
+  "subtitle": "subtitles.rocco.cola_drink_3",
+  "sounds": [
+   "rocco:cola_drink_3"
+  ]
+ },
+ "food_bite": {
+  "subtitle": "subtitles.rocco.food_bite",
+  "sounds": [
+   "rocco:food_bite1",
+   "rocco:food_bite2",
+   "rocco:food_bite3"
+  ]
+ },
+ "food_munch": {
+  "subtitle": "subtitles.rocco.food_munch",
+  "sounds": [
+   "rocco:food_munch1"
+  ]
+ },
+ "food_swallow": {
+  "subtitle": "subtitles.rocco.food_swallow",
+  "sounds": [
+   "rocco:food_swallow1",
+   "rocco:food_swallow2"
+  ]
+ },
+ "potion_open": {
+  "subtitle": "subtitles.rocco.potion_open",
+  "sounds": [
+   "rocco:potion_open1"
+  ]
+ },
+ "potion_drink": {
+  "subtitle": "subtitles.rocco.potion_drink",
+  "sounds": [
+   "rocco:potion_drink1"
+  ]
+ },
+ "potion_magic": {
+  "subtitle": "subtitles.rocco.potion_magic",
+  "sounds": [
+   "rocco:potion_magic1"
+  ]
+ },
+ "yuck": {
+  "subtitle": "subtitles.rocco.yuck",
+  "sounds": [
+   "rocco:yuck1",
+   "rocco:yuck2"
   ]
  },
  "voice": {

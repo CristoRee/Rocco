@@ -11,6 +11,9 @@ public final class RoccoKeys
 {
     public static final KeyMapping TALK = new KeyMapping("key.rocco.talk", KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, "key.categories.rocco");
+    // Traer a Rocco al lado tuyo. Sin tecla de fabrica, para que no se apriete sin querer.
+    public static final KeyMapping CALL = new KeyMapping("key.rocco.call", KeyConflictContext.IN_GAME,
+            InputConstants.UNKNOWN, "key.categories.rocco");
 
     private RoccoKeys() {}
 }

@@ -222,6 +222,7 @@ public final class RoccoConfigCategories
                         opt(client, RoccoClientConfig.SHOW_NAMEPLATE, "Nombre sobre la cabeza"),
                         opt(client, RoccoClientConfig.SHOW_ARMOR, "Muestra su armadura"),
                         opt(client, RoccoClientConfig.SHOW_HELD_ITEMS, "Muestra su arma"),
+                        opt(client, RoccoClientConfig.SHOW_HEALTH, "Su vida sobre la cabeza"),
                         opt(client, RoccoClientConfig.NAMEPLATE_DISTANCE, "Distancia del nombre"),
                         opt(client, RoccoClientConfig.MODEL_SCALE, "Tamaño del modelo"),
                         opt(common, RoccoCommonConfig.LID_STYLE, "Adentro de su tapa")))));
@@ -280,8 +281,8 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.IMMORTAL, "Inmortal"),
                         opt(common, RoccoCommonConfig.INVULNERABLE, "Invulnerable"),
                         opt(common, RoccoCommonConfig.DEATH_MODE, "Si se muere"),
-                        opt(common, RoccoCommonConfig.PHOTOSYNTHESIS, "Se cura con el sol"),
-                        opt(common, RoccoCommonConfig.PHOTOSYNTHESIS_SECONDS, "Segundos por medio corazón")),
+                        opt(common, RoccoCommonConfig.PHOTOSYNTHESIS, "Se cura solo"),
+                        opt(common, RoccoCommonConfig.REGEN_SECONDS, "Segundos por medio corazón")),
                 group("Pelea",
                         opt(common, RoccoCommonConfig.DEFEND_OWNER, "Te defiende"),
                         opt(common, RoccoCommonConfig.ASSIST_OWNER, "Ataca lo que atacás"),

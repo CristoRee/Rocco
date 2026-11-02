@@ -186,6 +186,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private static final RawAnimation EQUIP_PROUD = RawAnimation.begin().thenPlay("animation.rocco.equip_proud");
     private static final RawAnimation ENDER_ABSORB = RawAnimation.begin().thenPlay("animation.rocco.ender_absorb");
     private static final RawAnimation ENDER_AWAKEN = RawAnimation.begin().thenPlay("animation.rocco.ender_awaken");
+    // Comer y tomar con la cosa en la mano (rico o feo, buena o mala).
+    private static final RawAnimation FOOD_EAT = RawAnimation.begin().thenPlay("animation.rocco.food_eat");
+    private static final RawAnimation FOOD_EAT_BAD = RawAnimation.begin().thenPlay("animation.rocco.food_eat_bad");
+    private static final RawAnimation POTION_DRINK = RawAnimation.begin().thenPlay("animation.rocco.potion_drink");
+    private static final RawAnimation POTION_DRINK_BAD = RawAnimation.begin().thenPlay("animation.rocco.potion_drink_bad");
 
     // Pelea: los golpes y los disparos se disparan; la guardia, apuntar y el escudo van por estado.
     private static final RawAnimation ATTACK_PUNCH = RawAnimation.begin().thenPlay("animation.rocco.attack_punch");
@@ -250,6 +255,9 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Inmortal: despues de un golpe que lo habria matado, se aparta un rato sin pelear.
     private int immortalRetreatTicks;
     private boolean colaRequested;
+    // Lo que le ordenaste atacar ("ataca al creeper"), aunque no este en sus casillas.
+    @Nullable
+    private UUID orderedTarget;
     private final java.util.Map<String, Long> onceLines = new java.util.HashMap<>();
     private int talkTicks;
     private int lidCloseTicks;
@@ -348,6 +356,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         setCanPickUpLoot(false);
     }
 
+    private static final double PUNCH_DAMAGE = 2.0D;
+
     public static AttributeSupplier.Builder createAttributes()
     {
         return PathfinderMob.createMobAttributes()
@@ -355,8 +365,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 .add(Attributes.MOVEMENT_SPEED, 0.28D)
                 .add(Attributes.FOLLOW_RANGE, 32.0D)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.6D)
-                // Como el jugador: a piñas pega 1 y las armas suman lo suyo (con sus encantamientos).
-                .add(Attributes.ATTACK_DAMAGE, 1.0D)
+                // A piñas pega 2 (el jugador 1, un lobo 4) y las armas suman lo suyo (con sus encantamientos).
+                .add(Attributes.ATTACK_DAMAGE, PUNCH_DAMAGE)
                 .add(Attributes.ATTACK_SPEED, 4.0D)
                 .add(Attributes.ATTACK_KNOCKBACK, 0.0D)
                 // Caminando por el agua (para salir, o hasta que se pone el patito) no se arrastra.
@@ -868,7 +878,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         // Regla 4 de la spec: con la boca grande abierta no puede hablar, o se encimarian
         // mouth_talk y la boca de la animacion.
         if (this.task == RoccoTask.EATING || this.task == RoccoTask.SWALLOWING || this.task == RoccoTask.MATE
-                || this.share.drinking())
+                || this.task == RoccoTask.COLA || this.task.consuming() || this.share.drinking())
         {
             return;
         }
@@ -1312,6 +1322,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             case EQUIP_PROUD -> "equip_proud";
             case ENDER_ABSORB -> "ender_absorb";
             case ENDER_AWAKEN -> "ender_awaken";
+            case FOOD_EAT -> "food_eat";
+            case FOOD_EAT_BAD -> "food_eat_bad";
+            case POTION_DRINK -> "potion_drink";
+            case POTION_DRINK_BAD -> "potion_drink_bad";
             default -> null;
         };
         if (animation == null)
@@ -1435,13 +1449,26 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 triggerAnim("main", "ender_awaken");
                 this.life.startAwakening();
             }
+            case FOOD_EAT, FOOD_EAT_BAD, POTION_DRINK, POTION_DRINK_BAD ->
+            {
+                this.faceBeforeSwallow = calmFace();
+                boolean potion = job.task() == RoccoTask.POTION_DRINK || job.task() == RoccoTask.POTION_DRINK_BAD;
+                setExpression(potion ? RoccoExpression.FOCUS : RoccoExpression.HAPPY);
+                triggerAnim("main", switch (job.task())
+                {
+                    case FOOD_EAT -> "food_eat";
+                    case FOOD_EAT_BAD -> "food_eat_bad";
+                    case POTION_DRINK -> "potion_drink";
+                    default -> "potion_drink_bad";
+                });
+            }
             default -> { }
         }
 
         // Con la boca llena (o con la bombilla) no habla: asi mouth_talk queda escondido y no se
         // encima con la boca de la animacion.
         if (job.task() == RoccoTask.EATING || job.task() == RoccoTask.SWALLOWING || job.task() == RoccoTask.MATE
-                || job.task() == RoccoTask.COLA)
+                || job.task() == RoccoTask.COLA || job.task().consuming())
         {
             setTalking(false);
             this.talkTicks = 0;
@@ -1452,7 +1479,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         return task == RoccoTask.MATE || task == RoccoTask.DANCING || task == RoccoTask.CLAPPING
                 || task == RoccoTask.CELEBRATING || task == RoccoTask.COLA || task == RoccoTask.EQUIP_PROUD
-                || task == RoccoTask.ENDER_ABSORB || task == RoccoTask.ENDER_AWAKEN;
+                || task == RoccoTask.ENDER_ABSORB || task == RoccoTask.ENDER_AWAKEN || task.consuming();
     }
 
     // La cara a la que vuelve despues: si tenia una automatica (golpe, sueño), vuelve a happy.
@@ -1492,6 +1519,25 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         else if (this.task == RoccoTask.COLA)
         {
             RoccoExpression face = faceAt(t, COLA_FACE_TICKS, COLA_FACES);
+            if (face != null)
+            {
+                setExpression(face);
+            }
+        }
+        else if (this.task.consuming())
+        {
+            // ROCCO-COMER-POCIONES-Y-COLA-V11.md (segundos x 20).
+            RoccoExpression face = switch (this.task)
+            {
+                case FOOD_EAT -> t == 6 ? RoccoExpression.WOW : t == 9 ? RoccoExpression.BLISS : t == 40 ? RoccoExpression.HAPPY
+                        : t == 43 ? RoccoExpression.BLISS : null;
+                case FOOD_EAT_BAD -> t == 6 ? RoccoExpression.WOW : t == 9 ? RoccoExpression.BLISS : t == 32 ? RoccoExpression.FOCUS
+                        : t == 41 ? RoccoExpression.WINDY : t == 49 ? RoccoExpression.SAD : t == 59 ? RoccoExpression.HAPPY : null;
+                case POTION_DRINK -> t == 12 ? RoccoExpression.BLISS : t == 32 ? RoccoExpression.HAPPY : t == 36 ? RoccoExpression.WOW
+                        : t == 43 ? RoccoExpression.CHEER : t == 49 ? RoccoExpression.HAPPY : null;
+                default -> t == 12 ? RoccoExpression.BLISS : t == 32 ? RoccoExpression.FOCUS : t == 36 ? RoccoExpression.WINDY
+                        : t == 45 ? RoccoExpression.SAD : t == 55 ? RoccoExpression.HAPPY : null;
+            };
             if (face != null)
             {
                 setExpression(face);
@@ -1550,6 +1596,34 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
     }
 
+    // Las migas en cada mordida (como el jugador), la comida que desaparece cuando ya se la comio
+    // (la animacion la achica) y la pocion que se vuelve un frasco vacio.
+    private void tickConsumingHand(int t)
+    {
+        // Solo al comer o tomar una pocion (con el mate o la cola la botella aparecia en la mano).
+        if (this.currentJob == null || !this.task.consuming() || !(level() instanceof ServerLevel serverLevel))
+        {
+            return;
+        }
+        boolean food = this.task == RoccoTask.FOOD_EAT || this.task == RoccoTask.FOOD_EAT_BAD;
+        if (food && (t == 10 || t == 18 || t == 26))
+        {
+            net.minecraft.world.phys.Vec3 look = net.minecraft.world.phys.Vec3.directionFromRotation(0.0F, this.yBodyRot);
+            serverLevel.sendParticles(new net.minecraft.core.particles.ItemParticleOption(
+                            net.minecraft.core.particles.ParticleTypes.ITEM, this.currentJob.shown()),
+                    getX() + look.x * 0.3D, getY() + getBbHeight() * 0.62D, getZ() + look.z * 0.3D,
+                    5 + this.random.nextInt(2), 0.06D, 0.04D, 0.06D, 0.05D);
+        }
+        else if (food && t == 27)
+        {
+            setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        }
+        else if (!food && t == 33)
+        {
+            setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(net.minecraft.world.item.Items.GLASS_BOTTLE));
+        }
+    }
+
     // La linea de tiempo de caras de cola_drink (ROCCO-COLA-COMBATE-ARMADURAS-CANTO.md).
     private static final int[] COLA_FACE_TICKS = {35, 47, 52, 59, 72, 89, 101, 109, 119, 126, 152, 159, 173, 181, 224,
             229, 250, 252, 256, 266};
@@ -1582,7 +1656,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (this.task == RoccoTask.SWALLOWING || this.task == RoccoTask.MATE || this.task == RoccoTask.ENCHANTING
                 || this.task == RoccoTask.DANCING || this.task == RoccoTask.CLAPPING || this.task == RoccoTask.CELEBRATING
                 || this.task == RoccoTask.COLA || this.task == RoccoTask.EQUIP_PROUD || this.task == RoccoTask.ENDER_ABSORB
-                || this.task == RoccoTask.ENDER_AWAKEN)
+                || this.task == RoccoTask.ENDER_AWAKEN || this.task.consuming())
         {
             setExpression(this.faceBeforeSwallow);
         }
@@ -1658,19 +1732,51 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
     }
 
+    // La comida le da saciedad (se cura mas rapido un rato) y la manzana dorada o la pocion, su
+    // efecto. Si mientras masticaba le sacaste eso del inventario, no pasa nada.
+    // El sonido no va aca: chew y gulp (o el trago) ya suenan en sus ticks de la animacion.
     private void eatFromInventory()
     {
         ItemStack food = this.currentJob.shown();
-        if (food.isEmpty())
+        if (food.isEmpty() || !consumeFromInventory(food))
         {
             return;
         }
+        this.life.consume(food);
+    }
 
-        consumeFromInventory(food);
-        // El sonido no va aca: chew y gulp ya suenan en sus ticks dentro de la animacion.
+    // Come o toma algo de su inventario, con la animacion de comer (la usa la vida, cuando le hace
+    // falta, y las ordenes de comer y tomar una pocion).
+    public void useConsumable(ItemStack stack)
+    {
+        if (stack.isEmpty())
+        {
+            return;
+        }
+        ItemStack one = stack.copyWithCount(1);
+        queueJob(Job.custom(RoccoFood.taskFor(one), blockPosition(), one, level ->
+        {
+            if (consumeFromInventory(one))
+            {
+                this.life.consume(one);
+            }
+        }, null).reaching(64.0D));
+    }
 
-        // Comer le hace bien, aunque sea inmortal.
-        heal(2.0F);
+    // Se lo diste en la mano (clic derecho con comida o una pocion): va a su inventario y lo usa ya.
+    public void feedFromHand(Player player, ItemStack held)
+    {
+        ItemStack one = held.copyWithCount(1);
+        if (!player.getAbilities().instabuild)
+        {
+            held.shrink(1);
+        }
+        keep(one);
+        interruptActivity();
+        cancelErrand();
+        standUp();
+        lookAtPlayer(player);
+        useConsumable(one);
     }
 
     private void swallowTarget(ServerLevel level)
@@ -1683,6 +1789,18 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
 
         // gulp_big ya suena en el tick 44 de swallowterror.
+
+        // Comida tirada en el piso que le pediste comer: se come una (con su saciedad) y el resto queda.
+        if (victim instanceof ItemEntity item && this.task == RoccoTask.EATING && item.getItem().isEdible())
+        {
+            ItemStack one = item.getItem().split(1);
+            if (item.getItem().isEmpty())
+            {
+                item.discard();
+            }
+            this.life.consume(one);
+            return;
+        }
 
         if (victim instanceof ItemEntity item)
         {
@@ -1704,12 +1822,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
     }
 
-    private void consumeFromInventory(ItemStack like)
+    // Saca uno igual (las pociones se distinguen por su efecto). false si ya no lo tiene.
+    private boolean consumeFromInventory(ItemStack like)
     {
         for (int slot = 0; slot < this.inventory.getContainerSize(); slot++)
         {
             ItemStack stack = this.inventory.getItem(slot);
-            if (!stack.isEmpty() && ItemStack.isSameItem(stack, like))
+            if (!stack.isEmpty() && ItemStack.isSameItemSameTags(stack, like))
             {
                 stack.shrink(1);
                 if (stack.isEmpty())
@@ -1717,9 +1836,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                     this.inventory.setItem(slot, ItemStack.EMPTY);
                 }
                 this.inventory.setChanged();
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     private void tickWork()
@@ -1736,9 +1856,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             else if (this.task == RoccoTask.MATE || this.task == RoccoTask.ENCHANTING || this.task == RoccoTask.DANCING
                     || this.task == RoccoTask.CLAPPING || this.task == RoccoTask.CELEBRATING || this.task == RoccoTask.COLA
                     || this.task == RoccoTask.EQUIP_PROUD || this.task == RoccoTask.ENDER_ABSORB
-                    || this.task == RoccoTask.ENDER_AWAKEN)
+                    || this.task == RoccoTask.ENDER_AWAKEN || this.task.consuming())
             {
                 tickActivityFace();
+                tickConsumingHand(this.taskTicks - ANIM_LAG);
             }
 
             // La Roco Cola es de tierra firme: si se mete al agua o despega, la guarda.
@@ -2132,7 +2253,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             }
             case EATING ->
             {
-                if (tick == 34 || tick == 40 || tick == 46)
+                // Una pocion o la miel no se mastica: se toma.
+                boolean drink = this.currentJob != null && RoccoFood.isDrink(this.currentJob.shown());
+                if (drink && (tick == 34 || tick == 44))
+                {
+                    playSound(SoundEvents.GENERIC_DRINK, 0.6F, 0.9F + this.random.nextFloat() * 0.2F);
+                }
+                else if (!drink && (tick == 34 || tick == 40 || tick == 46))
                 {
                     playRoccoSound(ModSounds.CHEW.get(), 0.6F);
                 }
@@ -2220,15 +2347,18 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             {
                 switch (tick)
                 {
-                    case 21 -> playRoccoSound(ModSounds.COLA_CLINK.get(), 0.5F);
+                    // v11: un trago y un "aaah" por cada vez que toma, sincronizados con la animacion (tono 1).
+                    case 21 -> playSound(ModSounds.COLA_CLINK.get(), 0.5F, 1.0F);
                     case 59 -> playSound(ModSounds.COLA_OPEN.get(), 0.8F, 1.0F);
                     case 62, 140 -> playRoccoSound(ModSounds.COLA_FIZZ.get(), 0.25F);
-                    case 79 -> playRoccoSound(ModSounds.COLA_CAP.get(), 0.5F);
-                    case 95, 132, 146, 186, 194, 204, 212 -> playRoccoSound(ModSounds.COLA_GULP.get(), 0.6F);
-                    case 109 -> playRoccoSound(ModSounds.COLA_AHH.get(), 0.6F);
-                    case 159 -> playRoccoSound(ModSounds.COLA_AHH.get(), 0.7F);
-                    case 228 -> playSound(ModSounds.COLA_REFRESH.get(), 0.8F, 1.0F);
-                    case 252 -> playRoccoSound(ModSounds.COLA_HIC.get(), 0.6F);
+                    case 79 -> playSound(ModSounds.COLA_CAP.get(), 0.5F, 1.0F);
+                    case 89 -> playSound(ModSounds.COLA_DRINK_1.get(), 0.8F, 1.0F);
+                    case 109 -> playSound(ModSounds.COLA_AHH_1.get(), 0.75F, 1.0F);
+                    case 126 -> playSound(ModSounds.COLA_DRINK_2.get(), 0.85F, 1.0F);
+                    case 159 -> playSound(ModSounds.COLA_AHH_2.get(), 0.75F, 1.0F);
+                    case 181 -> playSound(ModSounds.COLA_DRINK_3.get(), 0.9F, 1.0F);
+                    case 229 -> playSound(ModSounds.COLA_AHH_3.get(), 0.8F, 1.0F);
+                    case 252 -> playSound(ModSounds.COLA_HIC.get(), 0.6F, 1.0F);
                     default -> { }
                 }
             }
@@ -2237,6 +2367,46 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 if (tick == 0)
                 {
                     playRoccoSound(ModSounds.ENDER_ABSORB.get(), 0.8F);
+                }
+            }
+            case FOOD_EAT, FOOD_EAT_BAD ->
+            {
+                switch (tick)
+                {
+                    case 10, 18, 26 -> playRoccoSound(ModSounds.FOOD_BITE.get(), 0.6F);
+                    case 11 -> playSound(ModSounds.FOOD_MUNCH.get(), 0.5F, 1.0F);
+                    case 40 -> playRoccoSound(ModSounds.FOOD_SWALLOW.get(), 0.6F);
+                    case 42 ->
+                    {
+                        if (this.task == RoccoTask.FOOD_EAT_BAD)
+                        {
+                            playRoccoSound(ModSounds.YUCK.get(), 0.6F);
+                        }
+                    }
+                    default -> { }
+                }
+            }
+            case POTION_DRINK, POTION_DRINK_BAD ->
+            {
+                switch (tick)
+                {
+                    case 8 -> playRoccoSound(ModSounds.POTION_OPEN.get(), 0.5F);
+                    case 12 -> playSound(ModSounds.POTION_DRINK.get(), 0.7F, 1.0F);
+                    case 36 ->
+                    {
+                        if (this.task == RoccoTask.POTION_DRINK)
+                        {
+                            playRoccoSound(ModSounds.POTION_MAGIC.get(), 0.5F);
+                        }
+                    }
+                    case 37 ->
+                    {
+                        if (this.task == RoccoTask.POTION_DRINK_BAD)
+                        {
+                            playRoccoSound(ModSounds.YUCK.get(), 0.6F);
+                        }
+                    }
+                    default -> { }
                 }
             }
             case ENDER_AWAKEN ->
@@ -2381,6 +2551,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 case PLANT, BURIED -> InteractionResult.SUCCESS;
                 case AWAKENING, DYING, RISING -> InteractionResult.PASS;
                 case ACTIVE -> !player.isShiftKeyDown() && !isSharingMate() && (isWorking() || isTravelling())
+                        && !(RoccoFood.isConsumable(player.getItemInHand(hand)) && !isTravelling())
                         ? InteractionResult.PASS
                         : InteractionResult.SUCCESS;
             };
@@ -2409,6 +2580,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             }
             case ACTIVE ->
             {
+                adoptIfOwnerless(player);
                 // Agachado: su menu, aunque este trabajando o viajando (sirve justamente para pararlo).
                 if (player instanceof ServerPlayer serverPlayer && player.isShiftKeyDown())
                 {
@@ -2419,6 +2591,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 if (player instanceof ServerPlayer serverPlayer && this.share.active())
                 {
                     this.share.interact(serverPlayer);
+                    return InteractionResult.CONSUME;
+                }
+                // Con comida o una pocion en la mano: se la das y la usa enseguida.
+                ItemStack held = player.getItemInHand(hand);
+                if (RoccoFood.isConsumable(held) && !isTravelling())
+                {
+                    feedFromHand(player, held);
                     return InteractionResult.CONSUME;
                 }
                 // Volando, nadando o en el barquito no abre la tapa (se le mojaria todo).
@@ -2453,6 +2632,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 maxHealth.setBaseValue(wanted);
                 setHealth(getMaxHealth());
             }
+        }
+
+        // Los que se guardaron con la piña de antes (1) pegan como ahora.
+        AttributeInstance damage = getAttribute(Attributes.ATTACK_DAMAGE);
+        if (damage != null && damage.getBaseValue() < PUNCH_DAMAGE)
+        {
+            damage.setBaseValue(PUNCH_DAMAGE);
         }
 
         if (getNavigation() instanceof GroundPathNavigation ground)
@@ -2542,10 +2728,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             }
         }
 
-        // No come: hace fotosintesis (a la luz se cura solo; a oscuras, mucho mas lento).
+        // Se cura solo (a oscuras, mas lento) y mas rapido despues de comer.
         if (getRoccoState() == RoccoState.ACTIVE)
         {
-            this.life.tickPhotosynthesis();
+            this.life.tickRegen();
         }
         tickCombatCalm();
 
@@ -2581,6 +2767,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             if (this.tickCount % 20 == 0)
             {
                 this.life.tickEnder();
+                // Come, toma una pocion o una manzana dorada si le hace falta (y lo dejaste).
+                this.life.tickConsumables();
             }
             // El cofre de ender ya entro pero la animacion del poder se perdio (otra orden borro
             // la cola): el poder se activa igual.
@@ -2605,6 +2793,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (getRoccoState() == RoccoState.ACTIVE
                 && RoccoCommonConfig.LOOK_AT_PLAYER.get()
                 && (getMotion() == RoccoMotion.NONE || getMotion() == RoccoMotion.FLOAT_IDLE)
+                && this.entityData.get(DATA_COMBAT) == RoccoCombat.STANCE_NONE
                 && !isWorking()
                 && this.jobs.isEmpty()
                 && (this.errand == null || this.errand.allowsFollowing())
@@ -3554,13 +3743,14 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Se puso algo nuevo (por el menu o con #equipar): se mira, se da palmaditas y posa.
     public void celebrateGear(@Nullable Player toward)
     {
+        // La frase, como mucho cada 20 segundos (probandose varias cosas seguidas no la repite).
         if (getRoccoState() != RoccoState.ACTIVE || isTravelling() || !isFreeTime())
         {
-            sayLine("armor_equip");
+            sayLineOnce("armor_equip", 400);
             return;
         }
         perform(RoccoTask.EQUIP_PROUD, toward);
-        sayLine("armor_equip");
+        sayLineOnce("armor_equip", 400);
     }
 
     // El arma se gasta al pegar, como la del jugador (se puede apagar en la config).
@@ -3651,6 +3841,37 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 && this.immortalRetreatTicks <= 0;
     }
 
+    // Lo que puede dejar para defenderte: sentado o en sus cosas de tiempo libre (mate, baile,
+    // aplausos, la Roco Cola). No lo despierta ni le corta un trabajo, comida o el cofre de ender.
+    public boolean canDropForFight()
+    {
+        boolean idleTask = this.task == RoccoTask.NONE
+                || isPerformance(this.task) && !this.task.consuming()
+                && this.task != RoccoTask.ENDER_ABSORB && this.task != RoccoTask.ENDER_AWAKEN;
+        RoccoPose pose = getRoccoPose();
+        return getRoccoState() == RoccoState.ACTIVE
+                && !isTravelling()
+                && !isLidOpen()
+                && (pose == RoccoPose.STANDING || pose == RoccoPose.SITTING || pose == RoccoPose.SITTING_DOWN)
+                && idleTask
+                && (this.task != RoccoTask.NONE || this.jobs.isEmpty())
+                && (this.errand == null || this.errand.allowsFollowing())
+                && this.immortalRetreatTicks <= 0;
+    }
+
+    // Deja lo que estaba haciendo para pelear (la meta de pelea arranca cuando termina de pararse).
+    public void dropForFight()
+    {
+        if (this.task != RoccoTask.NONE)
+        {
+            interruptActivity();
+            this.jobs.clear();
+        }
+        this.share.stop(false);
+        clearAutoRest();
+        standUp();
+    }
+
     // Su dueño, si esta conectado y en este mundo (nunca el jugador que tenga mas cerca).
     @Nullable
     public ServerPlayer trueOwner()
@@ -3668,6 +3889,49 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         net.minecraft.server.MinecraftServer server = getServer();
         return this.ownerId == null || server == null ? null : server.getPlayerList().getPlayer(this.ownerId);
+    }
+
+    // "Ataca a ese": deja lo que estaba haciendo y va. Las reglas fijas siguen (nunca a su dueño).
+    public boolean orderAttack(LivingEntity target)
+    {
+        if (target == this || target instanceof RoccoEntity || (this.ownerId != null && this.ownerId.equals(target.getUUID())))
+        {
+            return false;
+        }
+        interruptActivity();
+        cancelErrand();
+        clearAutoRest();
+        standUp();
+        this.orderedTarget = target.getUUID();
+        setTarget(target);
+        enterCombat();
+        return true;
+    }
+
+    public boolean isOrderedTarget(@Nullable LivingEntity target)
+    {
+        return target != null && this.orderedTarget != null && this.orderedTarget.equals(target.getUUID());
+    }
+
+    public boolean hasOrderedTarget()
+    {
+        LivingEntity target = getTarget();
+        return target != null && target.isAlive() && isOrderedTarget(target);
+    }
+
+    public void clearOrderedTarget()
+    {
+        this.orderedTarget = null;
+    }
+
+    // Un Rocco sin dueño (de un huevo generador, o de una version vieja) adopta al primero que le
+    // habla o lo toca: sin dueño no sabe a quien defender ni a quien ayudar.
+    public void adoptIfOwnerless(Player player)
+    {
+        if (this.ownerId == null && player instanceof ServerPlayer serverPlayer && !player.isSpectator())
+        {
+            com.cristoree.rocco.RoccoCompanionTracker.remember(serverPlayer, this);
+        }
     }
 
     public void enterCombat()
@@ -3804,7 +4068,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             ServerPlayer owner = trueOwnerAnywhere();
             if (owner != null)
             {
-                owner.sendSystemMessage(Component.translatable("rocco.death.message", getDisplayName())
+                owner.sendSystemMessage(Component.translatable("rocco.death.permanent", getDisplayName())
                         .withStyle(net.minecraft.ChatFormatting.RED));
             }
         }
@@ -3903,6 +4167,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             refreshDimensions();
         }
+    }
+
+    // Muerto (haciendo la caida o invisible esperando para reaparecer) no se lo puede tocar.
+    @Override
+    public boolean isPickable()
+    {
+        return getRoccoState() != RoccoState.DYING && super.isPickable();
     }
 
     // En la tumba, plantado o saliendo de la tierra no es un objetivo para los monstruos.
@@ -4034,6 +4305,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 .triggerableAnim("bow_release", BOW_RELEASE)
                 .triggerableAnim("crossbow_charge", CROSSBOW_CHARGE)
                 .triggerableAnim("crossbow_shoot", CROSSBOW_SHOOT)
+                .triggerableAnim("food_eat", FOOD_EAT)
+                .triggerableAnim("food_eat_bad", FOOD_EAT_BAD)
+                .triggerableAnim("potion_drink", POTION_DRINK)
+                .triggerableAnim("potion_drink_bad", POTION_DRINK_BAD)
                 // Las animaciones traen sus particulas (florcitas, vapor, runas): las dibuja el cliente.
                 .setParticleKeyframeHandler(event -> PARTICLE_HOOK.spawn(this,
                         event.getKeyframeData().getEffect(), event.getKeyframeData().getLocator())));
@@ -4042,7 +4317,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 isTalking() ? state.setAndContinue(TALK) : PlayState.STOP));
 
         controllers.add(new AnimationController<>(this, "blink", 0, state ->
-                getRoccoState().isInert() || getExpression().eyesClosed() ? PlayState.STOP : state.setAndContinue(BLINK)));
+                getRoccoState().isInert() || getExpression().eyesClosed() || getActiveTask().consuming()
+                        ? PlayState.STOP : state.setAndContinue(BLINK)));
     }
 
     private PlayState mainAnimation(AnimationState<RoccoEntity> state)

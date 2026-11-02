@@ -127,7 +127,8 @@ public final class RoccoContextBuilder
                 String.valueOf(RoccoWork.findOpenables(level, rocco.blockPosition(), 8).size()));
         facts.put("You are following the player", rocco.isFollowing() ? "yes" : "no, they asked you to wait");
         facts.put("Your health", Math.round(rocco.getHealth()) + " of " + Math.round(rocco.getMaxHealth())
-                + " (you heal with sunlight: photosynthesis)");
+                + (rocco.life().saturation() > 0.0F ? " (you ate recently: healing faster)" : " (you heal by yourself little by little)"));
+        facts.put("You may use on your own", usesOf(rocco));
         facts.put("What you are wearing", gearOf(rocco));
         facts.put("You may attack", targetsOf(rocco));
         facts.put("Your ender chest power", rocco.life().hasEnderPocket()
@@ -270,6 +271,15 @@ public final class RoccoContextBuilder
             }
         }
         return worn.isEmpty() ? "nothing" : String.join(", ", worn);
+    }
+
+    private static String usesOf(RoccoEntity rocco)
+    {
+        List<String> uses = new java.util.ArrayList<>();
+        if (rocco.life().mayUse(com.cristoree.rocco.entity.RoccoFood.FOOD)) uses.add("food when hurt");
+        if (rocco.life().mayUse(com.cristoree.rocco.entity.RoccoFood.POTIONS)) uses.add("potions");
+        if (rocco.life().mayUse(com.cristoree.rocco.entity.RoccoFood.GOLDEN)) uses.add("golden apples in trouble");
+        return uses.isEmpty() ? "nothing (only if the player asks)" : String.join(", ", uses);
     }
 
     private static String targetsOf(RoccoEntity rocco)

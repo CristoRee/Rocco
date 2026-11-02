@@ -104,7 +104,7 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.BooleanValue INVULNERABLE;
     public static final ForgeConfigSpec.EnumValue<DeathMode> DEATH_MODE;
     public static final ForgeConfigSpec.BooleanValue PHOTOSYNTHESIS;
-    public static final ForgeConfigSpec.IntValue PHOTOSYNTHESIS_SECONDS;
+    public static final ForgeConfigSpec.DoubleValue REGEN_SECONDS;
     public static final ForgeConfigSpec.BooleanValue DEFEND_OWNER;
     public static final ForgeConfigSpec.BooleanValue ASSIST_OWNER;
     public static final ForgeConfigSpec.BooleanValue HUNT_HOSTILES;
@@ -512,11 +512,13 @@ public final class RoccoCommonConfig
                          "donde reapareces vos; lo desenterras con clic derecho. PERMANENT: se muere para siempre.")
                 .defineEnum("deathMode", DeathMode.GRAVE);
         PHOTOSYNTHESIS = b
-                .comment("No come: hace fotosintesis. A la luz se cura solo (de noche o a oscuras, mucho mas lento).")
+                .comment("Se cura solo con el tiempo (fotosintesis): a oscuras, a la mitad de velocidad.",
+                         "Apagado, solo se cura comiendo, con pociones o con manzanas doradas.")
                 .define("photosynthesisRegen", true);
-        PHOTOSYNTHESIS_SECONDS = b
-                .comment("Segundos por medio corazon curado a la luz (a oscuras tarda 5 veces mas).")
-                .defineInRange("photosynthesisSeconds", 4, 1, 120);
+        REGEN_SECONDS = b
+                .comment("Segundos por medio corazon curado a la luz (a oscuras tarda el doble). Despues de comer",
+                         "se cura al doble de rapido mientras le dura la saciedad. Espera 5 s despues de cada golpe.")
+                .defineInRange("regenSeconds", 1.5D, 0.25D, 60.0D);
         DEFEND_OWNER = b
                 .comment("Ataca a lo que te lastima (respetando a quien le dejaste atacar en su menu).")
                 .define("defendOwner", true);

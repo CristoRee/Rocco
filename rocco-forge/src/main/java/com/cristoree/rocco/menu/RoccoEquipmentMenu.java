@@ -17,6 +17,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -41,27 +42,44 @@ public class RoccoEquipmentMenu extends AbstractContainerMenu
     @Nullable
     private final RoccoEntity rocco;
     private final Container gear;
+    // Lo que puede comer o tomar solo (RoccoFood.FOOD | POTIONS | GOLDEN), sincronizado al cliente.
+    private final DataSlot consume;
     // Lo que tenia puesto al abrir: si al cerrar hay algo nuevo, lo festeja.
     private final ItemStack[] before = new ItemStack[SLOTS.length];
 
     public static void open(ServerPlayer player, RoccoEntity rocco)
     {
         NetworkHooks.openScreen(player, new SimpleMenuProvider(
-                (id, inventory, who) -> new RoccoEquipmentMenu(id, inventory, rocco, new Gear(rocco)),
+                (id, inventory, who) -> new RoccoEquipmentMenu(id, inventory, rocco, new Gear(rocco), new DataSlot()
+                {
+                    @Override
+                    public int get()
+                    {
+                        return rocco.life().consumePerms();
+                    }
+
+                    @Override
+                    public void set(int value)
+                    {
+                    }
+                }),
                 Component.translatable("rocco.menu.equipment", rocco.getDisplayName())), buf -> buf.writeVarInt(rocco.getId()));
     }
 
     public static RoccoEquipmentMenu fromNetwork(int id, Inventory inventory, FriendlyByteBuf buf)
     {
         Entity entity = inventory.player.level().getEntity(buf.readVarInt());
-        return new RoccoEquipmentMenu(id, inventory, entity instanceof RoccoEntity rocco ? rocco : null, new SimpleContainer(SLOTS.length));
+        return new RoccoEquipmentMenu(id, inventory, entity instanceof RoccoEntity rocco ? rocco : null,
+                new SimpleContainer(SLOTS.length), DataSlot.standalone());
     }
 
-    private RoccoEquipmentMenu(int id, Inventory inventory, @Nullable RoccoEntity rocco, Container gear)
+    private RoccoEquipmentMenu(int id, Inventory inventory, @Nullable RoccoEntity rocco, Container gear, DataSlot consume)
     {
         super(ModMenus.EQUIPMENT.get(), id);
         this.rocco = rocco;
         this.gear = gear;
+        this.consume = consume;
+        addDataSlot(consume);
         for (int i = 0; i < SLOTS.length; i++)
         {
             this.before[i] = gear.getItem(i).copy();
@@ -90,6 +108,24 @@ public class RoccoEquipmentMenu extends AbstractContainerMenu
     public boolean stillValid(Player player)
     {
         return this.gear.stillValid(player);
+    }
+
+    public int consumePerms()
+    {
+        return this.consume.get();
+    }
+
+    // Los botones de la derecha (0 comer solo, 1 pociones, 2 manzanas doradas): prenden o apagan
+    // lo que puede usar solo. Lo que le pidas por chat lo hace igual.
+    @Override
+    public boolean clickMenuButton(Player player, int id)
+    {
+        if (this.rocco == null || id < 0 || id > 2 || !stillValid(player))
+        {
+            return false;
+        }
+        this.rocco.life().setConsumePerms(this.rocco.life().consumePerms() ^ (1 << id));
+        return true;
     }
 
     // Shift + clic: del equipo a tu inventario, o de tu inventario al lugar que le corresponde.

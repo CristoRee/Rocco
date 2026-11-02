@@ -51,12 +51,14 @@ Clic derecho sobre Rocco abre su tapa: un inventario de 36 lugares. En modo Chil
 
 - **Su equipo:** en el menú (agachado + clic derecho), **Equipo** abre sus lugares de casco, pechera, pantalones, botas, arma y escudo, con tu inventario abajo. También por chat: "ponete la armadura" (se pone lo mejor que tenga) o "sacate la armadura". Al estrenar algo se mira y posa.
 - **Cada material, su estilo:** coronita con gemas (oro), cuerno de unicornio de cristal (diamante), orejitas, colita y botitas de gato (netherite), pluma de caballero (hierro), moño rosa (cota de malla), margarita (cuero, que se tiñe) y caparazón de tortuga. Las espadas, hachas, tridente, arco, ballesta y escudo tienen su propio modelo 3D.
-- **Te defiende:** ataca lo que te lastima, lo que vos atacás y lo que le pega a él. A quién puede atacar se elige en su menú: mobs hostiles (de fábrica), pacíficos o jugadores. A vos nunca. Con arco o ballesta usa las flechas de su inventario y se queda a buena distancia; con escudo se cubre.
+- **Te defiende:** ataca lo que te lastima (o te tiene de objetivo), lo que vos atacás y lo que le pega a él. Si está sentado o tomando mate, lo deja y salta. También le podés pedir que ataque: "atacá a ese zombie", "matalo" (al que estás mirando) o "tirale flechas". A quién puede atacar se elige en su menú: mobs hostiles (de fábrica), pacíficos o jugadores. A vos nunca. Con arco o ballesta usa las flechas de su inventario y se queda a buena distancia; con escudo se cubre.
 
 ### Vida, tumba y el cofre de ender
 
-- **10 corazones y fotosíntesis:** no come; se cura solo a la luz, y a oscuras mucho más lento.
-- **Si se muere:** hace su caída, suelta lo que llevaba y reaparece **enterradito** al lado de donde reaparecés vos. Hacé clic derecho en el montículo y sale de un salto. Se puede elegir que muera para siempre o que sea inmortal (**Config > Vida y rutina**).
+- **10 corazones:** se cura solo medio corazón cada 1,5 segundos (a oscuras, más lento) y sus corazones se ven sobre su cabeza mientras le falte vida.
+- **Come y toma pociones:** la comida le da saciedad y se cura más rápido un rato. En el menú de **Equipo** elegís si come solo cuando está lastimado, si toma pociones y si se come manzanas doradas en apuros. Por chat lo hace cuando se lo pidas, y también le podés dar de comer en la mano (clic derecho con la comida o la poción). Come a mordiscos y toma la poción con su animación, y pone cara de asco si es algo feo.
+- **Si se muere:** hace su caída, suelta lo que llevaba y a los 15 segundos reaparece **enterradito** cerca tuyo. Hacé clic derecho en el montículo y sale de un salto. Si no lo desenterrás, a los 5 minutos la tumba se muda a tu punto de reaparición. Se puede elegir que muera para siempre o que sea inmortal (**Config > Vida y rutina**).
+- **Traerlo siempre:** **Mods > Rocco > Config > Traer a Rocco**, una tecla en **Controles > Rocco** (sin asignar de fábrica) o `/rocco llamar`.
 - **El poder del cofre de ender:** dale un cofre de ender (o ponelo cerca para que se lo coma) y desde ahí no pierde sus cosas al morir.
 
 ### Roco Cola

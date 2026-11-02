@@ -14,8 +14,9 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, entien
 - **Encanta tus cosas** una vez por día, como una mesa de encantamientos.
 - **Mate:** se toma unos mates y te ceba uno si se lo pedís.
 - **Armadura y armas 3D:** cada material con su estilo (coronita de oro, cuerno de unicornio de diamante, orejitas de gato de netherite...), espadas, hachas, tridente, arco, ballesta y escudo con modelo propio.
-- **Pelea a tu lado:** te defiende y ataca lo que vos atacás. Vos elegís a quién puede atacar.
-- **Si se muere, vuelve:** reaparece enterradito al lado de donde reaparecés vos. Con un cofre de ender gana el poder de no perder nunca sus cosas.
+- **Pelea a tu lado:** te defiende, ataca lo que vos atacás y pelea cuando se lo pedís ("atacá a ese zombie"). Vos elegís a quién puede atacar.
+- **Si se muere, vuelve:** a los 15 segundos reaparece enterradito cerca tuyo. Con un cofre de ender gana el poder de no perder nunca sus cosas.
+- **Come y se cura:** se cura solo con el tiempo, más rápido después de comer, y si lo dejás toma pociones y se come manzanas doradas en apuros.
 - **Roco Cola:** su gaseosa favorita (y no le digas Coca Cola).
 - **Regalos:** si te vas un rato, cuando volvés te dejó cosas que juntó. Y de vez en cuando te regala alguna rareza.
 - **Voz y micrófono (opcional):** habla en voz alta con Fish Audio, imita voces de personajes y te escucha con Deepgram.

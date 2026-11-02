@@ -32,7 +32,19 @@ public enum RoccoTask
     // ender_absorb (3 s) y ender_awaken (4,2 s). El poder se activa en el tick 41 de awaken, con la
     // explosion de luz (ver RoccoEntity: si se corta antes, se activa igual).
     ENDER_ABSORB(60, 60),
-    ENDER_AWAKEN(84, 41);
+    ENDER_AWAKEN(84, 41),
+    // Comer de la mano (food_eat 2,6 s, food_eat_bad 3 s): la comida hace efecto al tragar, en el
+    // tick 40. Tomar una pocion (potion_drink 2,5 s, potion_drink_bad 2,8 s): hace efecto en el 30.
+    FOOD_EAT(52, 40),
+    FOOD_EAT_BAD(60, 40),
+    POTION_DRINK(50, 30),
+    POTION_DRINK_BAD(56, 30);
+
+    // Las cuatro de comer y tomar con la comida o la pocion en la mano.
+    public boolean consuming()
+    {
+        return this == FOOD_EAT || this == FOOD_EAT_BAD || this == POTION_DRINK || this == POTION_DRINK_BAD;
+    }
 
     private static final RoccoTask[] VALUES = values();
 

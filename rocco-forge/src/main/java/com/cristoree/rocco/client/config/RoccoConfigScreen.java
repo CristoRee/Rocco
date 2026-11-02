@@ -106,6 +106,15 @@ public class RoccoConfigScreen extends Screen
         settings.add(new Entry(Component.translatable("rocco.setup.button"), Component.translatable("rocco.setup.button.tip"),
                 () -> new ItemStack(Items.WHEAT_SEEDS),
                 () -> this.minecraft.setScreen(new RoccoSetupScreen(this)), RoccoCommonConfig.SPEC.isLoaded(), null));
+        // Por si se perdio: lo trae al lado tuyo esté donde esté (tambien hay una tecla en Teclas).
+        boolean inWorld = this.minecraft.level != null && com.cristoree.rocco.client.RoccoCallKey.serverHasRocco();
+        settings.add(new Entry(Component.translatable("rocco.call.button"), Component.translatable("rocco.call.button.tip"),
+                () -> new ItemStack(Items.ENDER_PEARL),
+                () ->
+                {
+                    com.cristoree.rocco.voice.RoccoNetwork.callRocco();
+                    this.minecraft.setScreen(null);
+                }, inWorld, null));
 
         int columns = this.width >= 3 * BUTTON_WIDTH + 2 * GAP + 20 ? 3 : 2;
         int rowWidth = columns * BUTTON_WIDTH + (columns - 1) * GAP;

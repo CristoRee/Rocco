@@ -48,6 +48,10 @@ public class RoccoBrain
     static final Pattern MEMORY_LINE = Pattern.compile(
             "(?im)^\\s*[*`]*#(recordar_siempre|recordar|olvidar)\\s*:\\s*(.+?)\\s*[*`]*\\s*$");
     // El jugador pide una imitacion: la guia de estilo completa va en el prompt.
+    // Las ordenes de moverse o quedarse: si el jugador pidio una clara, manda esa.
+    private static final java.util.Set<String> MOVEMENT_VERBS =
+            java.util.Set.of("parar", "esperar", "seguir", "sentarse", "dormir", "levantarse");
+
     private static final Pattern IMPRESSION_REQUEST = Pattern.compile(
             "\\b(habla(me)? como|hablame como|imita(me)?|imitas|imitacion|imitar|hace de|has de|voz de|como si fueras|haceme a|hazme a|talk like|impression)\\b");
     private static final Pattern FRUSTRATED = Pattern.compile(
@@ -691,6 +695,12 @@ public class RoccoBrain
             face = RoccoExpression.SMUG;
             psycho = false;
         }
+        // Imitando a alguien pone su cara de "mewing" (mandibula afuera, la ceja arriba), elija
+        // la IA la cara que elija.
+        if (tags.impression() != null)
+        {
+            face = RoccoExpression.MEWING;
+        }
         this.rocco.setExpressionFromAi(face);
 
         boolean spontaneousImpression = tags.impression() != null && !asked && this.impression == null;
@@ -738,6 +748,18 @@ public class RoccoBrain
             else
             {
                 verb = null;
+            }
+        }
+
+        // "Quedate quieto" es esperar, no solo parar: si la IA eligio otra orden de movimiento,
+        // manda la que pidio el jugador (si no, con "parar" seguia siguiendolo despues de un mate).
+        if (verb != null && MOVEMENT_VERBS.contains(verb) && !question.equals(GREET_PROMPT))
+        {
+            OfflineRocco.Answer own = OfflineRocco.reply(this.rocco, question);
+            if (own != null && own.verb() != null && MOVEMENT_VERBS.contains(own.verb()) && !own.verb().equals(verb))
+            {
+                verb = own.verb();
+                argument = own.argument() == null ? "" : own.argument();
             }
         }
 

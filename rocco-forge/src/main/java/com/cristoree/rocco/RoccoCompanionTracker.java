@@ -267,11 +267,34 @@ public final class RoccoCompanionTracker
         }
     }
 
+    // El boton de la config o la tecla: lo trae siempre (atado tambien: lo desata), y avisa.
+    public static void callFromButton(ServerPlayer player)
+    {
+        if (recall(player, true))
+        {
+            RoccoEntity rocco = find(player);
+            if (rocco != null && rocco.getRoccoState() == com.cristoree.rocco.entity.RoccoState.ACTIVE)
+            {
+                rocco.sayLine("teleport_arrived");
+            }
+            return;
+        }
+        player.displayClientMessage(net.minecraft.network.chat.Component.translatable("rocco.call.searching")
+                .withStyle(net.minecraft.ChatFormatting.GRAY), true);
+    }
+
     public static void bringToPlayer(ServerPlayer player)
     {
         RoccoEntity rocco = find(player);
         if (rocco == null)
         {
+            return;
+        }
+        // Muerto o enterrado: su tumba aparece al lado tuyo (despues hay que desenterrarlo igual).
+        com.cristoree.rocco.entity.RoccoState state = rocco.getRoccoState();
+        if (state == com.cristoree.rocco.entity.RoccoState.DYING || state == com.cristoree.rocco.entity.RoccoState.BURIED)
+        {
+            rocco.life().summonTo(player);
             return;
         }
 

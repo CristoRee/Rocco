@@ -176,9 +176,62 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
     public void render(RoccoEntity entity, float entityYaw, float partialTick, PoseStack poseStack,
                        MultiBufferSource bufferSource, int packedLight)
     {
+        // Muerto esperando para reaparecer (se lo llevo la tierra): no se dibuja nada.
+        if (entity.isInvisible() && entity.getRoccoState() == com.cristoree.rocco.entity.RoccoState.DYING)
+        {
+            return;
+        }
         this.rodTip = null;
         super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
         RoccoFishingLine.render(entity, this.rodTip, partialTick, poseStack, bufferSource, this.entityRenderDispatcher);
+        renderHealth(entity, poseStack, bufferSource, packedLight);
+    }
+
+    // Sus corazones (verdes, de hoja) sobre la cabeza mientras no tenga la vida llena; con la vida
+    // llena desaparecen. Van arriba del nombre, si se ve.
+    private void renderHealth(RoccoEntity rocco, PoseStack poseStack, MultiBufferSource buffers, int packedLight)
+    {
+        float health = rocco.getHealth();
+        float max = rocco.getMaxHealth();
+        if (!RoccoClientConfig.SHOW_HEALTH.get() || rocco.getRoccoState() != com.cristoree.rocco.entity.RoccoState.ACTIVE
+                || health >= max || health <= 0.0F || this.entityRenderDispatcher.distanceToSqr(rocco) > 24.0D * 24.0D)
+        {
+            return;
+        }
+        net.minecraft.network.chat.Component hearts = hearts(health, max);
+        poseStack.pushPose();
+        float above = shouldShowName(rocco) ? 0.27F : 0.0F;
+        poseStack.translate(0.0F, rocco.getNameTagOffsetY() + above, 0.0F);
+        poseStack.mulPose(this.entityRenderDispatcher.cameraOrientation());
+        poseStack.scale(-0.025F, -0.025F, 0.025F);
+        org.joml.Matrix4f pose = poseStack.last().pose();
+        net.minecraft.client.gui.Font font = getFont();
+        float x = -font.width(hearts) / 2.0F;
+        int background = (int) (Minecraft.getInstance().options.getBackgroundOpacity(0.25F) * 255.0F) << 24;
+        font.drawInBatch(hearts, x, 0.0F, 0xFFFFFFFF, false, pose, buffers, net.minecraft.client.gui.Font.DisplayMode.NORMAL,
+                background, packedLight);
+        poseStack.popPose();
+    }
+
+    // Uno por cada 2 de vida (hasta 10); medio corazon en verde claro. Con mas de 20 de vida
+    // maxima, en numeros.
+    private static net.minecraft.network.chat.Component hearts(float health, float max)
+    {
+        if (max > 20.0F)
+        {
+            return net.minecraft.network.chat.Component.literal("♥ " + (int) Math.ceil(health) + "/" + (int) max)
+                    .withStyle(net.minecraft.ChatFormatting.GREEN);
+        }
+        net.minecraft.network.chat.MutableComponent out = net.minecraft.network.chat.Component.empty();
+        int total = (int) Math.ceil(max / 2.0F);
+        int points = (int) Math.ceil(health);
+        for (int i = 0; i < total; i++)
+        {
+            int filled = points - i * 2;
+            int color = filled >= 2 ? 0x3FD13F : filled == 1 ? 0xB5E655 : 0x4A4A4A;
+            out.append(net.minecraft.network.chat.Component.literal("♥").withStyle(style -> style.withColor(color)));
+        }
+        return out;
     }
 
     @Override

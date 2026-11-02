@@ -203,7 +203,8 @@ public class RoccoGearLayer extends GeoRenderLayer<RoccoEntity>
         RoccoTask task = rocco.getActiveTask();
         return switch (task)
         {
-            case MATE, COLA, ENCHANTING, EATING, SWALLOWING, ENDER_ABSORB, ENDER_AWAKEN, DANCING, CLAPPING, CELEBRATING -> true;
+            case MATE, COLA, ENCHANTING, EATING, SWALLOWING, ENDER_ABSORB, ENDER_AWAKEN, DANCING, CLAPPING, CELEBRATING,
+                 FOOD_EAT, FOOD_EAT_BAD, POTION_DRINK, POTION_DRINK_BAD -> true;
             default -> playing.startsWith("animation.rocco.sing") || playing.startsWith("animation.rocco.mate")
                     || playing.startsWith("animation.rocco.cola") || playing.startsWith("animation.rocco.enchant");
         };

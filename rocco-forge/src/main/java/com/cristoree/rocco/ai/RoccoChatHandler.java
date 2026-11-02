@@ -53,6 +53,7 @@ public final class RoccoChatHandler
         {
             return;
         }
+        rocco.adoptIfOwnerless(player);
 
         // Solo pasa si no hay ninguna IA y ademas se apagaron las frases propias.
         if (!RoccoConfig.chatReady())

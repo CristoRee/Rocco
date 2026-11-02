@@ -62,11 +62,24 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> COLA_CLINK = register("cola_clink");
     public static final RegistryObject<SoundEvent> COLA_OPEN = register("cola_open");
     public static final RegistryObject<SoundEvent> COLA_CAP = register("cola_cap");
-    public static final RegistryObject<SoundEvent> COLA_GULP = register("cola_gulp");
-    public static final RegistryObject<SoundEvent> COLA_AHH = register("cola_ahh");
-    public static final RegistryObject<SoundEvent> COLA_REFRESH = register("cola_refresh");
+    // Un trago y un "aaah" por cada vez que se lleva la botella a la boca (cada uno mas grande).
+    public static final RegistryObject<SoundEvent> COLA_DRINK_1 = register("cola_drink_1");
+    public static final RegistryObject<SoundEvent> COLA_DRINK_2 = register("cola_drink_2");
+    public static final RegistryObject<SoundEvent> COLA_DRINK_3 = register("cola_drink_3");
+    public static final RegistryObject<SoundEvent> COLA_AHH_1 = register("cola_ahh_1");
+    public static final RegistryObject<SoundEvent> COLA_AHH_2 = register("cola_ahh_2");
+    public static final RegistryObject<SoundEvent> COLA_AHH_3 = register("cola_ahh_3");
     public static final RegistryObject<SoundEvent> COLA_HIC = register("cola_hic");
     public static final RegistryObject<SoundEvent> COLA_FIZZ = register("cola_fizz");
+
+    // Comer y tomar pociones.
+    public static final RegistryObject<SoundEvent> FOOD_BITE = register("food_bite");
+    public static final RegistryObject<SoundEvent> FOOD_MUNCH = register("food_munch");
+    public static final RegistryObject<SoundEvent> FOOD_SWALLOW = register("food_swallow");
+    public static final RegistryObject<SoundEvent> POTION_OPEN = register("potion_open");
+    public static final RegistryObject<SoundEvent> POTION_DRINK = register("potion_drink");
+    public static final RegistryObject<SoundEvent> POTION_MAGIC = register("potion_magic");
+    public static final RegistryObject<SoundEvent> YUCK = register("yuck");
 
     // El poder del cofre de ender.
     public static final RegistryObject<SoundEvent> ENDER_ABSORB = register("ender_absorb");

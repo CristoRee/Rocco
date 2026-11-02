@@ -335,7 +335,7 @@ public final class OfflineRocco
             + "|asa\\w*|hornea\\w*|funde|fundi\\w*|derreti\\w*|guarda\\w*|deja\\w*|saca\\w*|agarra\\w*|rompe\\w*|quita\\w*"
             + "|pone\\w*|pon|coloca\\w*|trae\\w*|alcanza\\w*|dame\\w*|pasame\\w*|tira\\w*|suelta\\w*|larga\\w*|junta\\w*"
             + "|recoge\\w*|consegui\\w*|consigue\\w*|busca\\w*|fijate|mina\\w*|pica\\w*|tala\\w*|corta\\w*|ilumina\\w*"
-            + "|alumbra\\w*|ara\\w*|labra\\w*|prepara\\w*|cuida\\w*|atende\\w*|encanta\\w*|hechiza\\w*|toma\\w*|ceba\\w*|equipa\\w*|desequipa\\w*"
+            + "|alumbra\\w*|ara\\w*|labra\\w*|prepara\\w*|cuida\\w*|atende\\w*|encanta\\w*|hechiza\\w*|toma\\w*|ceba\\w*|equipa\\w*|desequipa\\w*|bebe\\w*|ataca\\w*|mata\\w*|pegale\\w*|dispara\\w*|defende\\w*|usa\\w*"
             + "|teletransport\\w*|tepea\\w*|tpea\\w*|aparece\\w*|llevame|guiame|acompaname|cria\\w*|pesca\\w*|compra\\w*"
             + "|vende\\w*|ordena\\w*|acomoda\\w*|organiza\\w*|baila\\w*|bailemos|aplaud\\w*|festej\\w*|celebra\\w*"
             + "|anda|andate|podes|podrias|puedes|me podes|me (hace|haces|trae|traes|das|pasa|pasas|craftea|crafteas|cocina"
@@ -481,6 +481,10 @@ public final class OfflineRocco
     private static final Pattern DRINK = Pattern.compile("\\b(toma|tomate|tomar|tomas|tomarte|tomemos|tomamos)\\b");
     private static final Pattern UNEQUIP = Pattern.compile("\\b(desequipa\\w*)\\b|\\b(sacate|quitate) (la |el |tu |todo |toda )?(armadura|casco|pechera|equipo|espada|escudo|todo)\\b");
     private static final Pattern EQUIP = Pattern.compile("\\b(equipa\\w*)\\b|\\bponete (la |el |tu |una |un )?(armadura|casco|pechera|equipo|espada|escudo|arma)\\b");
+    // "Ataca al creeper", "disparale", "tirale flechas", "tira flechas", "usa el arco": pelear, no soltar.
+    private static final Pattern ATTACK = Pattern.compile("\\b(ataca\\w*|atacalo|atacala|mata\\w*|pegale\\w*|disparale\\w*|dispara|disparar|tirale\\w*|flechal\\w*|defendeme)\\b(.*)"
+            + "|\\b(tira\\w*|lanza\\w*) (unas |una |tus |las )?flechas?\\b(.*)|\\busa\\w* (el |la |tu )?(arco|ballesta|espada|hacha|tridente)\\b(.*)");
+    private static final Pattern POTION = Pattern.compile("\\b(toma\\w*|bebe\\w*|usa\\w*)\\b.*\\bpocion\\w*\\b(.*)");
     private static final Pattern ENDER_CHEST = Pattern.compile("\\b(come\\w*|trag\\w*|absorb\\w*)\\b.*\\bcofre de(l)? ender\\b");
     private static final Pattern SORT = Pattern.compile("\\b(ordena\\w*|acomoda\\w*|organiza\\w*)\\b.*\\b(cofres?|baul\\w*|barril\\w*|cosas)\\b");
 
@@ -506,6 +510,16 @@ public final class OfflineRocco
         if (ENDER_CHEST.matcher(text).find())
         {
             return new Answer("", RoccoExpression.WOW, "comer_cofre_ender", "");
+        }
+        Matcher potion = POTION.matcher(text);
+        if (potion.find())
+        {
+            return act("potion_ack", RoccoExpression.HAPPY, "tomar_pocion", potion.group(2).trim());
+        }
+        Matcher attack = ATTACK.matcher(text);
+        if (attack.find())
+        {
+            return act("attack_ack", RoccoExpression.ANGRY, "atacar", text);
         }
         if (UNEQUIP.matcher(text).find())
         {
@@ -833,7 +847,7 @@ public final class OfflineRocco
             {
                 return RoccoExpression.SCARED;
             }
-            case "combat_start", "combat_no_arrows", "combat_weapon_broke" ->
+            case "combat_start", "combat_no_arrows", "combat_weapon_broke", "attack_ack" ->
             {
                 return RoccoExpression.ANGRY;
             }
@@ -1422,6 +1436,22 @@ public final class OfflineRocco
             Map.entry("unequip_nothing", new String[]{
                     "No tengo nada puesto."}),
 
+            // Pelear porque se lo pediste.
+            Map.entry("attack_ack", new String[]{
+                    "Dejamelo a mi.",
+                    "Voy. Que se vaya despidiendo."}),
+            Map.entry("attack_none", new String[]{
+                    "No veo a quien atacar. Senalamelo o decime quien."}),
+            Map.entry("attack_owner", new String[]{
+                    "A vos no te voy a pegar, por mas que me lo pidas."}),
+
+            // Pociones.
+            Map.entry("potion_ack", new String[]{
+                    "Salud. Literalmente.",
+                    "Glu glu. A ver que tal."}),
+            Map.entry("potion_none", new String[]{
+                    "No tengo ninguna pocion que sirva. Dame una y me la tomo."}),
+
             // Peleando.
             Map.entry("combat_start", new String[]{
                     "Nadie toca a mi amigo!",
@@ -1439,7 +1469,7 @@ public final class OfflineRocco
 
             // La vida: fotosintesis y la vuelta de la tumba.
             Map.entry("photosynthesis", new String[]{
-                    "No como, hago fotosintesis. Con un poquito de sol me curo solo."}),
+                    "Me curo solo con un poquito de sol. Pero si me das algo rico, me curo mas rapido."}),
             Map.entry("grave_back", new String[]{
                     "Puaj! Tengo tierra hasta en las hojitas.",
                     "Volvi! Las plantas siempre rebrotan.",

@@ -155,6 +155,7 @@ public class RoccoMod
         static void onKeys(final net.minecraftforge.client.event.RegisterKeyMappingsEvent event)
         {
             event.register(com.cristoree.rocco.client.voice.RoccoKeys.TALK);
+            event.register(com.cristoree.rocco.client.voice.RoccoKeys.CALL);
         }
 
         @SubscribeEvent
