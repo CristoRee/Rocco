@@ -108,8 +108,8 @@ public class RoccoMenuScreen extends Screen
                 order("Guardar todo", Items.BARREL, "Guarda lo que lleva encima en los cofres de alrededor, cada cosa en su lugar.", "guardar"),
                 order("Ordenar cofres", Items.HOPPER, "Acomoda los cofres de alrededor: cada uno de un tema y todo agrupado.", "ordenar"),
                 has(RoccoMenu.TENDING)
-                        ? order("Dejar la huerta", Items.WHEAT, "Deja de cuidar la huerta y te sigue.", "parar")
-                        : order("Cuidar huerta", Items.WHEAT, "Se queda en la huerta: cosecha lo maduro, replanta con semillas y guarda la cosecha.", "huerta")));
+                        ? order("Dejar de cuidar", Items.WHEAT, "Deja de cuidar la casa y te sigue.", "seguir")
+                        : order("Cuidar la casa", Items.WHEAT, "Se queda acá mientras explorás: cosecha y replanta, esquila, hace criar a los animales (sin pasarse del tope), junta lo que dejan y guarda todo en los cofres. Al volver te cuenta qué hizo.", "casa")));
 
         column(2, List.of(
                 new Entry("Cebame un mate", Items.FLOWER_POT, travelling ? away : "Ceba y te pasa el mate. Lo tomás y se lo devolvés con clic derecho.", "cebar_mate", !travelling, null),

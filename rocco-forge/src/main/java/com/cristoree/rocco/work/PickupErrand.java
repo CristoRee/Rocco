@@ -12,7 +12,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-// Levanta lo que este tirado cerca, de lo mas cercano a lo mas lejano.
+// Levanta lo que este tirado cerca, de lo mas cercano a lo mas lejano. Cuidando la casa junta
+// solo lo de los animales (lana, huevos, plumas...) alrededor de la casa, y sin hablar.
 public final class PickupErrand extends Errand
 {
     private static final double RADIUS = 10.0D;
@@ -25,10 +26,30 @@ public final class PickupErrand extends Errand
     private int targetTicks;
     private int picked;
     private int stacks;
+    @Nullable
+    private net.minecraft.core.BlockPos center;
+    private double radius = RADIUS;
+    private java.util.function.Predicate<ItemStack> filter = stack -> true;
+    private boolean quiet;
 
     public PickupErrand(RoccoEntity rocco, @Nullable Player requester)
     {
         super(rocco, requester);
+    }
+
+    // Solo lo que pase el filtro, alrededor de center, sin avisar nada.
+    public PickupErrand around(net.minecraft.core.BlockPos center, double radius, java.util.function.Predicate<ItemStack> filter)
+    {
+        this.center = center.immutable();
+        this.radius = radius;
+        this.filter = filter;
+        this.quiet = true;
+        return this;
+    }
+
+    public int picked()
+    {
+        return this.picked;
     }
 
     @Override
@@ -42,6 +63,10 @@ public final class PickupErrand extends Errand
 
         if (this.target == null || this.stacks >= MAX_ITEMS)
         {
+            if (this.quiet)
+            {
+                return Status.DONE;
+            }
             if (this.picked == 0)
             {
                 say(this.skipped.isEmpty() ? "pickup_none" : "pickup_full");
@@ -75,8 +100,11 @@ public final class PickupErrand extends Errand
     @Nullable
     private ItemEntity nextTarget()
     {
-        return this.level.getEntitiesOfClass(ItemEntity.class, this.rocco.getBoundingBox().inflate(RADIUS),
+        net.minecraft.world.phys.AABB area = this.center == null ? this.rocco.getBoundingBox().inflate(this.radius)
+                : new net.minecraft.world.phys.AABB(this.center).inflate(this.radius, 8.0D, this.radius);
+        return this.level.getEntitiesOfClass(ItemEntity.class, area,
                         item -> item.isAlive() && !item.hasPickUpDelay() && !this.skipped.contains(item.getUUID())
+                                && this.filter.test(item.getItem())
                                 && Inv.room(this.rocco.inventory(), item.getItem()) > 0)
                 .stream()
                 .min(Comparator.comparingDouble(item -> item.distanceToSqr(this.rocco)))

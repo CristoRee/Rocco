@@ -85,7 +85,7 @@ public final class RoccoConfig
 
     // Forge valida cada opcion por separado, pero no las relaciones entre dos de ellas.
     // Sube cada vez que una migracion nueva haga falta.
-    public static final int CURRENT_CONFIG_VERSION = 4;
+    public static final int CURRENT_CONFIG_VERSION = 5;
 
     // Los valores por defecto viejos quedaron guardados en el .toml del jugador y cambiar el
     // default en el codigo no los toca. Se corrigen UNA vez, y solo si siguen exactamente en
@@ -135,6 +135,13 @@ public final class RoccoConfig
         {
             RoccoCommonConfig.IMPRESSION_VOICE_SEARCH.set(true);
             changes.add("voice.impressionVoiceSearch false -> true");
+        }
+
+        // v5: con el default viejo (apagado) no se le podia pegar, ni para ver la animacion del golpe.
+        if (from < 5 && !RoccoCommonConfig.OWNER_CAN_HURT_ROCCO.get())
+        {
+            RoccoCommonConfig.OWNER_CAN_HURT_ROCCO.set(true);
+            changes.add("behavior.ownerCanHurtRocco false -> true");
         }
 
         RoccoCommonConfig.CONFIG_VERSION.set(CURRENT_CONFIG_VERSION);

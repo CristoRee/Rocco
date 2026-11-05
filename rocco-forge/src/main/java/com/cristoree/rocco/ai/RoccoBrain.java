@@ -134,6 +134,7 @@ public class RoccoBrain
     private long lastSaidAt;
     @Nullable
     private String lastHeard;
+    private long lastHeardTick = -100000L;
     // Mientras esperaba a la IA llego una orden y la resolvio solo: esa respuesta ya no va.
     private boolean answeredMeanwhile;
 
@@ -163,11 +164,19 @@ public class RoccoBrain
         return this.lastHeard;
     }
 
+    // Le estan hablando: pensando una respuesta para el jugador, o le hablaron hace poco. Mientras
+    // tanto no se pone a tomar mate ni a bailar por su cuenta (parecia que se olvidaba de contestar).
+    public boolean busyTalking()
+    {
+        return this.waiting || gameTime() - this.lastHeardTick < 300L;
+    }
+
     // El jugador le hablo (por chat o por microfono).
     public void ask(ServerPlayer player, String question)
     {
         this.lastHeard = question;
         long now = gameTime();
+        this.lastHeardTick = now;
         PersonalityProfile profile = PersonalityProfile.current();
         this.chatter.heard(question, now);
         this.chatter.activity(now, profile, this.rocco.getRandom());
@@ -215,14 +224,16 @@ public class RoccoBrain
                 answerLocally(player, question, local);
                 return;
             }
-            OfflineRocco.Answer order = OfflineRocco.reply(this.rocco, question);
+            // Con el mismo filtro que las ordenes sin IA: una pregunta ("donde guardaste?") no es
+            // una orden, aunque tenga el verbo adentro.
+            OfflineRocco.Answer order = OfflineRocco.localOrder(this.rocco, question);
             Started started = null;
-            if (order.verb() != null && QUICK_VERBS.contains(order.verb()))
+            if (order != null && QUICK_VERBS.contains(order.verb()))
             {
                 this.rocco.setExpressionFromAi(order.face());
                 started = start(player, order.verb(), order.argument(), order.text());
             }
-            this.pending = new Pending(player, question, started, order.verb() != null);
+            this.pending = new Pending(player, question, started, order != null);
             return;
         }
         if (this.waiting)

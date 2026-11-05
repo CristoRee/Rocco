@@ -306,9 +306,17 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private BlockPos harvestChest;
     private final Set<net.minecraft.world.item.Item> harvestTypes = new HashSet<>();
 
-    // Si quedo cuidando la huerta al cerrar el mundo, vuelve a hacerlo al cargar.
+    // Lo ultimo que guardo en cofres (que y donde), para contestar "donde lo guardaste?".
+    public record Stored(List<BlockPos> chests, String items, long tick) {}
+    @Nullable
+    private Stored lastStored;
+
+    // Si quedo cuidando la huerta (o los animales, o la casa) al cerrar el mundo, vuelve a hacerlo al cargar.
     @Nullable
     private BlockPos tendCenter;
+    private com.cristoree.rocco.work.CaretakerErrand.Duty tendDuty = com.cristoree.rocco.work.CaretakerErrand.Duty.CROPS;
+    // Los chunks de la casa que mantiene cargados mientras la cuida.
+    private final Set<Long> homeChunks = new HashSet<>();
     private RoccoExpression faceBeforeLid = RoccoExpression.HAPPY;
     private RoccoExpression faceBeforeSwallow = RoccoExpression.HAPPY;
 
@@ -584,10 +592,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         getNavigation().stop();
     }
 
-    // Quedo cuidando la huerta: ahi se queda aunque te vayas volando.
-    boolean staysForWork()
+    // Quedo cuidando la huerta, los animales o la casa: ahi se queda aunque te vayas volando.
+    public boolean staysForWork()
     {
-        return this.errand instanceof FarmErrand farm && farm.persistent();
+        return this.errand != null && this.errand.persistent();
     }
 
     // Despues de volar o de un rescate, si cae no se lastima.
@@ -2186,7 +2194,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         if (this.errand == null
                 || this.entityData.get(DATA_LID) != LID_CLOSED
-                || getRoccoPose().isResting())
+                || getRoccoPose().isResting()
+                || (this.fighting && !hasOrderedTarget()))
         {
             return;
         }
@@ -3144,7 +3153,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             return;
         }
 
-        if (!isFreeTime() || !this.following || this.ownerStillTicks < 20 * 20
+        if (!isFreeTime() || !this.following || this.ownerStillTicks < 20 * 20 || brain().busyTalking()
                 || distanceToSqr(owner) > sqr(RoccoCommonConfig.WANDER_RADIUS.get() + 4.0D) || hostileNearby())
         {
             return;
@@ -3354,6 +3363,62 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.autoRestTicks = 30 * 20;
     }
 
+    // ---------- lo ultimo que guardo ----------
+
+    @Nullable
+    public Stored lastStored()
+    {
+        return this.lastStored;
+    }
+
+    public void noteStored(List<BlockPos> chests, String items)
+    {
+        if (!chests.isEmpty() && !items.isBlank())
+        {
+            this.lastStored = new Stored(List.copyOf(chests.subList(0, Math.min(3, chests.size()))), items, level().getGameTime());
+        }
+    }
+
+    // "en el cofre de la cosecha", "en el cofre de casa" (un lugar que recuerda) o "en el cofre que
+    // esta a 6 bloques al norte", contado desde donde esta el jugador.
+    public String describeStoredPlace(Stored stored)
+    {
+        List<String> parts = new ArrayList<>();
+        ServerPlayer owner = trueOwner();
+        String here = level().dimension().location().toString();
+        for (BlockPos chest : stored.chests())
+        {
+            if (chest.equals(this.harvestChest))
+            {
+                parts.add("en el cofre de la cosecha");
+                continue;
+            }
+            String named = null;
+            for (var entry : this.places.entrySet())
+            {
+                if (entry.getValue().dimension().equals(here) && entry.getValue().pos().distSqr(chest) <= 12 * 12)
+                {
+                    named = entry.getKey();
+                    break;
+                }
+            }
+            double distance = owner == null ? 99 : Math.sqrt(owner.blockPosition().distSqr(chest));
+            if (distance <= 3.5D)
+            {
+                parts.add("en el cofre que tenes al lado");
+            }
+            else if (named != null)
+            {
+                parts.add("en el cofre de " + named);
+            }
+            else
+            {
+                parts.add("en el cofre que esta " + com.cristoree.rocco.work.GuideErrand.directions(owner, chest));
+            }
+        }
+        return parts.size() == 1 ? parts.get(0) : String.join(", ", parts.subList(0, parts.size() - 1)) + " y " + parts.get(parts.size() - 1);
+    }
+
     // ---------- lugares ----------
 
     public java.util.Map<String, Place> places()
@@ -3381,8 +3446,64 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             data.putLong(com.cristoree.rocco.RoccoCompanionTracker.TAG_ROCCO_POS, blockPosition().asLong());
             data.putString(com.cristoree.rocco.RoccoCompanionTracker.TAG_ROCCO_DIM, level().dimension().location().toString());
             data.putBoolean(com.cristoree.rocco.RoccoCompanionTracker.TAG_ROCCO_FOLLOWING, this.following);
+            // Si cuida la casa, al volver a entrar al mundo hay que despertarla aunque estes lejos.
+            if (this.errand instanceof com.cristoree.rocco.work.CaretakerErrand caretaker)
+            {
+                data.putLong(com.cristoree.rocco.RoccoCompanionTracker.TAG_ROCCO_HOME, caretaker.center().asLong());
+            }
+            else
+            {
+                data.remove(com.cristoree.rocco.RoccoCompanionTracker.TAG_ROCCO_HOME);
+            }
         }
         updateChunkTicket();
+        updateHomeTickets();
+    }
+
+    // Mientras cuida la casa, esa zona queda cargada (y con los cultivos creciendo) aunque te vayas
+    // lejos. Forge suelta todo al abrir el mundo: se vuelven a pedir en cuanto Rocco se mueve.
+    private static final int HOME_LOAD_RADIUS = 24;
+
+    private void updateHomeTickets()
+    {
+        if (!(level() instanceof ServerLevel serverLevel))
+        {
+            return;
+        }
+        Set<Long> wanted = new HashSet<>();
+        if (this.errand instanceof com.cristoree.rocco.work.CaretakerErrand caretaker && RoccoCommonConfig.HOME_KEEP_LOADED.get()
+                && getRoccoState() == RoccoState.ACTIVE && isAlive())
+        {
+            BlockPos center = caretaker.center();
+            for (int cx = (center.getX() - HOME_LOAD_RADIUS) >> 4; cx <= (center.getX() + HOME_LOAD_RADIUS) >> 4; cx++)
+            {
+                for (int cz = (center.getZ() - HOME_LOAD_RADIUS) >> 4; cz <= (center.getZ() + HOME_LOAD_RADIUS) >> 4; cz++)
+                {
+                    wanted.add(net.minecraft.world.level.ChunkPos.asLong(cx, cz));
+                }
+            }
+        }
+        for (Long chunk : new ArrayList<>(this.homeChunks))
+        {
+            if (!wanted.contains(chunk))
+            {
+                forceHomeChunk(serverLevel, chunk, false);
+                this.homeChunks.remove(chunk);
+            }
+        }
+        for (Long chunk : wanted)
+        {
+            if (this.homeChunks.add(chunk))
+            {
+                forceHomeChunk(serverLevel, chunk, true);
+            }
+        }
+    }
+
+    private void forceHomeChunk(ServerLevel level, long chunk, boolean add)
+    {
+        net.minecraftforge.common.world.ForgeChunkManager.forceChunk(level, com.cristoree.rocco.RoccoMod.MODID, this,
+                net.minecraft.world.level.ChunkPos.getX(chunk), net.minecraft.world.level.ChunkPos.getZ(chunk), add, true);
     }
 
     // Mientras te sigue, su chunk queda cargado: si te alejas rapido (elytra, caballo, un tp)
@@ -3434,6 +3555,21 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             }
             this.forcedChunk = null;
         }
+        if (leaving && !this.homeChunks.isEmpty() && level() instanceof ServerLevel serverLevel)
+        {
+            for (Long chunk : this.homeChunks)
+            {
+                try
+                {
+                    forceHomeChunk(serverLevel, chunk, false);
+                }
+                catch (RuntimeException e)
+                {
+                    com.cristoree.rocco.RoccoMod.LOGGER.debug("[Rocco] No pude soltar la casa: {}", e.toString());
+                }
+            }
+            this.homeChunks.clear();
+        }
         super.remove(reason);
     }
 
@@ -3451,7 +3587,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
         BlockPos center = this.tendCenter;
         this.tendCenter = null;
-        this.errand = new FarmErrand(this, null, true, center);
+        this.errand = new com.cristoree.rocco.work.CaretakerErrand(this, null, this.tendDuty, center);
     }
 
     private void greet(Player player)
@@ -3500,8 +3636,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             return false;
         }
 
-        // Tus golpes no lo lastiman (para no pegarle sin querer en medio de una pelea), salvo que
-        // lo actives en la config.
+        // Con la opcion apagada, tus golpes no lo lastiman (para no pegarle sin querer en medio de
+        // una pelea). Prendida (el default), le pegas como a cualquier mob.
         if (!RoccoCommonConfig.OWNER_CAN_HURT_ROCCO.get() && this.ownerId != null
                 && source.getEntity() instanceof Player hitter && this.ownerId.equals(hitter.getUUID())
                 && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))
@@ -3633,10 +3769,30 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             tag.putLong("HarvestChest", this.harvestChest.asLong());
         }
-        BlockPos tending = this.errand instanceof FarmErrand farm && farm.persistent() ? farm.center() : this.tendCenter;
+        if (this.lastStored != null)
+        {
+            CompoundTag stored = new CompoundTag();
+            stored.putLongArray("Chests", this.lastStored.chests().stream().mapToLong(BlockPos::asLong).toArray());
+            stored.putString("Items", this.lastStored.items());
+            stored.putLong("Tick", this.lastStored.tick());
+            tag.put("LastStored", stored);
+        }
+        BlockPos tending = this.tendCenter;
+        com.cristoree.rocco.work.CaretakerErrand.Duty duty = this.tendDuty;
+        if (this.errand instanceof com.cristoree.rocco.work.CaretakerErrand caretaker)
+        {
+            tending = caretaker.center();
+            duty = caretaker.duty();
+        }
+        else if (this.errand instanceof FarmErrand farm && farm.persistent())
+        {
+            tending = farm.center();
+            duty = com.cristoree.rocco.work.CaretakerErrand.Duty.CROPS;
+        }
         if (tending != null)
         {
             tag.putLong("TendCenter", tending.asLong());
+            tag.putString("TendDuty", duty.name());
         }
 
         tag.putBoolean("AutoSlept", this.autoSlept);
@@ -3696,7 +3852,15 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.following = !tag.contains("Following") || tag.getBoolean("Following");
 
         this.harvestChest = tag.contains("HarvestChest") ? BlockPos.of(tag.getLong("HarvestChest")) : null;
+        if (tag.contains("LastStored"))
+        {
+            CompoundTag stored = tag.getCompound("LastStored");
+            List<BlockPos> chests = java.util.Arrays.stream(stored.getLongArray("Chests")).mapToObj(BlockPos::of).toList();
+            this.lastStored = chests.isEmpty() ? null : new Stored(chests, stored.getString("Items"), stored.getLong("Tick"));
+        }
         this.tendCenter = tag.contains("TendCenter") ? BlockPos.of(tag.getLong("TendCenter")) : null;
+        // Los guardados viejos solo cuidaban la huerta.
+        this.tendDuty = com.cristoree.rocco.work.CaretakerErrand.Duty.parse(tag.getString("TendDuty"));
 
         this.autoSlept = tag.getBoolean("AutoSlept");
         this.autoRestTicks = tag.getInt("AutoRest");
@@ -4032,7 +4196,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 && getRoccoPose() == RoccoPose.STANDING
                 && this.task == RoccoTask.NONE
                 && this.jobs.isEmpty()
-                && (this.errand == null || this.errand.allowsFollowing())
+                && (this.errand == null || this.errand.allowsFighting())
                 && !this.share.active()
                 && this.immortalRetreatTicks <= 0;
     }
@@ -4045,13 +4209,15 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 || isPerformance(this.task) && !this.task.consuming()
                 && this.task != RoccoTask.ENDER_ABSORB && this.task != RoccoTask.ENDER_AWAKEN;
         RoccoPose pose = getRoccoPose();
+        // Cuidando la casa deja el trabajo que tenia en cola (lo retoma en la proxima vuelta).
+        boolean errandYields = this.errand != null && this.errand.persistent();
         return getRoccoState() == RoccoState.ACTIVE
                 && !isTravelling()
                 && !isLidOpen()
                 && (pose == RoccoPose.STANDING || pose == RoccoPose.SITTING || pose == RoccoPose.SITTING_DOWN)
                 && idleTask
-                && (this.task != RoccoTask.NONE || this.jobs.isEmpty())
-                && (this.errand == null || this.errand.allowsFollowing())
+                && (this.task != RoccoTask.NONE || this.jobs.isEmpty() || errandYields)
+                && (this.errand == null || this.errand.allowsFighting())
                 && this.immortalRetreatTicks <= 0;
     }
 
@@ -4061,8 +4227,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (this.task != RoccoTask.NONE)
         {
             interruptActivity();
-            this.jobs.clear();
         }
+        this.jobs.clear();
         this.share.stop(false);
         clearAutoRest();
         standUp();
@@ -4102,6 +4268,26 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         setTarget(target);
         enterCombat();
         return true;
+    }
+
+    // Cuidando la casa: sacar un animal que sobra, con el sistema de pelea, sin cortar el encargo.
+    public boolean huntForWork(LivingEntity target)
+    {
+        if (target == this || target instanceof RoccoEntity || (this.ownerId != null && this.ownerId.equals(target.getUUID()))
+                || !canFight())
+        {
+            return false;
+        }
+        this.orderedTarget = target.getUUID();
+        setTarget(target);
+        enterCombat();
+        return true;
+    }
+
+    public void stopHunting()
+    {
+        this.orderedTarget = null;
+        setTarget(null);
     }
 
     public boolean isOrderedTarget(@Nullable LivingEntity target)

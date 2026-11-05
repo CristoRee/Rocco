@@ -5,6 +5,8 @@ import com.cristoree.rocco.entity.RoccoEntity;
 import com.cristoree.rocco.entity.RoccoFollowGoal;
 import com.cristoree.rocco.entity.RoccoTask;
 import com.cristoree.rocco.work.BreedErrand;
+import com.cristoree.rocco.work.CaretakerErrand;
+import com.cristoree.rocco.work.RanchErrand;
 import com.cristoree.rocco.work.EnchantErrand;
 import com.cristoree.rocco.work.EnchantRequest;
 import com.cristoree.rocco.work.FishErrand;
@@ -112,9 +114,9 @@ public final class RoccoActions
     // cada uno esta en rocco/personality/<version>/actions.txt; un verbo nuevo agregado aca
     // aparece solo en el prompt (y avisa en el log si le falta la explicacion).
     public static final List<String> OFFERED_VERBS = List.of(
-            "plantar", "cosechar", "arar", "cuidar_huerta", "cofre_cosecha", "craftear", "buscar", "receta",
+            "plantar", "cosechar", "arar", "cuidar_huerta", "cuidar_animales", "cuidar_casa", "cofre_cosecha", "craftear", "buscar", "receta",
             "cocinar", "agarrar", "traer", "guardar", "dar", "tirar", "juntar", "poner", "iluminar", "romper",
-            "talar", "conseguir", "encantar", "mate", "cebar_mate", "aplaudir", "festejar", "bailar", "recordar_lugar", "olvidar_lugar", "ir_a", "criar", "pescar",
+            "talar", "conseguir", "encantar", "mate", "cebar_mate", "aplaudir", "festejar", "bailar", "recordar_lugar", "olvidar_lugar", "ir_a", "criar", "esquilar", "pescar",
             "comprar", "vender", "ordenar", "teletransportarse", "abrir", "comer", "seguir", "esperar",
             "sentarse", "dormir", "levantarse", "parar", "tomar_roco_cola", "equipar", "desequipar", "comer_cofre_ender",
             "tomar_pocion", "atacar", "poner_musica", "parar_musica", "pausar_musica", "seguir_musica", "volumen");
@@ -150,8 +152,9 @@ public final class RoccoActions
 
     private static final java.util.Set<String> KNOWN_VERBS = java.util.Set.of(
             "mate", "tomar_mate", "cebar_mate", "compartir_mate", "aplaudir", "festejar", "bailar", "encantar", "recordar_lugar", "recordar", "olvidar_lugar", "olvidar", "ir_a", "llevar",
-            "criar", "pescar", "comprar", "comerciar", "vender", "ordenar", "teletransportarse", "venir", "aparecer",
-            "plantar", "sembrar", "cosechar", "cuidar_huerta", "cuidar", "arar", "cofre_cosecha", "craftear", "fabricar",
+            "criar", "alimentar", "alimentar_animales", "esquilar", "pescar", "comprar", "comerciar", "vender", "ordenar",
+            "teletransportarse", "venir", "aparecer",
+            "plantar", "sembrar", "cosechar", "cuidar_huerta", "cuidar", "cuidar_animales", "cuidar_casa", "cuidar_todo", "arar", "cofre_cosecha", "craftear", "fabricar",
             "buscar", "receta", "cocinar", "agarrar", "sacar", "traer", "guardar", "dar", "tirar", "soltar", "juntar",
             "poner", "colocar", "iluminar", "romper", "talar", "conseguir", "abrir", "comer", "tragar", "seguir",
             "esperar", "quedarse", "sentarse", "dormir", "levantarse", "despertarse", "parar", "cancelar",
@@ -190,7 +193,8 @@ public final class RoccoActions
             case "recordar" -> remember(player, argument, false);
             case "olvidar" -> forget(player, argument);
             case "ir_a", "llevar" -> guide(rocco, player, argument);
-            case "criar" -> start(rocco, new BreedErrand(rocco, player, argument));
+            case "criar", "alimentar", "alimentar_animales" -> start(rocco, new BreedErrand(rocco, player, argument));
+            case "esquilar" -> start(rocco, RanchErrand.shearing(rocco, player, rocco.blockPosition()));
             case "pescar" -> start(rocco, new FishErrand(rocco, player, Names.parse(argument).count()));
             case "comprar", "comerciar" -> trade(rocco, player, argument, false);
             case "vender" -> trade(rocco, player, argument, true);
@@ -198,7 +202,9 @@ public final class RoccoActions
             case "teletransportarse", "venir", "aparecer" -> teleport(rocco, player);
             case "plantar", "sembrar" -> plant(rocco, player, level, argument);
             case "cosechar" -> start(rocco, new FarmErrand(rocco, player, false, rocco.blockPosition()));
-            case "cuidar_huerta", "cuidar" -> start(rocco, new FarmErrand(rocco, player, true, rocco.blockPosition()));
+            case "cuidar_huerta", "cuidar" -> caretake(rocco, player, CaretakerErrand.Duty.CROPS);
+            case "cuidar_animales" -> caretake(rocco, player, CaretakerErrand.Duty.ANIMALS);
+            case "cuidar_casa", "cuidar_todo" -> caretake(rocco, player, CaretakerErrand.Duty.HOME);
             case "arar" -> start(rocco, new TillErrand(rocco, player, Names.parse(argument).count()));
             case "cofre_cosecha" -> harvestChest(rocco, player);
             case "craftear", "fabricar" -> craft(rocco, player, argument);
@@ -235,7 +241,7 @@ public final class RoccoActions
             case "pausar_musica" -> { com.cristoree.rocco.music.RoccoMusic.pause(rocco); yield SAID; }
             case "seguir_musica" -> { com.cristoree.rocco.music.RoccoMusic.resume(rocco); yield SAID; }
             case "volumen" -> { com.cristoree.rocco.music.RoccoMusic.volume(rocco, player,
-                    !Names.normalize(argument).matches(".*\b(bajar|baja|bajale|menos|despacio|bajito|-)\b.*")); yield SAID; }
+                    !Names.normalize(argument).matches(".*\\b(bajar|baja|bajale|menos|despacio|bajito|-)\\b.*")); yield SAID; }
             default ->
             {
                 RoccoMod.LOGGER.debug("[Rocco] Accion desconocida de la IA: {}", verb);
@@ -273,6 +279,13 @@ public final class RoccoActions
         }
         com.cristoree.rocco.music.RoccoMusic.request(rocco, player, what);
         return SAID;
+    }
+
+    // Se queda ahi cuidando (no te sigue) hasta que le pidas otra cosa.
+    private static Outcome caretake(RoccoEntity rocco, @Nullable ServerPlayer player, CaretakerErrand.Duty duty)
+    {
+        rocco.setFollowing(false);
+        return start(rocco, new CaretakerErrand(rocco, player, duty, rocco.blockPosition()));
     }
 
     private static Outcome start(RoccoEntity rocco, com.cristoree.rocco.work.Errand errand)

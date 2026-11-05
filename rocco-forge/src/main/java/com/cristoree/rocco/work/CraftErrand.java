@@ -34,6 +34,8 @@ public final class CraftErrand extends Errand
     private final int wantedCount;
     private final boolean keep;
     private final boolean quiet;
+    // Sin decir nada en todo el camino (cuidando la casa se hace las tijeras solo).
+    private boolean silent;
 
     private Phase phase = Phase.PLAN;
     private Item target = Items.AIR;
@@ -62,6 +64,21 @@ public final class CraftErrand extends Errand
         this.wantedCount = count;
         this.keep = keep;
         this.quiet = quiet;
+    }
+
+    public CraftErrand silently()
+    {
+        this.silent = true;
+        return this;
+    }
+
+    @Override
+    protected void say(String category, String... keyValues)
+    {
+        if (!this.silent)
+        {
+            super.say(category, keyValues);
+        }
     }
 
     @Override

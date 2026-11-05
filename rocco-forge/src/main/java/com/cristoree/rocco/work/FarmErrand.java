@@ -13,6 +13,7 @@ import java.util.List;
 // y guarda la cosecha en el cofre que le marcaron o en uno que ya tenga eso. En modo "cuidar" se
 // queda ahi haciendolo solo, rellena lo que quede vacio (con semillas suyas o de los cofres) y
 // vuelve a revisar cada tanto. Al guardar se queda con unas semillas para la proxima vuelta.
+// Cuidando la casa (CaretakerErrand) hace una sola vuelta de esas y vuelve a los animales.
 public final class FarmErrand extends Errand
 {
     private enum Phase { HARVEST, FILL, DEPOSIT, AFTER, IDLE }
@@ -22,7 +23,10 @@ public final class FarmErrand extends Errand
     private static final int SEED_RESERVE = 16;
 
     private final boolean tend;
+    private final boolean loop;
     private final BlockPos center;
+    // Lo que se queda ademas de las semillas (el trigo y las zanahorias para los animales).
+    private final java.util.Map<net.minecraft.world.item.Item, Integer> keepAlso = new java.util.HashMap<>();
 
     private Phase phase = Phase.HARVEST;
     private int harvested;
@@ -34,9 +38,29 @@ public final class FarmErrand extends Errand
 
     public FarmErrand(RoccoEntity rocco, @Nullable Player requester, boolean tend, BlockPos center)
     {
+        this(rocco, requester, tend, center, tend);
+    }
+
+    // loop: se queda ahi para siempre (cuidar la huerta). Sin loop, con tend, hace una vuelta
+    // completa en silencio (cosecha, rellena y guarda) y termina.
+    public FarmErrand(RoccoEntity rocco, @Nullable Player requester, boolean tend, BlockPos center, boolean loop)
+    {
         super(rocco, requester);
         this.tend = tend;
+        this.loop = tend && loop;
         this.center = center.immutable();
+    }
+
+    public FarmErrand keepingAlso(java.util.Collection<net.minecraft.world.item.Item> items, int amount)
+    {
+        items.forEach(item -> this.keepAlso.put(item, amount));
+        return this;
+    }
+
+    // Cuanto cosecho en esta vuelta.
+    public int harvested()
+    {
+        return this.harvested;
     }
 
     public BlockPos center()
@@ -47,7 +71,7 @@ public final class FarmErrand extends Errand
     @Override
     public boolean persistent()
     {
-        return this.tend;
+        return this.loop;
     }
 
     @Override
@@ -137,6 +161,7 @@ public final class FarmErrand extends Errand
                     if (this.tend)
                     {
                         deposit.keeping(Crops.seedsAround(this.level, this.center, RADIUS), SEED_RESERVE);
+                        this.keepAlso.forEach((item, amount) -> deposit.keeping(java.util.List.of(item), amount));
                     }
                     delegate(deposit);
                 }
@@ -151,6 +176,10 @@ public final class FarmErrand extends Errand
                         say("harvest_none");
                         return Status.FAILED;
                     }
+                    return Status.DONE;
+                }
+                if (!this.loop)
+                {
                     return Status.DONE;
                 }
                 if (emptySlots() == 0)

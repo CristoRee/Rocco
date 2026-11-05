@@ -30,9 +30,13 @@ public final class RoccoCompanionTracker
     public static final String TAG_ROCCO_POS = "rocco_pos";
     public static final String TAG_ROCCO_DIM = "rocco_dim";
     public static final String TAG_ROCCO_FOLLOWING = "rocco_following";
+    // Donde quedo cuidando la casa (si la cuida): al entrar al mundo se la despierta.
+    public static final String TAG_ROCCO_HOME = "rocco_home";
 
     // Llamadas en curso: se carga el chunk donde estaba hasta que aparece, y se lo trae.
-    private record Recall(UUID player, ServerLevel level, net.minecraft.world.level.ChunkPos chunk, int ticksLeft, boolean announce) {}
+    // bring: traerlo al lado del jugador. Sin bring solo se despierta su zona (cuida la casa).
+    private record Recall(UUID player, ServerLevel level, net.minecraft.world.level.ChunkPos chunk, int ticksLeft, boolean announce,
+                          boolean bring) {}
     private static final java.util.List<Recall> RECALLS = new java.util.ArrayList<>();
 
     // Forge pide un "validador" para los chunks que dejamos cargados. Al abrir el mundo se
@@ -76,8 +80,28 @@ public final class RoccoCompanionTracker
         net.minecraftforge.common.world.ForgeChunkManager.forceChunk(level, RoccoMod.MODID, player.getUUID(),
                 chunk.x, chunk.z, true, true);
         RECALLS.removeIf(recall -> recall.player().equals(player.getUUID()));
-        RECALLS.add(new Recall(player.getUUID(), level, chunk, 200, announce));
+        RECALLS.add(new Recall(player.getUUID(), level, chunk, 200, announce, true));
         return false;
+    }
+
+    // Entraste al mundo lejos de la casa que cuida: se carga la casa un momento para que Rocco
+    // despierte y pida la suya (despues la mantiene el).
+    private static void wakeHome(ServerPlayer player)
+    {
+        CompoundTag data = player.getPersistentData();
+        MinecraftServer server = player.getServer();
+        ResourceLocationHolder dim = ResourceLocationHolder.of(data.getString(TAG_ROCCO_DIM));
+        ServerLevel level = dim == null || server == null ? null : server.getLevel(net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.DIMENSION, dim.location()));
+        if (level == null)
+        {
+            return;
+        }
+        net.minecraft.world.level.ChunkPos chunk = new net.minecraft.world.level.ChunkPos(BlockPos.of(data.getLong(TAG_ROCCO_POS)));
+        net.minecraftforge.common.world.ForgeChunkManager.forceChunk(level, RoccoMod.MODID, player.getUUID(),
+                chunk.x, chunk.z, true, true);
+        RECALLS.removeIf(recall -> recall.player().equals(player.getUUID()));
+        RECALLS.add(new Recall(player.getUUID(), level, chunk, 200, false, false));
     }
 
     // Espera a que el chunk termine de cargar a Rocco y lo trae. Si en 10 segundos no aparece,
@@ -99,10 +123,13 @@ public final class RoccoCompanionTracker
 
             if (player != null && rocco != null)
             {
-                bringToPlayer(player);
-                if (recall.announce())
+                if (recall.bring())
                 {
-                    rocco.sayLine("teleport_arrived");
+                    bringToPlayer(player);
+                    if (recall.announce())
+                    {
+                        rocco.sayLine("teleport_arrived");
+                    }
                 }
                 release(recall);
             }
@@ -112,7 +139,7 @@ public final class RoccoCompanionTracker
             }
             else
             {
-                next.add(new Recall(recall.player(), recall.level(), recall.chunk(), recall.ticksLeft() - 1, recall.announce()));
+                next.add(new Recall(recall.player(), recall.level(), recall.chunk(), recall.ticksLeft() - 1, recall.announce(), recall.bring()));
             }
         }
         RECALLS.clear();
@@ -134,6 +161,11 @@ public final class RoccoCompanionTracker
             return;
         }
         CompoundTag data = player.getPersistentData();
+        if (data.contains(TAG_ROCCO_HOME) && data.contains(TAG_ROCCO_POS) && find(player) == null)
+        {
+            wakeHome(player);
+            return;
+        }
         if (!data.getBoolean(TAG_ROCCO_FOLLOWING) || !data.contains(TAG_ROCCO_POS))
         {
             return;
@@ -225,7 +257,7 @@ public final class RoccoCompanionTracker
     private static void bringOrRecall(ServerPlayer player)
     {
         RoccoEntity found = find(player);
-        if (found != null && !found.mayAutoTeleport())
+        if (found != null && (!found.mayAutoTeleport() || found.staysForWork() || !found.isFollowing()))
         {
             return;
         }
@@ -312,6 +344,11 @@ public final class RoccoCompanionTracker
         if (rocco.isLeashed())
         {
             rocco.dropLeash(true, true);
+        }
+        // Lo llamaste a proposito: deja de cuidar la casa y viene.
+        if (rocco.staysForWork())
+        {
+            rocco.cancelErrand();
         }
         rocco.standUp();
         rocco.setFollowing(true);

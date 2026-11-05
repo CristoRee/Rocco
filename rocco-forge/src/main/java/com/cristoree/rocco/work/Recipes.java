@@ -79,6 +79,12 @@ public final class Recipes
         indexedFor = manager;
     }
 
+    private static boolean plainTool(ItemStack result)
+    {
+        net.minecraft.nbt.CompoundTag tag = result.getTag();
+        return tag != null && tag.size() == 1 && tag.contains("Damage") && result.getDamageValue() == 0;
+    }
+
     private static CraftPlanner.Recipe simplify(CraftingRecipe recipe, ServerLevel level)
     {
         if (recipe.isSpecial())
@@ -95,7 +101,9 @@ public final class Recipes
         {
             return null;
         }
-        if (result.isEmpty() || result.hasTag())
+        // Una herramienta nueva trae {Damage:0} (asi las arma el juego en 1.20.1): eso no la hace
+        // especial. Antes se descartaban todas, y no podia craftear picos, hachas ni tijeras.
+        if (result.isEmpty() || (result.hasTag() && !plainTool(result)))
         {
             return null;
         }

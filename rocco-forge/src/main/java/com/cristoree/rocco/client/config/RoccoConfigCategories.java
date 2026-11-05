@@ -314,7 +314,7 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.RETURN_GIFTS_ENABLED, "Regalos al volver"),
                         opt(common, RoccoCommonConfig.SURPRISES_ENABLED, "Sorpresas y su diario")))));
 
-        list.add(new Category("Trabajo", "Craftear, cofres, horno, herramientas y huerta.",
+        list.add(new Category("Trabajo", "Craftear, cofres, horno, herramientas, huerta y cuidar la casa.",
                 () -> new ItemStack(Items.CRAFTING_TABLE), List.of(
                 group(null,
                         opt(common, RoccoCommonConfig.WORK_SEARCH_RADIUS, "Radio de búsqueda"),
@@ -323,7 +323,13 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.WORK_PICK_UP_GIFTS, "Agarra lo que le tirás"),
                         opt(common, RoccoCommonConfig.WORK_GATHER_FROM_NATURE, "Junta de la naturaleza"),
                         opt(common, RoccoCommonConfig.WORK_PROTECT_ENCHANTED, "Cuida lo encantado"),
-                        opt(common, RoccoCommonConfig.WORK_MAX_MINING_SECONDS, "Tiempo máximo picando (s)")))));
+                        opt(common, RoccoCommonConfig.WORK_MAX_MINING_SECONDS, "Tiempo máximo picando (s)")),
+                group("Cuidar la casa",
+                        opt(common, RoccoCommonConfig.HOME_ANIMAL_CAP, "Animales por especie"),
+                        opt(common, RoccoCommonConfig.HOME_CULL, "Saca los que sobran"),
+                        opt(common, RoccoCommonConfig.HOME_SHEAR, "Esquila las ovejas"),
+                        opt(common, RoccoCommonConfig.HOME_CHEST_MATERIALS, "Hierro de los cofres para tijeras"),
+                        opt(common, RoccoCommonConfig.HOME_KEEP_LOADED, "La casa sigue cargada")))));
 
         list.add(new Category("Magia", "El poder de encantar tus cosas.",
                 () -> new ItemStack(Items.ENCHANTING_TABLE), List.of(

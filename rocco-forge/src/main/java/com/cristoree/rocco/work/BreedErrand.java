@@ -22,7 +22,7 @@ import java.util.Map;
 
 // Cria animales: les da de comer de a pares lo que les gusta a cada uno (trigo a las vacas,
 // zanahorias a los cerdos...) para que tengan crias. La comida sale de su inventario o de los
-// cofres de alrededor.
+// cofres de alrededor. Cuidando la casa lo hace en silencio y sin pasarse del tope de animales.
 public final class BreedErrand extends Errand
 {
     private static final double RADIUS = 14.0D;
@@ -39,11 +39,41 @@ public final class BreedErrand extends Errand
     private boolean queued;
     private boolean fetchTried;
     private int fed;
+    // Cuidando la casa: cuantos de cada especie puede haber como mucho (crias incluidas), alrededor
+    // de que punto, y sin hablar. 0 = sin tope.
+    private int cap;
+    @Nullable
+    private net.minecraft.core.BlockPos center;
+    private boolean quiet;
 
     public BreedErrand(RoccoEntity rocco, @Nullable Player requester, String wanted)
     {
         super(rocco, requester);
         this.wanted = Names.normalize(wanted == null ? "" : wanted);
+    }
+
+    // Solo los animales de granja, hasta cap de cada uno alrededor de center, sin hablar.
+    public BreedErrand capped(int cap, net.minecraft.core.BlockPos center)
+    {
+        this.cap = cap;
+        this.center = center.immutable();
+        this.quiet = true;
+        return this;
+    }
+
+    // Cuantas parejas se enamoraron.
+    public int pairs()
+    {
+        return this.fed / 2;
+    }
+
+    @Override
+    protected void say(String category, String... keyValues)
+    {
+        if (!this.quiet)
+        {
+            super.say(category, keyValues);
+        }
     }
 
     @Override
@@ -64,7 +94,7 @@ public final class BreedErrand extends Errand
         if (groups.isEmpty())
         {
             say(this.wanted.isEmpty() ? "breed_no_animals" : "breed_no_pair", "animal", this.wanted);
-            return Status.FAILED;
+            return this.quiet ? Status.DONE : Status.FAILED;
         }
 
         int pairs = 0;
@@ -91,6 +121,11 @@ public final class BreedErrand extends Errand
             }
 
             int count = Math.min(animals.size() / 2, Math.min(food / 2, MAX_PAIRS - pairs));
+            if (this.cap > 0)
+            {
+                // Cada pareja da una cria: no mas de las que entran hasta el tope.
+                count = Math.min(count, Math.max(0, this.cap - population(sample.getType())));
+            }
             for (int i = 0; i < count * 2; i++)
             {
                 Animal animal = animals.get(i);
@@ -109,7 +144,7 @@ public final class BreedErrand extends Errand
         if (pairs == 0)
         {
             say("breed_need_food", "food", missingFood == null ? "su comida" : missingFood);
-            return Status.FAILED;
+            return this.quiet ? Status.DONE : Status.FAILED;
         }
         this.queued = true;
         return Status.RUNNING;
@@ -137,12 +172,25 @@ public final class BreedErrand extends Errand
         this.level.playSound(null, animal.blockPosition(), SoundEvents.GENERIC_EAT, SoundSource.NEUTRAL, 0.6F, 1.0F);
     }
 
+    // Cuantos hay de esa especie (crias incluidas) alrededor de la casa.
+    private int population(EntityType<?> type)
+    {
+        return this.level.getEntitiesOfClass(Animal.class, area(), animal -> animal.isAlive() && animal.getType() == type).size();
+    }
+
+    private net.minecraft.world.phys.AABB area()
+    {
+        return this.center == null ? this.rocco.getBoundingBox().inflate(RADIUS)
+                : new net.minecraft.world.phys.AABB(this.center).inflate(RanchErrand.RADIUS, 8.0D, RanchErrand.RADIUS);
+    }
+
     // Adultos, sin cria reciente, que todavia no esten enamorados, agrupados por especie.
     private Map<EntityType<?>, List<Animal>> eligibleByType()
     {
         Map<EntityType<?>, List<Animal>> groups = new LinkedHashMap<>();
-        List<Animal> nearby = this.level.getEntitiesOfClass(Animal.class, this.rocco.getBoundingBox().inflate(RADIUS),
-                animal -> animal.isAlive() && !animal.isBaby() && animal.getAge() == 0 && animal.canFallInLove() && matches(animal));
+        List<Animal> nearby = this.level.getEntitiesOfClass(Animal.class, area(),
+                animal -> animal.isAlive() && !animal.isBaby() && animal.getAge() == 0 && animal.canFallInLove() && matches(animal)
+                        && (this.cap <= 0 || RanchErrand.isFarmAnimal(animal)));
         nearby.sort(java.util.Comparator.comparingDouble(animal -> animal.distanceToSqr(this.rocco)));
 
         for (Animal animal : nearby)

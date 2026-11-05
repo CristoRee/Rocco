@@ -8,7 +8,6 @@ import com.cristoree.rocco.entity.RoccoState;
 import com.cristoree.rocco.entity.RoccoTask;
 import com.cristoree.rocco.voice.RoccoNetwork;
 import com.cristoree.rocco.work.Errand;
-import com.cristoree.rocco.work.FarmErrand;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 
@@ -45,7 +44,7 @@ public final class RoccoMenu
         int flags = 0;
         RoccoPose pose = rocco.getRoccoPose();
         Errand errand = rocco.currentErrand();
-        boolean tending = errand instanceof FarmErrand farm && farm.persistent();
+        boolean tending = rocco.staysForWork();
         if (rocco.isFollowing()) flags |= FOLLOWING;
         if (pose == RoccoPose.SITTING || pose == RoccoPose.SITTING_DOWN) flags |= SITTING;
         if (pose.isAsleep()) flags |= SLEEPING;
@@ -90,6 +89,7 @@ public final class RoccoMenu
             case "guardar" -> order(player, rocco, "Guarda todo.", "guardar", "todo", "store_ack");
             case "ordenar" -> order(player, rocco, "Ordena los cofres.", "ordenar", "", "sort_ack");
             case "huerta" -> order(player, rocco, "Cuida la huerta.", "cuidar_huerta", "", "tend_ack");
+            case "casa" -> order(player, rocco, "Quedate cuidando la casa.", "cuidar_casa", "", "home_ack");
             case "mate" -> order(player, rocco, "Tomate un mate.", "mate", "", "mate_ack");
             case "cebar_mate" -> order(player, rocco, "Cebame un mate.", "cebar_mate", "", "mate_share_ack");
             case "bailar" -> order(player, rocco, "Baila.", "bailar", "", "dance_ack");

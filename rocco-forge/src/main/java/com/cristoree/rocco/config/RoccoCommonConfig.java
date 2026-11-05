@@ -147,6 +147,11 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.BooleanValue WORK_GIVE_RESULTS;
     public static final ForgeConfigSpec.BooleanValue WORK_PICK_UP_GIFTS;
     public static final ForgeConfigSpec.BooleanValue WORK_GATHER_FROM_NATURE;
+    public static final ForgeConfigSpec.IntValue HOME_ANIMAL_CAP;
+    public static final ForgeConfigSpec.BooleanValue HOME_CULL;
+    public static final ForgeConfigSpec.BooleanValue HOME_SHEAR;
+    public static final ForgeConfigSpec.BooleanValue HOME_CHEST_MATERIALS;
+    public static final ForgeConfigSpec.BooleanValue HOME_KEEP_LOADED;
     public static final ForgeConfigSpec.BooleanValue WORK_PROTECT_ENCHANTED;
     public static final ForgeConfigSpec.IntValue WORK_MAX_MINING_SECONDS;
 
@@ -535,8 +540,9 @@ public final class RoccoCommonConfig
                 .comment("Pelea cuerpo a cuerpo con creepers. Apagado, solo les dispara si tiene arco o ballesta.")
                 .define("attackCreepers", false);
         OWNER_CAN_HURT_ROCCO = b
-                .comment("Tus golpes le hacen dano. Apagado, no lo lastimas sin querer en medio de una pelea.")
-                .define("ownerCanHurtRocco", false);
+                .comment("Tus golpes le hacen dano, como a cualquier mob. Apagado, tus golpes no le hacen nada",
+                         "(para no lastimarlo sin querer en medio de una pelea).")
+                .define("ownerCanHurtRocco", true);
         WEAPON_DURABILITY = b
                 .comment("Sus armas y armaduras se gastan como las tuyas.")
                 .define("weaponDurability", true);
@@ -667,6 +673,29 @@ public final class RoccoCommonConfig
         WORK_MAX_MINING_SECONDS = b
                 .comment("Si romper un bloque le llevaria mas que esto, no lo intenta.")
                 .defineInRange("maxMiningSeconds", 20, 1, 120);
+        b.pop();
+
+        b.comment("Cuidar la casa: la huerta y los animales mientras vos exploras (\"quedate cuidando la casa\").").push("home");
+        HOME_ANIMAL_CAP = b
+                .comment("Cuantos animales de cada especie mantiene alrededor de la casa (crias incluidas).",
+                         "Los hace criar hasta ese numero y no mas.")
+                .defineInRange("animalsPerSpecies", 16, 2, 64);
+        HOME_CULL = b
+                .comment("Si de una especie hay mas adultos que eso, saca de a poco los que sobran (y guarda",
+                         "la carne y el cuero). Nunca toca animales con nombre, atados, montados o domesticados.")
+                .define("cullExtra", true);
+        HOME_SHEAR = b
+                .comment("Esquila las ovejas y guarda la lana. Si no tiene tijeras, se las hace con 2 lingotes",
+                         "de hierro que tenga encima.")
+                .define("shearSheep", true);
+        HOME_CHEST_MATERIALS = b
+                .comment("Para hacerse las tijeras puede usar el hierro de los cofres de la casa.",
+                         "Apagado, solo usa el que lleva encima (o el que le des).")
+                .define("useChestMaterials", false);
+        HOME_KEEP_LOADED = b
+                .comment("Mientras cuida la casa, esa zona queda cargada aunque te vayas lejos: la huerta",
+                         "crece y los animales se mueven. Apagado, la casa se congela cuando no estas cerca.")
+                .define("keepHomeLoaded", true);
         b.pop();
 
         b.comment("Personalidad y que le cuenta el mod a la IA sobre lo que pasa.").push("personality");

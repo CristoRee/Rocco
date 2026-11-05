@@ -111,6 +111,10 @@ public final class RoccoContextBuilder
                 : "resting, ready again in " + Math.max(1, (enchantLeft + 1199) / 1200) + " minutes");
 
         facts.put("Places you remember", placesOf(rocco, player));
+        var stored = rocco.lastStored();
+        facts.put("What you last stored in chests", stored == null ? "nothing yet"
+                : stored.items() + ", " + rocco.describeStoredPlace(stored) + " ("
+                + Math.max(1, (level.getGameTime() - stored.tick()) / 1200) + " minutes ago)");
 
         String animals = breedable(level, rocco);
         if (!animals.isEmpty())
@@ -125,7 +129,12 @@ public final class RoccoContextBuilder
 
         facts.put("Doors or trapdoors nearby",
                 String.valueOf(RoccoWork.findOpenables(level, rocco.blockPosition(), 8).size()));
-        facts.put("You are following the player", rocco.isFollowing() ? "yes" : "no, they asked you to wait");
+        facts.put("You are following the player", rocco.staysForWork() ? "no, you are looking after the place (see what you are doing)"
+                : rocco.isFollowing() ? "yes" : "no, they asked you to wait");
+        facts.put("Home care", "up to " + RoccoCommonConfig.HOME_ANIMAL_CAP.get() + " animals per species"
+                + (RoccoCommonConfig.HOME_CULL.get() ? ", you take out the extra adults" : ", you never kill animals")
+                + (RoccoCommonConfig.HOME_SHEAR.get() ? ", you shear the sheep" : "")
+                + (RoccoCommonConfig.HOME_CHEST_MATERIALS.get() ? ", you may use the iron in the chests for shears" : ""));
         facts.put("Your health", Math.round(rocco.getHealth()) + " of " + Math.round(rocco.getMaxHealth())
                 + (rocco.life().saturation() > 0.0F ? " (you ate recently: healing faster)" : " (you heal by yourself little by little)"));
         facts.put("You may use on your own", usesOf(rocco));

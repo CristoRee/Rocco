@@ -10,6 +10,7 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, entien
 
 - **Charla de verdad:** con su personalidad, se acuerda de lo que le contaste y te lo saca en cara. Tres modos: Chill, Sin filtro y Personalizado.
 - **Te sigue a todos lados:** vuela con vos si usás elytra, flota con su patito y bucea con antiparras, y rema al costado en su propio barquito de calabaza. Nunca se pierde.
+- **Cuida la casa mientras explorás:** cosecha, esquila, hace criar a los animales (sin pasarse), junta los huevos y la lana y guarda todo. Al volver te cuenta qué hizo.
 - **Trabaja:** cultiva y cosecha, craftea con las recetas reales (y te dice qué falta), cocina, tala, ilumina, ordena y guarda en tus cofres, pesca, cría animales y comercia con aldeanos.
 - **Encanta tus cosas** una vez por día, como una mesa de encantamientos.
 - **Mate:** se toma unos mates y te ceba uno si se lo pedís.
@@ -61,7 +62,7 @@ Minecraft es marca de Mojang AB. Rocco no está afiliado a Mojang ni a Microsoft
 
 ## 🇬🇧 English
 
-**Rocco is an AI adventure companion that sprouts from the ground next to you.** He chats with his own personality, follows you everywhere (flying, swimming and in his own little boat), farms, crafts with real recipes, cooks, enchants your gear once a day, drinks mate, wears armor and 3D weapons, fights by your side, comes back buried next to your respawn point if he dies, plays music from links (audio files, internet radios, Bandcamp, Twitch) and sings and dances to it, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram).
+**Rocco is an AI adventure companion that sprouts from the ground next to you.** He chats with his own personality, follows you everywhere (flying, swimming and in his own little boat), farms, looks after your home and animals while you explore, crafts with real recipes, cooks, enchants your gear once a day, drinks mate, wears armor and 3D weapons, fights by your side, comes back buried next to your respawn point if he dies, plays music from links (audio files, internet radios, Bandcamp, Twitch) and sings and dances to it, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram).
 
 He speaks **Spanish** and works **without any account or key** thanks to hundreds of built-in lines. A free AI key (Groq, Gemini, OpenRouter or a local Ollama) makes him chat for real. With a key you can also make him reply in English: in his menu (sneak + right-click) open **Personalidad** and set **Dialect** to **Automatic**: he follows your game language. The menus, his built-in lines and the chat orders without AI are in Spanish.
 
@@ -73,7 +74,7 @@ He speaks **Spanish** and works **without any account or key** thanks to hundred
 
 ## 🇧🇷 Português
 
-**Rocco é um companheiro de aventuras com IA que brota da terra ao seu lado.** Ele conversa com personalidade própria, te segue para todo lado (voando, nadando e no seu barquinho), planta, crafta com as receitas reais, cozinha, encanta suas ferramentas uma vez por dia, toma chimarrão, usa armadura e armas 3D, luta ao seu lado, volta enterradinho perto de você se morrer, toca música a partir de links (arquivos de áudio, rádios, Bandcamp, Twitch) cantando e dançando, e pode falar em voz alta (Fish Audio) e te ouvir pelo microfone (Deepgram).
+**Rocco é um companheiro de aventuras com IA que brota da terra ao seu lado.** Ele conversa com personalidade própria, te segue para todo lado (voando, nadando e no seu barquinho), planta, cuida da casa e dos animais enquanto você explora, crafta com as receitas reais, cozinha, encanta suas ferramentas uma vez por dia, toma chimarrão, usa armadura e armas 3D, luta ao seu lado, volta enterradinho perto de você se morrer, toca música a partir de links (arquivos de áudio, rádios, Bandcamp, Twitch) cantando e dançando, e pode falar em voz alta (Fish Audio) e te ouvir pelo microfone (Deepgram).
 
 Ele fala **espanhol** e funciona **sem nenhuma conta ou chave**, com centenas de falas próprias. Com uma chave de IA gratuita (Groq, Gemini, OpenRouter ou um Ollama local) ele conversa de verdade, e pode responder em português: no menu dele (agachado + clique direito) abra **Personalidad** e coloque **Dialect** em **Automatic**: ele segue o idioma do seu jogo. Os menus, as falas prontas e as ordens sem IA são em espanhol.
 

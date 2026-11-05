@@ -40,13 +40,15 @@ Se le habla por el chat (o por micrófono). Algunos ejemplos:
 | "bailá", "aplaudí", "festejá" | Baila (dos bailes nuevos en bucle, de 8 segundos cada vuelta), aplaude o salta con confeti. Solo, festeja tus logros y baila cuando estás tranquilo. Si suena un disco en un tocadiscos cerca, va y baila hasta que se termina. |
 | "poné esto: https://..." | Pone la música de un link y la canta y la baila al ritmo de la canción. Ver **Música** abajo. |
 | "esta es mi casa" / "llevame a casa" | Recuerda lugares y te guía hasta ellos. |
-| "traeme carbón", "guardá todo", "ordená los cofres" | Busca, guarda y ordena las cosas de tus cofres. |
+| "traeme carbón", "guardá todo", "ordená los cofres" | Busca, guarda y ordena las cosas de tus cofres. Lo que tiene puesto (armadura, arma y escudo) no lo guarda. Si le preguntás "¿dónde guardaste?", te dice en qué cofre. |
 | "talá un árbol", "conseguime 10 de madera", "iluminá" | Junta materiales de la naturaleza y pone antorchas donde está oscuro. |
-| "criá las vacas", "andá a pescar", "comprale pan al aldeano" | Cría animales, pesca con su caña (con boya y todo) y comercia con los aldeanos. |
+| "criá las vacas", "dales de comer a los animales", "esquilá las ovejas" | Les da de comer de a pares para que tengan crías, y esquila las ovejas (si no tiene tijeras, se las hace con 2 de hierro). |
+| "quedate cuidando la casa", "cuidá los animales" | Se queda en tu casa mientras explorás. Ver **Cuidar la casa** abajo. |
+| "andá a pescar", "comprale pan al aldeano" | Pesca con su caña (con boya y todo) y comercia con los aldeanos. |
 
 Clic derecho sobre Rocco abre su tapa: un inventario de 36 lugares. En modo Chill, adentro de su cabeza hay un jardincito con flores en vez de la carne (se cambia en **Config > General > Adentro de su tapa**).
 
-**Agachado + clic derecho** abre su menú: qué está haciendo, qué tan amigos son y si tiene la magia lista, con botones para lo de todos los días (seguir o dejar de seguir, vení, sentate, a dormir, su inventario, guardar todo, ordenar cofres, cuidar la huerta, cebarte un mate, baile, callarse un rato), sus lugares guardados (llevame, guardar uno nuevo, olvidar) y accesos a la personalidad y la configuración. En multijugador, el menú es solo del dueño.
+**Agachado + clic derecho** abre su menú: qué está haciendo, qué tan amigos son y si tiene la magia lista, con botones para lo de todos los días (seguir o dejar de seguir, vení, sentate, a dormir, su inventario, guardar todo, ordenar cofres, cuidar la casa, cebarte un mate, baile, callarse un rato), sus lugares guardados (llevame, guardar uno nuevo, olvidar) y accesos a la personalidad y la configuración. En multijugador, el menú es solo del dueño.
 
 ### Armadura, armas y pelea
 
@@ -61,6 +63,19 @@ Clic derecho sobre Rocco abre su tapa: un inventario de 36 lugares. En modo Chil
 - **Si se muere:** hace su caída, suelta lo que llevaba y a los 15 segundos reaparece **enterradito** cerca tuyo. Hacé clic derecho en el montículo y sale de un salto. Si no lo desenterrás, a los 5 minutos la tumba se muda a tu punto de reaparición. Se puede elegir que muera para siempre o que sea inmortal (**Config > Vida y rutina**).
 - **Traerlo siempre:** **Mods > Rocco > Config > Traer a Rocco**, una tecla en **Controles > Rocco** (sin asignar de fábrica) o `/rocco llamar`.
 - **El poder del cofre de ender:** dale un cofre de ender (o ponelo cerca para que se lo coma) y desde ahí no pierde sus cosas al morir.
+
+### Cuidar la casa
+
+Decile "quedate cuidando la casa" (o el botón **Cuidar la casa** de su menú) y se queda ahí mientras vos explorás. Cada medio minuto da una vuelta:
+
+- **La huerta:** cosecha lo maduro, replanta y guarda la cosecha (se queda con un poco de trigo y zanahorias para los animales).
+- **Los animales** (vacas, ovejas, cerdos, gallinas, conejos y cabras): esquila las ovejas, les da de comer de a pares para que tengan crías hasta **16 por especie**, y si hay más adultos que eso saca de a poco los que sobran (te avisa la primera vez). Junta lo que dejan en el piso (lana, huevos, plumas, carne, cuero) y lo guarda en los cofres.
+- **Nunca toca** animales con nombre, atados, montados o domesticados.
+- **Mientras no estás, la casa sigue cargada:** la huerta crece y los animales se mueven aunque estés lejos. Si lo atacan, se defiende y sigue.
+- **Cuando volvés** te cuenta qué hizo ("coseché 34 cosas, nacieron 3 crías y esquilé 4 ovejas").
+- **Para que deje:** "seguime", "vení" o el botón **Dejar de cuidar**. También se puede pedir solo la huerta ("cuidá la huerta") o solo los animales ("cuidá los animales").
+
+El tope, sacar los que sobran, esquilar, usar el hierro de los cofres para las tijeras y dejar la casa cargada se cambian en **Config > Trabajo > Cuidar la casa**.
 
 ### Música
 
@@ -167,6 +182,6 @@ Minecraft es marca de Mojang AB. Rocco no está afiliado a Mojang ni a Microsoft
 
 ### English
 
-Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms (planting the seeds he has or finds in your chests), crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate (and shares one with you if you ask), remembers places, breeds animals, fishes, trades with villagers, sorts your chests, brings you gifts when you come back after being away, has a sneak + right-click menu, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He wears armor (with a cute style per material) and 3D weapons, fights by your side (you choose who he may attack), plays music from links (audio files, internet radios, Bandcamp, Twitch) and sings and dances to it, heals with sunlight, comes back buried next to your respawn point if he dies, keeps his items forever if he eats an ender chest, and loves Roco Cola. He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.
+Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms (planting the seeds he has or finds in your chests), crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate (and shares one with you if you ask), remembers places, breeds animals, looks after your home (crops and animals, even while you are far away), fishes, trades with villagers, sorts your chests, brings you gifts when you come back after being away, has a sneak + right-click menu, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He wears armor (with a cute style per material) and 3D weapons, fights by your side (you choose who he may attack), plays music from links (audio files, internet radios, Bandcamp, Twitch) and sings and dances to it, heals with sunlight, comes back buried next to your respawn point if he dies, keeps his items forever if he eats an ender chest, and loves Roco Cola. He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.
 
 **External services:** without keys, Rocco connects to nothing (except the site of a music link someone gives him, which your game opens to play it). Only if you add a key does it talk to that service (your messages go to the AI provider you chose, the spoken text to Fish Audio, your microphone audio to Deepgram). Nothing is collected or sent anywhere else.

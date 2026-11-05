@@ -236,6 +236,11 @@ public final class RoccoCombat
             return canUse() || this.swingTicks >= 0;
         }
 
+        private boolean quietHunt(@Nullable LivingEntity target)
+        {
+            return target != null && !(target instanceof net.minecraft.world.entity.monster.Enemy) && this.rocco.staysForWork();
+        }
+
         private boolean valid(@Nullable LivingEntity target)
         {
             if (!mayAttack(this.rocco, target))
@@ -245,6 +250,12 @@ public final class RoccoCombat
             ServerPlayer owner = this.rocco.trueOwner();
             // No se va lejisimo detras de algo: si vos te alejaste, vuelve.
             double far = GIVE_UP * GIVE_UP;
+            // Cuidando la casa no te sigue: la distancia que cuenta es la suya (y un poco mas, que
+            // los animales del corral se mueven).
+            if (this.rocco.staysForWork())
+            {
+                return this.rocco.distanceToSqr(target) < far * 2.0D;
+            }
             return this.rocco.distanceToSqr(target) < far && (owner == null || owner.distanceToSqr(target) < far);
         }
 
@@ -256,14 +267,18 @@ public final class RoccoCombat
             this.drawTicks = -1;
             this.repath = 0;
             this.rocco.enterCombat();
-            this.rocco.sayLineOnce("combat_start", 400);
+            // Sacar una vaca que sobra no es una pelea: no grita nada.
+            if (!quietHunt(this.rocco.getTarget()))
+            {
+                this.rocco.sayLineOnce("combat_start", 400);
+            }
         }
 
         @Override
         public void stop()
         {
             LivingEntity target = this.rocco.getTarget();
-            if (target != null && !target.isAlive())
+            if (target != null && !target.isAlive() && !quietHunt(target))
             {
                 this.rocco.sayLineOnce("combat_win", 600);
             }

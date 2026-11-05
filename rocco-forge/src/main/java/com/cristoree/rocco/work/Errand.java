@@ -112,6 +112,13 @@ public abstract class Errand
         return false;
     }
 
+    // Si un bicho lo ataca puede dejar el encargo un momento para defenderse, y despues sigue.
+    // Lo que solo espera (y cuidar la casa, que dura horas) lo permite.
+    public boolean allowsFighting()
+    {
+        return allowsFollowing();
+    }
+
     // ---------- ayudas para los pasos ----------
 
     @Nullable

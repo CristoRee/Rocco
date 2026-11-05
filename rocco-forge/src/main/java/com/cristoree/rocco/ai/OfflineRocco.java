@@ -39,7 +39,16 @@ public final class OfflineRocco
     private static final Pattern WAIT = Pattern.compile("\\b(espera\\w*|quedate|quieto|stay|wait)\\b");
 
     // Trabajos. El argumento es el resto de la frase: RoccoActions lo traduce a items.
-    private static final Pattern TEND = Pattern.compile("\\b(cuida|cuidar|cuidame|atende|atender)\\b.*\\b(huerta|huertas|cultivos?|granja|campo|plantacion)\\b");
+    private static final Pattern TEND = Pattern.compile("\\b(cuida|cuidar|cuidame|cuidando|atende|atender)\\b.*\\b(huerta|huertas|cultivos?|campo|plantacion|cosechas?)\\b");
+    // "Quedate cuidando la casa", "cuida todo", "cuida la granja": la huerta y los animales.
+    private static final Pattern TEND_HOME = Pattern.compile("\\b(cuida|cuidar|cuidame|cuidando|atende|atender|vigila\\w*)\\b.*\\b(casa|base|todo|granja|chacra|estancia)\\b"
+            + "|\\b(cuida|cuidar|cuidando|atende|atender)\\b.*\\b(huerta|cultivos?|cosechas?)\\b.*\\b(animales|bichos)\\b"
+            + "|\\b(cuida|cuidar|cuidando|atende|atender)\\b.*\\b(animales|bichos)\\b.*\\b(huerta|cultivos?|cosechas?)\\b");
+    private static final Pattern TEND_ANIMALS = Pattern.compile("\\b(cuida|cuidar|cuidame|cuidando|atende|atender)\\b.*\\b(animales|bichos|vacas|ovejas|gallinas|pollos|cerdos|chanchos|conejos|cabras|corral|corrales|establo)\\b");
+    // "Esquila las ovejas", "cortales la lana", "sacales la lana a las ovejas".
+    private static final Pattern SHEAR = Pattern.compile("\\b(esquila\\w*|trasquila\\w*)\\b|\\b(corta\\w*|saca\\w*)\\b.*\\blana\\b");
+    // "Alimenta a las vacas", "dales de comer a los animales": criar (comen de a pares y tienen crias).
+    private static final Pattern FEED = Pattern.compile("\\b(alimenta\\w*)\\b(.*)|\\b(dales?|darles?|dale) de comer a (las |los |mis )?(.+)");
     private static final Pattern HARVEST_CHEST = Pattern.compile("\\bcofre\\b.*\\bcosecha\\b|\\bcosecha\\b.*\\b(este|ese|aca|ahi) cofre\\b");
     private static final Pattern RECIPE = Pattern.compile("\\breceta (de |del |para )?(.+)|\\bque (necesito|hace falta|se necesita) para (hacer |craftear |fabricar )?(.+)"
             + "|\\bcomo (se hace|se craftea|hago|crafteo|fabrico) (un |una |el |la )?(.+)");
@@ -49,6 +58,12 @@ public final class OfflineRocco
     private static final Pattern LIGHT = Pattern.compile("\\b(ilumina\\w*|alumbra\\w*)\\b|\\bpone(me)? antorchas\\b");
     private static final Pattern COOK = Pattern.compile("\\b(cocina\\w*|asa|asar|asame|asalo|asala|hornea\\w*|funde|fundi|fundir|derreti\\w*)\\b(.*)");
     private static final Pattern CRAFT = Pattern.compile("\\b(craftea\\w*|craftear|fabrica\\w*|haceme|hace|hacete|haz|hazme|arma|armame|construi|construime|construye|construyeme)\\b(.*)");
+    // "Donde guardaste?", "donde dejaste la cosecha?", "donde esta lo que cosechaste?".
+    private static final Pattern WHERE_STORED = Pattern.compile("\\bdonde\\b.*\\b(guardaste|dejaste|pusiste|metiste)\\b"
+            + "|\\bdonde (esta|estan|quedo|quedaron) (la cosecha|el trigo|las cosas|lo que (cosechaste|juntaste|guardaste))\\b");
+    // Una pregunta por lo que ya hizo: el verbo en pasado ("guardaste", "hiciste") al principio.
+    private static final Pattern PAST_QUESTION = Pattern.compile("^((donde|que|cuando|como|por que|cuanto|cuantos|cuantas|ya|y|che|vos)\\s+)*"
+            + "((lo|la|los|las|le|les|me|te|se)\\s+)?[a-z]+(aste|iste|asteis|isteis)\\b");
     private static final Pattern STORE = Pattern.compile("\\b(guarda\\w*|deja(lo|la|los|las)? en)\\b(.*)");
     private static final Pattern TAKE = Pattern.compile("\\b(saca\\w*|agarra\\w*)\\b(.*)\\b(del|de los|de el|en el)\\s+(cofres?|baul|barril)\\b");
     private static final Pattern BREAK = Pattern.compile("\\b(rompe\\w*|saca\\w*|quita\\w*|desarma\\w*)\\b(.*)");
@@ -114,59 +129,18 @@ public final class OfflineRocco
             return music;
         }
 
-        // Primero las ordenes: son lo que el jugador espera que funcione si o si.
-        if (NOT_FOLLOW.matcher(text).find())
+        // "Donde guardaste las cosas?": lo dice con el lugar.
+        if (WHERE_STORED.matcher(text).find())
         {
-            return act("wait", RoccoExpression.BORED, "esperar", "");
-        }
-        if (STOP.matcher(text).find())
-        {
-            return act("stop", RoccoExpression.BORED, "parar", "");
+            return storedWhere(rocco);
         }
 
-        Answer work = work(text, rocco);
-        if (work != null)
+        // Primero las ordenes: son lo que el jugador espera que funcione si o si. Una pregunta por
+        // algo que ya hizo ("cosechaste?", "que hiciste?") no es una orden, aunque tenga el verbo.
+        Answer order = PAST_QUESTION.matcher(text).find() ? null : order(rocco, text);
+        if (order != null)
         {
-            return work;
-        }
-        if (PLANT.matcher(text).find())
-        {
-            return act("plant", RoccoExpression.SMUG, "plantar", cropIn(text));
-        }
-        if (HARVEST.matcher(text).find())
-        {
-            return act("harvest", RoccoExpression.SMUG, "cosechar", "");
-        }
-        if (OPEN.matcher(text).find())
-        {
-            return act("open", RoccoExpression.HAPPY, "abrir", "");
-        }
-        // Va antes que comer: "come here" es seguir, no comer.
-        if (FOLLOW.matcher(text).find())
-        {
-            return act("follow", RoccoExpression.HAPPY, "seguir", "");
-        }
-        Matcher eat = EAT.matcher(text);
-        if (eat.find())
-        {
-            return act("eat", RoccoExpression.HAPPY, "comer", eatTarget(eat.group(2)));
-        }
-        // Levantarse va primero: "estas sentado, levantate" no es una orden de sentarse.
-        if (WAKE.matcher(text).find())
-        {
-            return act("wake", RoccoExpression.HAPPY, "levantarse", "");
-        }
-        if (SLEEP.matcher(text).find())
-        {
-            return act("sleep", RoccoExpression.BORED, "dormir", "");
-        }
-        if (SIT.matcher(text).find())
-        {
-            return act("sit", RoccoExpression.HAPPY, "sentarse", "");
-        }
-        if (WAIT.matcher(text).find())
-        {
-            return act("wait", RoccoExpression.SMUG, "esperar", "");
+            return order;
         }
 
         // Despues, la charla. De lo mas puntual a lo mas general.
@@ -335,7 +309,7 @@ public final class OfflineRocco
     // La frase tiene que empezar con la orden ("crafteame un pico", "porfa segui", "podes traerme
     // carbon"), no tenerla perdida en el medio: "me encanta como cocinas" no es una orden de cocinar.
     private static final Pattern LEADING_FILLER = Pattern.compile(
-            "^((che|dale|porfa|por favor|bueno|ahora|ya|y|ey|oye|eh|a ver|tipo|mira),?\\s+)+");
+            "^((che|dale(?! de comer)|porfa|por favor|bueno|ahora|ya|y|ey|oye|eh|a ver|tipo|mira),?\\s+)+");
     private static final Pattern COMMAND_START = Pattern.compile("^(no me sigas|deja de|para|basta|stop|cancela\\w*"
             + "|segui\\w*|sigueme|veni\\w*|ven|vente|espera\\w*|quedate|quieto|senta\\w*|sientate|dormi\\w*|duerme\\w*|a mimir"
             + "|levanta\\w*|desperta\\w*|despierta\\w*|planta\\w*|sembra\\w*|siembra\\w*|cosecha\\w*|abri\\w*|cerra\\w*"
@@ -343,6 +317,7 @@ public final class OfflineRocco
             + "|asa\\w*|hornea\\w*|funde|fundi\\w*|derreti\\w*|guarda\\w*|deja\\w*|saca\\w*|agarra\\w*|rompe\\w*|quita\\w*"
             + "|pone\\w*|pon|coloca\\w*|trae\\w*|alcanza\\w*|dame\\w*|pasame\\w*|tira\\w*|suelta\\w*|larga\\w*|junta\\w*"
             + "|recoge\\w*|consegui\\w*|consigue\\w*|busca\\w*|fijate|mina\\w*|pica\\w*|tala\\w*|corta\\w*|ilumina\\w*"
+            + "|esquila\\w*|trasquila\\w*|alimenta\\w*|vigila\\w*|dales? de comer|darles? de comer|dale de comer"
             + "|alumbra\\w*|ara\\w*|labra\\w*|prepara\\w*|cuida\\w*|atende\\w*|encanta\\w*|hechiza\\w*|toma\\w*|ceba\\w*|equipa\\w*|desequipa\\w*|bebe\\w*|ataca\\w*|mata\\w*|pegale\\w*|dispara\\w*|defende\\w*|usa\\w*"
             + "|teletransport\\w*|tepea\\w*|tpea\\w*|aparece\\w*|llevame|guiame|acompaname|cria\\w*|pesca\\w*|compra\\w*"
             + "|vende\\w*|ordena\\w*|acomoda\\w*|organiza\\w*|baila\\w*|bailemos|aplaud\\w*|festej\\w*|celebra\\w*"
@@ -363,6 +338,7 @@ public final class OfflineRocco
         }
         String text = LEADING_FILLER.matcher(normalize(message)).replaceFirst("").trim();
         if (text.isEmpty() || text.split("\\s+").length > 10 || ABILITY_QUESTION.matcher(text).find()
+                || PAST_QUESTION.matcher(text).find()
                 || !COMMAND_START.matcher(text).find())
         {
             return null;
@@ -567,6 +543,25 @@ public final class OfflineRocco
         if (CALL.matcher(text).find())
         {
             return act("teleport_ack", RoccoExpression.SMUG, "teletransportarse", "");
+        }
+        // Cuidar la casa va antes que la huerta sola, y los animales antes que criar.
+        if (TEND_HOME.matcher(text).find())
+        {
+            return act("home_ack", RoccoExpression.SMUG, "cuidar_casa", "");
+        }
+        if (TEND_ANIMALS.matcher(text).find())
+        {
+            return act("ranch_ack", RoccoExpression.HAPPY, "cuidar_animales", "");
+        }
+        if (SHEAR.matcher(text).find())
+        {
+            return act("shear_ack", RoccoExpression.HAPPY, "esquilar", "");
+        }
+        Matcher feed = FEED.matcher(text);
+        if (feed.find())
+        {
+            String animal = feed.group(2) != null ? feed.group(2) : feed.group(5);
+            return act("breed_ack", RoccoExpression.HAPPY, "criar", animal == null ? "" : animal.trim());
         }
         // Lo nuevo va antes que comer o poner: "comete ese cofre de ender", "ponete la armadura".
         if (COLA.matcher(text).find() && DRINK.matcher(text).find())
@@ -832,6 +827,78 @@ public final class OfflineRocco
     public static Answer greeting()
     {
         return say("awaken", RoccoExpression.SMUG);
+    }
+
+    // Las ordenes de la frase. null si no hay ninguna.
+    @org.jetbrains.annotations.Nullable
+    private static Answer order(RoccoEntity rocco, String text)
+    {
+        if (NOT_FOLLOW.matcher(text).find())
+        {
+            return act("wait", RoccoExpression.BORED, "esperar", "");
+        }
+        if (STOP.matcher(text).find())
+        {
+            return act("stop", RoccoExpression.BORED, "parar", "");
+        }
+
+        Answer work = work(text, rocco);
+        if (work != null)
+        {
+            return work;
+        }
+        if (PLANT.matcher(text).find())
+        {
+            return act("plant", RoccoExpression.SMUG, "plantar", cropIn(text));
+        }
+        if (HARVEST.matcher(text).find())
+        {
+            return act("harvest", RoccoExpression.SMUG, "cosechar", "");
+        }
+        if (OPEN.matcher(text).find())
+        {
+            return act("open", RoccoExpression.HAPPY, "abrir", "");
+        }
+        // Va antes que comer: "come here" es seguir, no comer.
+        if (FOLLOW.matcher(text).find())
+        {
+            return act("follow", RoccoExpression.HAPPY, "seguir", "");
+        }
+        Matcher eat = EAT.matcher(text);
+        if (eat.find())
+        {
+            return act("eat", RoccoExpression.HAPPY, "comer", eatTarget(eat.group(2)));
+        }
+        // Levantarse va primero: "estas sentado, levantate" no es una orden de sentarse.
+        if (WAKE.matcher(text).find())
+        {
+            return act("wake", RoccoExpression.HAPPY, "levantarse", "");
+        }
+        if (SLEEP.matcher(text).find())
+        {
+            return act("sleep", RoccoExpression.BORED, "dormir", "");
+        }
+        if (SIT.matcher(text).find())
+        {
+            return act("sit", RoccoExpression.HAPPY, "sentarse", "");
+        }
+        if (WAIT.matcher(text).find())
+        {
+            return act("wait", RoccoExpression.SMUG, "esperar", "");
+        }
+        return null;
+    }
+
+    // Donde guardo lo ultimo que guardo en un cofre (lo recuerda la entidad).
+    private static Answer storedWhere(RoccoEntity rocco)
+    {
+        RoccoEntity.Stored stored = rocco == null ? null : rocco.lastStored();
+        if (stored == null)
+        {
+            return say("stored_where_none", RoccoExpression.HAPPY);
+        }
+        return new Answer(line("stored_where", "items", stored.items(), "where", rocco.describeStoredPlace(stored)),
+                RoccoExpression.SMUG, null, null);
     }
 
     private static Answer death(RoccoEntity rocco)
@@ -1256,6 +1323,11 @@ public final class OfflineRocco
             Map.entry("deposit_done", new String[]{
                     "Guarde {items}.",
                     "Listo, {items} en el cofre. Ordenadito."}),
+            Map.entry("stored_where", new String[]{
+                    "Lo guarde {where}: {items}.",
+                    "{where}. Ahi deje {items}, ordenadito."}),
+            Map.entry("stored_where_none", new String[]{
+                    "Todavia no guarde nada en ningun cofre. Lo que junto lo tengo en mi tapa."}),
             Map.entry("deposit_some_kept", new String[]{
                     "{items} me lo quedo, no habia cofre para eso."}),
 
@@ -1270,6 +1342,25 @@ public final class OfflineRocco
                     "No hay cofre para la cosecha, la guardo yo. Si queres, mira uno y decime que es el de la cosecha."}),
             Map.entry("farm_full", new String[]{
                     "Ya no me entra nada mas. Vacia mi tapa o dame un cofre."}),
+            Map.entry("home_ack", new String[]{
+                    "Me quedo cuidando la casa: la huerta, los animales, todo. Anda tranquilo a explorar.",
+                    "Dale. Cosecho, les doy de comer a los animales y guardo todo en los cofres. Vos anda."}),
+            Map.entry("ranch_ack", new String[]{
+                    "Me quedo con los animales: comida, crias, lana y orden. Ni un pollo se me escapa.",
+                    "Los animales quedan a mi cargo. Van a estar mejor atendidos que vos."}),
+            Map.entry("shear_ack", new String[]{
+                    "A esquilar. Las ovejas van a quedar fresquitas."}),
+            Map.entry("shear_done", new String[]{
+                    "Listo, esquile {count}. La lana la tengo yo: pedimela si la queres."}),
+            Map.entry("shear_none", new String[]{
+                    "No hay ovejas con lana por aca."}),
+            Map.entry("home_need_shears", new String[]{
+                    "Para esquilar me faltan tijeras. Dame unas, o dos lingotes de hierro y me las hago."}),
+            Map.entry("home_cull_notice", new String[]{
+                    "Hay demasiadas {animal}: mas de {cap}. Las que sobran las voy sacando de a poco, y lo que dejan va al cofre."}),
+            Map.entry("home_report", new String[]{
+                    "Volviste! Mientras no estabas {done}.",
+                    "Te cuento: {done}. Todo en orden por aca."}),
             Map.entry("tend_ack", new String[]{
                     "Me quedo cuidando la huerta. Vos anda tranquilo.",
                     "La huerta queda en buenas manos. Las mejores."}),

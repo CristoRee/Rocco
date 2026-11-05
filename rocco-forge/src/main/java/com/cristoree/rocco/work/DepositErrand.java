@@ -44,6 +44,8 @@ public final class DepositErrand extends Errand
     // Lo que se queda aunque entre en la seleccion: las semillas para replantar, por ejemplo.
     private final Map<Item, Integer> reserve = new java.util.HashMap<>();
     private final List<ItemStack> stored = new ArrayList<>();
+    // Los cofres donde de verdad metio algo, para decir despues donde lo guardo.
+    private final Set<BlockPos> usedChests = new LinkedHashSet<>();
     // Cofres a los que no pudo llegar: al repartir de nuevo ya no cuentan.
     private final Set<BlockPos> unreachable = new java.util.HashSet<>();
     @Nullable
@@ -135,6 +137,7 @@ public final class DepositErrand extends Errand
             return Status.FAILED;
         }
 
+        this.rocco.noteStored(new ArrayList<>(this.usedChests), Names.stacks(this.stored));
         if (!this.quiet)
         {
             say("deposit_done", "items", Names.stacks(this.stored));
@@ -419,6 +422,7 @@ public final class DepositErrand extends Errand
                 if (leftover.getCount() < before)
                 {
                     this.stored.add(stack.copyWithCount(before - leftover.getCount()));
+                    this.usedChests.add(visit.chest());
                 }
                 if (!leftover.isEmpty())
                 {

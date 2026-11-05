@@ -1,6 +1,8 @@
 ## Rocco 1.5.0
 
 **Nuevo**
+- Cuidar la casa: se queda mientras explorás, cosecha, esquila, hace criar a los animales hasta un tope, saca los que sobran, junta lo que dejan y guarda todo. La casa sigue cargada aunque estés lejos, y al volver te cuenta qué hizo.
+- Te dice dónde guardó las cosas.
 - Música desde links: Rocco pone la canción, suena desde él y la canta y la baila al ritmo. Archivos de audio (MP3, OGG...), radios por internet, Bandcamp y Twitch. En multijugador todos escuchan lo mismo a la vez.
 - Dos bailes nuevos en bucle, y baila cuando suena un tocadiscos cerca.
 - Snorkel nuevo.
@@ -22,6 +24,10 @@
 - Ya no es inmortal por defecto.
 
 **Arreglado**
+- No se le podía pegar.
+- No podía craftear herramientas (picos, hachas, tijeras...).
+- Una pregunta como "¿dónde guardaste?" lo ponía a guardar todo; ya no hace cosas que no le pediste.
+- Ya no se pone a tomar mate en vez de contestarte.
 - Rocco no movía la boca al hablar, y muchas animaciones se veían cortadas (fotogramas fuera de orden).
 - Ya no dice que no tiene brazos.
 - La comida y las pociones se ven derechas y del tamaño justo, con los sonidos del juego.
