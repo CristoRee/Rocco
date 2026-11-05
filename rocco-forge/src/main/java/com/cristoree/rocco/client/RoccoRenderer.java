@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.resources.model.BakedModel;
@@ -25,6 +26,7 @@ import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 import software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer;
 import software.bernie.geckolib.renderer.layer.BlockAndItemGeoLayer;
+import software.bernie.geckolib.util.RenderUtils;
 
 public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
 {
@@ -72,15 +74,47 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
                 }
             }
 
+            // La comida y la pocion (ROCCO-V12): en el hueso held, derechas y de frente, del tamaño de
+            // su patita. La animacion las ubica, las gira y las achica mordida a mordida.
+            @Override
+            public void renderForBone(PoseStack poseStack, RoccoEntity animatable, GeoBone bone, RenderType renderType,
+                                      MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick,
+                                      int packedLight, int packedOverlay)
+            {
+                if (!bone.getName().equals("held"))
+                {
+                    super.renderForBone(poseStack, animatable, bone, renderType, bufferSource, buffer, partialTick,
+                            packedLight, packedOverlay);
+                    return;
+                }
+                ItemStack stack = getStackForBone(bone, animatable);
+                if (stack.isEmpty())
+                {
+                    return;
+                }
+                poseStack.pushPose();
+                // El giro y la escala del hueso ya vienen puestos: solo se va al pivote (con
+                // translateAndRotateMatrixForBone quedaria girado dos veces).
+                RenderUtils.translateToPivotPoint(poseStack, bone);
+                poseStack.scale(HELD_ITEM_SCALE, HELD_ITEM_SCALE, HELD_ITEM_SCALE);
+                Minecraft.getInstance().getItemRenderer().renderStatic(animatable, stack, ItemDisplayContext.NONE, false,
+                        poseStack, bufferSource, animatable.level(), packedLight, packedOverlay, animatable.getId());
+                poseStack.popPose();
+                bufferSource.getBuffer(renderType);
+            }
+
             @Override
             protected ItemStack getStackForBone(GeoBone bone, RoccoEntity animatable)
             {
+                boolean consuming = isConsuming(animatable);
                 return switch (bone.getName())
                 {
-                    case "item_right" -> heldFor(animatable, animatable.getMainHandItem(), RoccoGear.weaponLook(animatable.getMainHandItem()));
+                    case "item_right" -> consuming ? ItemStack.EMPTY
+                            : heldFor(animatable, animatable.getMainHandItem(), RoccoGear.weaponLook(animatable.getMainHandItem()));
                     case "item_left" -> heldFor(animatable, animatable.getOffhandItem(), RoccoGear.shieldLook(animatable.getOffhandItem()));
                     // El cofre de ender que se traga o que absorbe, flotando entre las manitos.
-                    case "grab" -> animatable.grabbedItem();
+                    case "grab" -> consuming ? ItemStack.EMPTY : animatable.grabbedItem();
+                    case "held" -> consuming ? animatable.grabbedItem() : ItemStack.EMPTY;
                     default -> ItemStack.EMPTY;
                 };
             }
@@ -103,6 +137,20 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
 
         // Las esferitas de magia brillan en la oscuridad: rocco_glowmask.png marca solo esas partes.
         addRenderLayer(new AutoGlowingGeoLayer<>(this));
+    }
+
+    // Un item de 16 px queda en unos 5,4 px: del tamaño de su patita.
+    private static final float HELD_ITEM_SCALE = 0.34F;
+
+    // Comiendo o tomando una pocion: lo dice el servidor o la animacion que se esta viendo.
+    static boolean isConsuming(RoccoEntity rocco)
+    {
+        if (rocco.getActiveTask().consuming())
+        {
+            return true;
+        }
+        String playing = RoccoModel.playingAnimation(rocco);
+        return playing.startsWith("animation.rocco.food_eat") || playing.startsWith("animation.rocco.potion_drink");
     }
 
     // En la mano: lo que tenga, salvo un arma con modelo propio (la dibuja RoccoGearLayer) y salvo

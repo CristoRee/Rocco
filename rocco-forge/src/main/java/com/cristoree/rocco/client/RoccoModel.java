@@ -79,7 +79,9 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         // solo tiene que existir mientras habla. Este hueso no tiene cubos propios: lo unico
         // que lo esconde de verdad es tapar a sus hijos.
         // Comiendo o tomando la animacion usa mouth_talk para masticar y para la cara de asco.
-        hide("mouth_talk", !rocco.isTalking() && !rocco.getActiveTask().consuming());
+        // Cantando, y con el audio de su voz sonando, tambien habla.
+        boolean speaking = rocco.isTalking() || RoccoEntity.SPEAKING_HOOK.test(rocco) || rocco.getActiveTask().singing();
+        hide("mouth_talk", !speaking && !rocco.getActiveTask().consuming());
         hide("plant", !rocco.isPlantVisible());
         // Las animaciones lo dejan en escala 0, pero si alguna no lo toca asomaria por arriba.
         hide("garden", !rocco.showsGarden());
@@ -140,7 +142,7 @@ public class RoccoModel extends GeoModel<RoccoEntity>
     private static boolean isPerformance(RoccoTask task)
     {
         return task == RoccoTask.MATE || task == RoccoTask.DANCING || task == RoccoTask.CLAPPING
-                || task == RoccoTask.CELEBRATING;
+                || task == RoccoTask.CELEBRATING || task.musical();
     }
 
     private static final String[] MATE_BONES = {"mate", "termo", "mate_water"};

@@ -135,6 +135,9 @@ public final class RoccoContextBuilder
                 ? "yes: you keep everything if you die"
                 : "no: if you die you drop everything (an ender chest would give you the power)");
         facts.put("Your posture", postureOf(rocco));
+        var music = rocco.music();
+        facts.put("Music you are playing", music == null ? "none"
+                : (music.paused() ? "paused: " : "playing: ") + music.title());
 
         // Si el jugador pregunta donde murio, Rocco tiene el dato a mano.
         BlockPos death = rocco.getLastDeathPos();

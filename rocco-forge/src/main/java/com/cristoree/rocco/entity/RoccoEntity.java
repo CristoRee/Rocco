@@ -191,6 +191,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private static final RawAnimation FOOD_EAT_BAD = RawAnimation.begin().thenPlay("animation.rocco.food_eat_bad");
     private static final RawAnimation POTION_DRINK = RawAnimation.begin().thenPlay("animation.rocco.potion_drink");
     private static final RawAnimation POTION_DRINK_BAD = RawAnimation.begin().thenPlay("animation.rocco.potion_drink_bad");
+    // Bailes y canto de la musica (ROCCO-V12 y el canto de la v10): bucles por estado, mientras
+    // dure la tarea; si la tarea sigue igual, el bucle sigue sin cortes.
+    private static final RawAnimation DANCE_FIESTA = RawAnimation.begin().thenLoop("animation.rocco.dance_fiesta");
+    private static final RawAnimation DANCE_MENEITO = RawAnimation.begin().thenLoop("animation.rocco.dance_meneito");
+    private static final RawAnimation SING_SOFT = RawAnimation.begin().thenLoop("animation.rocco.sing_soft");
+    private static final RawAnimation SING_GROOVE = RawAnimation.begin().thenLoop("animation.rocco.sing_groove");
+    private static final RawAnimation SING_RAP = RawAnimation.begin().thenLoop("animation.rocco.sing_rap");
 
     // Pelea: los golpes y los disparos se disparan; la guardia, apuntar y el escudo van por estado.
     private static final RawAnimation ATTACK_PUNCH = RawAnimation.begin().thenPlay("animation.rocco.attack_punch");
@@ -229,6 +236,20 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     }
 
     public static ParticleHook PARTICLE_HOOK = (rocco, effect, locator) -> { };
+    // Lo mismo para el audio, que solo existe en el cliente: si su voz esta sonando (la boca se
+    // mueve con el audio de verdad) y el ritmo de la musica que esta tocando (0 si no se sabe).
+    public static java.util.function.Predicate<RoccoEntity> SPEAKING_HOOK = rocco -> false;
+    public static java.util.function.ToDoubleFunction<RoccoEntity> BEAT_HOOK = rocco -> 0.0D;
+
+    // Lo que esta sonando desde Rocco (solo en el servidor; ver RoccoMusic).
+    @Nullable
+    private com.cristoree.rocco.music.RoccoMusic.Session music;
+    // Para no buscar tocadiscos todos los ticks.
+    @Nullable
+    private BlockPos jukebox;
+    @Nullable
+    private BlockPos danceFacing;
+    private int musicLoops;
 
     // Las estables van por estado, no disparadas, porque tienen que mantenerse en bucle.
     private static final RawAnimation SIT = RawAnimation.begin().thenLoop("animation.rocco.sit");
@@ -712,6 +733,130 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 && level().getGameTime() - this.lastCheerTick > CHEER_COOLDOWN_TICKS;
     }
 
+    // ---------- musica: cantar y bailar ----------
+
+    @Nullable
+    public com.cristoree.rocco.music.RoccoMusic.Session music()
+    {
+        return this.music;
+    }
+
+    public void setMusic(@Nullable com.cristoree.rocco.music.RoccoMusic.Session session)
+    {
+        this.music = session;
+    }
+
+    // Se corto su musica: deja de cantar en el acto (cantar sin musica queda raro). Los bailes
+    // terminan la vuelta que estaban haciendo.
+    public void stopSinging()
+    {
+        if (this.task.singing())
+        {
+            interruptActivity();
+        }
+    }
+
+    // "Bailá": uno de los dos bailes nuevos, dos vueltas (16 s), o hasta que le digas que pare.
+    public void danceOnRequest(@Nullable Player toward)
+    {
+        this.danceFacing = null;
+        this.musicLoops = 0;
+        perform(com.cristoree.rocco.music.RoccoMusic.randomDance(this.random, false), toward);
+    }
+
+    private boolean ownMusicPlaying()
+    {
+        return this.music != null && !this.music.paused() && level().getGameTime() >= this.music.startTick()
+                && RoccoCommonConfig.MUSIC_SING.get();
+    }
+
+    private boolean musicNearby()
+    {
+        return ownMusicPlaying() || this.jukebox != null;
+    }
+
+    // Puede ponerse a cantar o bailar: en tierra, de pie, sin pelear ni bichos cerca, y si te sigue,
+    // con vos cerca (si te estas yendo, primero te alcanza).
+    private boolean canPerformMusic()
+    {
+        if (getRoccoState() != RoccoState.ACTIVE || isTravelling() || isInWater() || getRoccoPose() != RoccoPose.STANDING
+                || this.entityData.get(DATA_LID) != LID_CLOSED || this.entityData.get(DATA_COMBAT) != RoccoCombat.STANCE_NONE
+                || this.share.active() || hostileNearby(10.0D) || this.errand != null)
+        {
+            return false;
+        }
+        ServerPlayer owner = owner();
+        return !this.following || owner == null || owner.level() != level() || distanceToSqr(owner) < 10.0D * 10.0D;
+    }
+
+    // Cada medio segundo: con su musica sonando canta (y a veces baila); con un disco sonando cerca,
+    // va al tocadiscos y baila.
+    private void tickMusic()
+    {
+        if (this.tickCount % 10 != 0 || !(level() instanceof ServerLevel serverLevel))
+        {
+            return;
+        }
+        if (this.tickCount % 20 == 0)
+        {
+            this.jukebox = RoccoCommonConfig.MUSIC_DANCE_JUKEBOX.get()
+                    ? com.cristoree.rocco.music.RoccoMusic.playingJukebox(serverLevel, blockPosition(), 12.0D) : null;
+        }
+
+        // Se termino el disco (o lo sacaron) a mitad de un baile: termina la vuelta y para.
+        if ((this.task == RoccoTask.DANCE_FIESTA || this.task == RoccoTask.DANCE_MENEITO) && this.musicLoops > 0
+                && !musicNearby() && Math.floorMod(this.taskTicks - ANIM_LAG, 160) < 10)
+        {
+            interruptActivity();
+            return;
+        }
+
+        if (this.task != RoccoTask.NONE || !this.jobs.isEmpty() || !isFreeTime() || !canPerformMusic())
+        {
+            return;
+        }
+        if (ownMusicPlaying())
+        {
+            this.danceFacing = null;
+            this.musicLoops = 1;
+            startMusicLoop(com.cristoree.rocco.music.RoccoMusic.nextPerformance(null, this.music, this.random),
+                    blockPosition(), 64.0D);
+        }
+        else if (this.jukebox != null)
+        {
+            // Te sigue: va hasta el tocadiscos. Le dijiste que espere: baila ahi donde esta.
+            this.danceFacing = this.jukebox;
+            this.musicLoops = 1;
+            startMusicLoop(com.cristoree.rocco.music.RoccoMusic.randomDance(this.random, true),
+                    this.following ? this.jukebox : blockPosition(), this.following ? 3.0D : 64.0D);
+        }
+    }
+
+    private void startMusicLoop(RoccoTask kind, BlockPos target, double reach)
+    {
+        this.autoRestTicks = 0;
+        queueJob(Job.custom(kind, target, ItemStack.EMPTY, level -> { }, null).reaching(reach));
+        this.lastDanceTick = level().getGameTime();
+    }
+
+    // Al terminar una vuelta: si sigue sonando algo, la proxima (la misma tarea sigue el bucle sin
+    // cortes; con un disco cambia de baile cada dos vueltas).
+    @Nullable
+    private RoccoTask nextMusicLoop(RoccoTask done)
+    {
+        if (this.musicLoops <= 0 || !musicNearby() || !canPerformMusic())
+        {
+            this.musicLoops = 0;
+            return null;
+        }
+        this.musicLoops++;
+        if (ownMusicPlaying())
+        {
+            return com.cristoree.rocco.music.RoccoMusic.nextPerformance(done, this.music, this.random);
+        }
+        return com.cristoree.rocco.music.RoccoMusic.randomDance(this.random, true);
+    }
+
     // ---------- reacciones sin IA ----------
 
     private final java.util.Map<String, Long> lastReaction = new java.util.HashMap<>();
@@ -873,12 +1018,19 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.entityData.set(DATA_BOBBER, BlockPos.ZERO);
     }
 
+    // Regla 4 de la spec: con la boca grande abierta no puede hablar, o se encimarian mouth_talk y
+    // la boca de la animacion (comiendo, tragando, con la bombilla o la botella). Vale en los dos
+    // lados: el cliente lo mira para mover la boca con el audio de su voz.
+    public boolean mouthBusy()
+    {
+        RoccoTask active = getActiveTask();
+        return active == RoccoTask.EATING || active == RoccoTask.SWALLOWING || active == RoccoTask.MATE
+                || active == RoccoTask.COLA || active.consuming();
+    }
+
     public void talkFor(int ticks)
     {
-        // Regla 4 de la spec: con la boca grande abierta no puede hablar, o se encimarian
-        // mouth_talk y la boca de la animacion.
-        if (this.task == RoccoTask.EATING || this.task == RoccoTask.SWALLOWING || this.task == RoccoTask.MATE
-                || this.task == RoccoTask.COLA || this.task.consuming() || this.share.drinking())
+        if (mouthBusy() || this.share.drinking())
         {
             return;
         }
@@ -1326,12 +1478,15 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             case FOOD_EAT_BAD -> "food_eat_bad";
             case POTION_DRINK -> "potion_drink";
             case POTION_DRINK_BAD -> "potion_drink_bad";
+            // Van por estado: al cambiar la tarea, la animacion se va sola.
+            case DANCE_FIESTA, DANCE_MENEITO, SING_SOFT, SING_GROOVE, SING_RAP -> "music";
             default -> null;
         };
         if (animation == null)
         {
             return;
         }
+        this.musicLoops = 0;
         // El cofre de ender ya entro: aunque se corte la animacion, el poder se activa igual.
         if (this.task == RoccoTask.ENDER_ABSORB || this.task == RoccoTask.ENDER_AWAKEN)
         {
@@ -1340,7 +1495,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
         Job interrupted = this.currentJob;
         stopTriggeredAnimation("main", animation);
-        if (this.task == RoccoTask.DANCING)
+        if (this.task == RoccoTask.DANCING || this.task == RoccoTask.DANCE_FIESTA || this.task == RoccoTask.DANCE_MENEITO)
         {
             stopHumming();
         }
@@ -1368,9 +1523,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 ? previewOf(job.target())
                 : job.shown().copy();
 
-        if (job.task() == RoccoTask.SWALLOWING || job.task() == RoccoTask.ENDER_ABSORB)
+        if (job.task() == RoccoTask.SWALLOWING || job.task() == RoccoTask.ENDER_ABSORB || job.task().consuming())
         {
-            // Lo que traga o absorbe flota en el hueso grab, no en la mano.
+            // Lo que traga o absorbe flota en el hueso grab. La comida y la pocion se dibujan en el
+            // hueso held (ROCCO-V12): el arma queda en su mano, sin dibujarse mientras come.
             this.entityData.set(DATA_GRAB, job.shown().copy());
         }
         else
@@ -1405,10 +1561,25 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 this.faceBeforeSwallow = calmFace();
                 triggerAnim("main", "enchant");
             }
+            case DANCE_FIESTA, DANCE_MENEITO, SING_SOFT, SING_GROOVE, SING_RAP ->
+            {
+                this.faceBeforeSwallow = calmFace();
+                setExpression(job.task().singing() ? RoccoExpression.SING
+                        : job.task() == RoccoTask.DANCE_MENEITO ? RoccoExpression.SMUG : RoccoExpression.HAPPY);
+                // Bailando para un disco: mirando al tocadiscos.
+                if (this.danceFacing != null)
+                {
+                    lookAtBlock(this.danceFacing);
+                }
+            }
             case DANCING ->
             {
                 this.faceBeforeSwallow = calmFace();
                 setExpression(RoccoExpression.HAPPY);
+                if (this.danceFacing != null && this.musicLoops > 0)
+                {
+                    lookAtBlock(this.danceFacing);
+                }
                 triggerAnim("main", "dance");
             }
             case CLAPPING ->
@@ -1479,7 +1650,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         return task == RoccoTask.MATE || task == RoccoTask.DANCING || task == RoccoTask.CLAPPING
                 || task == RoccoTask.CELEBRATING || task == RoccoTask.COLA || task == RoccoTask.EQUIP_PROUD
-                || task == RoccoTask.ENDER_ABSORB || task == RoccoTask.ENDER_AWAKEN || task.consuming();
+                || task == RoccoTask.ENDER_ABSORB || task == RoccoTask.ENDER_AWAKEN || task.consuming() || task.musical();
     }
 
     // La cara a la que vuelve despues: si tenia una automatica (golpe, sueño), vuelve a happy.
@@ -1493,6 +1664,26 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private void tickActivityFace()
     {
         int t = this.taskTicks - ANIM_LAG;
+        if (this.task.musical())
+        {
+            // Los bailes de la v12 (segundos x 20, en cada vuelta de 8 s). Cantando: la cara de cantar.
+            int beat = Math.floorMod(t, 160);
+            RoccoExpression face = switch (this.task)
+            {
+                case DANCE_FIESTA -> beat == 0 ? RoccoExpression.HAPPY : beat == 40 ? RoccoExpression.BLISS
+                        : beat == 80 ? RoccoExpression.WOW : beat == 100 ? RoccoExpression.CHEER
+                        : beat == 120 ? RoccoExpression.HUM : beat == 150 ? RoccoExpression.HAPPY : null;
+                case DANCE_MENEITO -> beat == 0 ? RoccoExpression.SMUG : beat == 40 ? RoccoExpression.BLISS
+                        : beat == 80 ? RoccoExpression.CHEER : beat == 120 ? RoccoExpression.HAPPY
+                        : beat == 150 ? RoccoExpression.SMUG : null;
+                default -> getExpression() != RoccoExpression.SING ? RoccoExpression.SING : null;
+            };
+            if (face != null && t >= 0)
+            {
+                setExpression(face);
+            }
+            return;
+        }
         if (this.task == RoccoTask.MATE)
         {
             boolean sipping = (t >= 121 && t <= 327) || (t >= 410 && t <= 567);
@@ -1526,16 +1717,16 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
         else if (this.task.consuming())
         {
-            // ROCCO-COMER-POCIONES-Y-COLA-V11.md (segundos x 20).
+            // ROCCO-V12-COMER-BAILES-SNORKEL.md (segundos x 20).
             RoccoExpression face = switch (this.task)
             {
                 case FOOD_EAT -> t == 6 ? RoccoExpression.WOW : t == 9 ? RoccoExpression.BLISS : t == 40 ? RoccoExpression.HAPPY
                         : t == 43 ? RoccoExpression.BLISS : null;
                 case FOOD_EAT_BAD -> t == 6 ? RoccoExpression.WOW : t == 9 ? RoccoExpression.BLISS : t == 32 ? RoccoExpression.FOCUS
                         : t == 41 ? RoccoExpression.WINDY : t == 49 ? RoccoExpression.SAD : t == 59 ? RoccoExpression.HAPPY : null;
-                case POTION_DRINK -> t == 12 ? RoccoExpression.BLISS : t == 32 ? RoccoExpression.HAPPY : t == 36 ? RoccoExpression.WOW
-                        : t == 43 ? RoccoExpression.CHEER : t == 49 ? RoccoExpression.HAPPY : null;
-                default -> t == 12 ? RoccoExpression.BLISS : t == 32 ? RoccoExpression.FOCUS : t == 36 ? RoccoExpression.WINDY
+                case POTION_DRINK -> t == 12 ? RoccoExpression.BLISS : t == 32 ? RoccoExpression.HAPPY : t == 38 ? RoccoExpression.WOW
+                        : t == 44 ? RoccoExpression.CHEER : t == 49 ? RoccoExpression.HAPPY : null;
+                default -> t == 12 ? RoccoExpression.BLISS : t == 32 ? RoccoExpression.FOCUS : t == 38 ? RoccoExpression.WINDY
                         : t == 45 ? RoccoExpression.SAD : t == 55 ? RoccoExpression.HAPPY : null;
             };
             if (face != null)
@@ -1616,11 +1807,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
         else if (food && t == 27)
         {
-            setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+            // Ya se la comio: la animacion la achico hasta 0.
+            this.entityData.set(DATA_GRAB, ItemStack.EMPTY);
         }
-        else if (!food && t == 33)
+        else if (!food && t == 36)
         {
-            setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(net.minecraft.world.item.Items.GLASS_BOTTLE));
+            // Le queda el frasco vacio en la mano hasta el final.
+            this.entityData.set(DATA_GRAB, new ItemStack(net.minecraft.world.item.Items.GLASS_BOTTLE));
         }
     }
 
@@ -1656,7 +1849,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (this.task == RoccoTask.SWALLOWING || this.task == RoccoTask.MATE || this.task == RoccoTask.ENCHANTING
                 || this.task == RoccoTask.DANCING || this.task == RoccoTask.CLAPPING || this.task == RoccoTask.CELEBRATING
                 || this.task == RoccoTask.COLA || this.task == RoccoTask.EQUIP_PROUD || this.task == RoccoTask.ENDER_ABSORB
-                || this.task == RoccoTask.ENDER_AWAKEN || this.task.consuming())
+                || this.task == RoccoTask.ENDER_AWAKEN || this.task.consuming() || this.task.musical())
         {
             setExpression(this.faceBeforeSwallow);
         }
@@ -1856,7 +2049,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             else if (this.task == RoccoTask.MATE || this.task == RoccoTask.ENCHANTING || this.task == RoccoTask.DANCING
                     || this.task == RoccoTask.CLAPPING || this.task == RoccoTask.CELEBRATING || this.task == RoccoTask.COLA
                     || this.task == RoccoTask.EQUIP_PROUD || this.task == RoccoTask.ENDER_ABSORB
-                    || this.task == RoccoTask.ENDER_AWAKEN || this.task.consuming())
+                    || this.task == RoccoTask.ENDER_AWAKEN || this.task.consuming() || this.task.musical())
             {
                 tickActivityFace();
                 tickConsumingHand(this.taskTicks - ANIM_LAG);
@@ -1877,8 +2070,15 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             if (this.currentJob != null && this.taskTicks >= this.currentJob.totalTicks() + ANIM_LAG)
             {
                 RoccoTask done = this.task;
+                RoccoTask next = done.musical() || done == RoccoTask.DANCING ? nextMusicLoop(done) : null;
                 finishJob();
                 jobCompleted(done);
+                // La vuelta siguiente arranca en el mismo tick: el cliente nunca ve la tarea vacia,
+                // y si es la misma, el bucle sigue sin saltos.
+                if (next != null && this.jobs.isEmpty())
+                {
+                    startJob(Job.custom(next, blockPosition(), ItemStack.EMPTY, level -> { }, null).reaching(64.0D));
+                }
             }
             return;
         }
@@ -2302,9 +2502,17 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 }
             }
             // Ticks de ROCCO-PENSAR-FESTEJAR-BAILAR.md.
+            // Con un disco o su musica sonando no tararea: ya hay musica.
             case DANCING ->
             {
-                if (tick == 8)
+                if (tick == 8 && !musicNearby())
+                {
+                    playRoccoSound(ModSounds.HUM.get(), 0.5F);
+                }
+            }
+            case DANCE_FIESTA, DANCE_MENEITO ->
+            {
+                if (Math.floorMod(tick, 160) == 8 && !musicNearby())
                 {
                     playRoccoSound(ModSounds.HUM.get(), 0.5F);
                 }
@@ -2371,18 +2579,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             }
             case FOOD_EAT, FOOD_EAT_BAD ->
             {
+                // Los sonidos de comer del juego (ROCCO-V12): mordidas, masticar y un eructito tierno.
                 switch (tick)
                 {
-                    case 10, 18, 26 -> playRoccoSound(ModSounds.FOOD_BITE.get(), 0.6F);
-                    case 11 -> playSound(ModSounds.FOOD_MUNCH.get(), 0.5F, 1.0F);
-                    case 40 -> playRoccoSound(ModSounds.FOOD_SWALLOW.get(), 0.6F);
-                    case 42 ->
-                    {
-                        if (this.task == RoccoTask.FOOD_EAT_BAD)
-                        {
-                            playRoccoSound(ModSounds.YUCK.get(), 0.6F);
-                        }
-                    }
+                    case 10, 18, 26 -> playSound(SoundEvents.GENERIC_EAT, 0.5F, 0.9F + this.random.nextFloat() * 0.2F);
+                    case 14, 22 -> playSound(SoundEvents.GENERIC_EAT, 0.3F, 0.9F + this.random.nextFloat() * 0.2F);
+                    case 40 -> playSound(SoundEvents.PLAYER_BURP, 0.4F, 1.3F);
                     default -> { }
                 }
             }
@@ -2390,22 +2592,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             {
                 switch (tick)
                 {
-                    case 8 -> playRoccoSound(ModSounds.POTION_OPEN.get(), 0.5F);
-                    case 12 -> playSound(ModSounds.POTION_DRINK.get(), 0.7F, 1.0F);
-                    case 36 ->
-                    {
-                        if (this.task == RoccoTask.POTION_DRINK)
-                        {
-                            playRoccoSound(ModSounds.POTION_MAGIC.get(), 0.5F);
-                        }
-                    }
-                    case 37 ->
-                    {
-                        if (this.task == RoccoTask.POTION_DRINK_BAD)
-                        {
-                            playRoccoSound(ModSounds.YUCK.get(), 0.6F);
-                        }
-                    }
+                    case 12, 16, 21, 26 -> playSound(SoundEvents.GENERIC_DRINK, 0.5F, 0.9F + this.random.nextFloat() * 0.2F);
                     default -> { }
                 }
             }
@@ -2694,7 +2881,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 }
             }
         }
-        else if (getRoccoState() == RoccoState.PLANT)
+        // Su musica: se corta si termina la cancion, si se muere o si se entierra.
+        com.cristoree.rocco.music.RoccoMusic.tick(this);
+
+        if (getRoccoState() == RoccoState.PLANT)
         {
             // Plantado duerme con la carita afuera: respira y de vez en cuando ronca bajito.
             if (getExpression() != RoccoExpression.SLEEP)
@@ -2762,6 +2952,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 applyWaterMalus(this.following && leader != null && leader.isInWater());
             }
             tickWork();
+            tickMusic();
             tickGifts();
             tickCompanionship();
             if (this.tickCount % 20 == 0)
@@ -2913,7 +3104,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         brain().tickChatter();
 
         // Si se puso a tomar mate (o a bailar) y te fuiste, lo deja para seguirte.
-        if ((this.task == RoccoTask.MATE || this.task == RoccoTask.DANCING) && this.following
+        if ((this.task == RoccoTask.MATE || this.task == RoccoTask.DANCING || this.task.musical()) && this.following
                 && distanceToSqr(owner) > sqr(RoccoCommonConfig.WANDER_RADIUS.get() + 8.0D))
         {
             interruptActivity();
@@ -3225,6 +3416,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         // Si se va del mundo de verdad (o cambia de dimension) suelta el chunk que tenia agarrado.
         // Al cerrar el mundo no hace falta: al abrirlo se sueltan todos solos.
         boolean leaving = reason.shouldDestroy() || reason == RemovalReason.CHANGED_DIMENSION;
+        // Su musica se va con el (a los que la escuchaban se les corta).
+        if (this.music != null && !level().isClientSide)
+        {
+            com.cristoree.rocco.music.RoccoMusic.stop(this, false);
+        }
         if (leaving && this.forcedChunk != null && level() instanceof ServerLevel serverLevel)
         {
             try
@@ -4313,8 +4509,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 .setParticleKeyframeHandler(event -> PARTICLE_HOOK.spawn(this,
                         event.getKeyframeData().getEffect(), event.getKeyframeData().getLocator())));
 
+        // La boca se mueve mientras habla (lo que dice el servidor, o el audio de su voz sonando en
+        // este juego) y mientras canta. Nunca con la boca ocupada comiendo o tomando.
         controllers.add(new AnimationController<>(this, "mouth", 0, state ->
-                isTalking() ? state.setAndContinue(TALK) : PlayState.STOP));
+                (isTalking() || SPEAKING_HOOK.test(this) || getActiveTask().singing()) && !mouthBusy()
+                        ? state.setAndContinue(TALK) : PlayState.STOP));
 
         controllers.add(new AnimationController<>(this, "blink", 0, state ->
                 getRoccoState().isInert() || getExpression().eyesClosed() || getActiveTask().consuming()
@@ -4323,6 +4522,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
     private PlayState mainAnimation(AnimationState<RoccoEntity> state)
     {
+        // Cantando, al ritmo de la cancion: sing_groove esta hecho a 96 pulsos, sing_rap a 92 y
+        // sing_soft a 50 (ROCCO-COLA-COMBATE-ARMADURAS-CANTO.md). Los bailes quedan a su ritmo,
+        // asi sus caras siguen a tiempo.
+        state.getController().setAnimationSpeed(singSpeed());
+
         // Muerte para siempre (modo PERMANENT o /kill): la caida, en vez del giro rojo del juego.
         if (isDeadOrDying())
         {
@@ -4336,6 +4540,46 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             case DYING -> state.setAndContinue(DEATH);
             case BURIED -> state.setAndContinue(GRAVE[getGravePose()]);
             case RISING -> state.setAndContinue(GRAVE_RISE[getGravePose()]);
+        };
+    }
+
+    private double singSpeed()
+    {
+        RoccoTask active = getActiveTask();
+        if (!active.singing())
+        {
+            return 1.0D;
+        }
+        double bpm = BEAT_HOOK.applyAsDouble(this);
+        if (bpm <= 0.0D)
+        {
+            return 1.0D;
+        }
+        double base = switch (active)
+        {
+            case SING_SOFT -> 50.0D;
+            case SING_RAP -> 92.0D;
+            default -> 96.0D;
+        };
+        // Una balada que el contador lee al doble (los golpes de la bateria) va a la mitad.
+        if (active == RoccoTask.SING_SOFT && bpm > 100.0D)
+        {
+            bpm /= 2.0D;
+        }
+        return net.minecraft.util.Mth.clamp(bpm / base, 0.6D, 1.6D);
+    }
+
+    @Nullable
+    private RawAnimation musicAnimation()
+    {
+        return switch (getActiveTask())
+        {
+            case DANCE_FIESTA -> DANCE_FIESTA;
+            case DANCE_MENEITO -> DANCE_MENEITO;
+            case SING_SOFT -> SING_SOFT;
+            case SING_GROOVE -> SING_GROOVE;
+            case SING_RAP -> SING_RAP;
+            default -> null;
         };
     }
 
@@ -4385,6 +4629,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             case RoccoCombat.STANCE_CROSSBOW -> { return CROSSBOW_AIM; }
             case RoccoCombat.STANCE_SHIELD -> { return SHIELD_BLOCK; }
             default -> { }
+        }
+
+        // Bailando o cantando con la musica: el bucle sigue mientras dure la tarea.
+        RawAnimation music = musicAnimation();
+        if (music != null)
+        {
+            return music;
         }
 
         if (!state.isMoving())

@@ -72,14 +72,7 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> COLA_HIC = register("cola_hic");
     public static final RegistryObject<SoundEvent> COLA_FIZZ = register("cola_fizz");
 
-    // Comer y tomar pociones.
-    public static final RegistryObject<SoundEvent> FOOD_BITE = register("food_bite");
-    public static final RegistryObject<SoundEvent> FOOD_MUNCH = register("food_munch");
-    public static final RegistryObject<SoundEvent> FOOD_SWALLOW = register("food_swallow");
-    public static final RegistryObject<SoundEvent> POTION_OPEN = register("potion_open");
-    public static final RegistryObject<SoundEvent> POTION_DRINK = register("potion_drink");
-    public static final RegistryObject<SoundEvent> POTION_MAGIC = register("potion_magic");
-    public static final RegistryObject<SoundEvent> YUCK = register("yuck");
+    // Comer y tomar pociones usan los sonidos del juego (ROCCO-V12).
 
     // El poder del cofre de ender.
     public static final RegistryObject<SoundEvent> ENDER_ABSORB = register("ender_absorb");
@@ -95,6 +88,8 @@ public final class ModSounds
     // La voz de Fish Audio: el audio llega por red y se reproduce con este evento como canal
     // (categoria "Voz/Habla" del juego). El archivo del json nunca suena: se reemplaza al vuelo.
     public static final RegistryObject<SoundEvent> VOICE = register("voice");
+    // La musica de un link: igual que la voz, el audio lo pone el mod (categoria "Discos").
+    public static final RegistryObject<SoundEvent> MUSIC = register("music");
 
     public static void register(IEventBus modEventBus)
     {

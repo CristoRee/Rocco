@@ -36,6 +36,14 @@ public final class VoicePlayback
     private static final Deque<Clip> QUEUE = new ArrayDeque<>();
     private static VoiceSound playing;
 
+    // Su voz esta sonando ahora (para mover la boca con el audio de verdad y bajar la musica).
+    public static boolean isSpeaking(int entityId)
+    {
+        VoiceSound current = playing;
+        return current != null && current.rocco.getId() == entityId && !current.isStopped()
+                && Minecraft.getInstance().getSoundManager().isActive(current);
+    }
+
     public static void receive(RoccoNetwork.VoiceChunk chunk)
     {
         Pending pending = PENDING.computeIfAbsent(chunk.stream(), id ->

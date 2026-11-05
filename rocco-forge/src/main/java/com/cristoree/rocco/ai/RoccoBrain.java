@@ -132,6 +132,8 @@ public class RoccoBrain
     @Nullable
     private String lastSaid;
     private long lastSaidAt;
+    @Nullable
+    private String lastHeard;
     // Mientras esperaba a la IA llego una orden y la resolvio solo: esa respuesta ya no va.
     private boolean answeredMeanwhile;
 
@@ -154,9 +156,17 @@ public class RoccoBrain
         }
     }
 
+    // Lo ultimo que le dijo el jugador (la IA a veces no copia el link de una cancion: se saca de aca).
+    @Nullable
+    public String lastPlayerMessage()
+    {
+        return this.lastHeard;
+    }
+
     // El jugador le hablo (por chat o por microfono).
     public void ask(ServerPlayer player, String question)
     {
+        this.lastHeard = question;
         long now = gameTime();
         PersonalityProfile profile = PersonalityProfile.current();
         this.chatter.heard(question, now);

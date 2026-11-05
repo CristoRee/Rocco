@@ -106,6 +106,14 @@ public final class OfflineRocco
     {
         String text = normalize(message);
 
+        // La musica va primero: "para la musica" no es "para" (dejar de hacer algo), y un link
+        // tiene que llegar entero.
+        Answer music = music(message, text);
+        if (music != null)
+        {
+            return music;
+        }
+
         // Primero las ordenes: son lo que el jugador espera que funcione si o si.
         if (NOT_FOLLOW.matcher(text).find())
         {
@@ -347,6 +355,12 @@ public final class OfflineRocco
     // conteste la IA (charla, preguntas, frases largas o con matices).
     public static Answer localOrder(RoccoEntity rocco, String message)
     {
+        // Un link o una orden de musica: la IA no puede abrir links, asi que la resuelve Rocco.
+        Answer music = music(message, normalize(message));
+        if (music != null)
+        {
+            return music;
+        }
         String text = LEADING_FILLER.matcher(normalize(message)).replaceFirst("").trim();
         if (text.isEmpty() || text.split("\\s+").length > 10 || ABILITY_QUESTION.matcher(text).find()
                 || !COMMAND_START.matcher(text).find())
@@ -487,6 +501,59 @@ public final class OfflineRocco
     private static final Pattern POTION = Pattern.compile("\\b(toma\\w*|bebe\\w*|usa\\w*)\\b.*\\bpocion\\w*\\b(.*)");
     private static final Pattern ENDER_CHEST = Pattern.compile("\\b(come\\w*|trag\\w*|absorb\\w*)\\b.*\\bcofre de(l)? ender\\b");
     private static final Pattern SORT = Pattern.compile("\\b(ordena\\w*|acomoda\\w*|organiza\\w*)\\b.*\\b(cofres?|baul\\w*|barril\\w*|cosas)\\b");
+
+    // ---------- musica ----------
+
+    private static final String MUSIC_WORD = "(musica|musiquita|cancion|canciones|tema|temazo|temita|cumbia|rock|reggaeton|trap|rap)";
+    private static final Pattern MUSIC_STOP = Pattern.compile("\\b(para|pare|frena|corta|apaga|saca|quita|basta|deten)\\w*\\b.*\\b"
+            + MUSIC_WORD + "\\b|\\b(basta de|sin) " + MUSIC_WORD + "\\b");
+    private static final Pattern MUSIC_PAUSE = Pattern.compile("\\b(pausa\\w*|pone pausa|pone en pausa)\\b");
+    private static final Pattern MUSIC_RESUME = Pattern.compile("\\b(reanuda\\w*|despausa\\w*|dale play|play)\\b"
+            + "|\\b(segui|seguí|continua|volve a poner)\\w* (con )?(la |el )?" + MUSIC_WORD + "\\b");
+    private static final Pattern MUSIC_VOLUME = Pattern.compile("\\b(subi\\w*|sube\\w*|baja\\w*|mas fuerte|mas bajo|mas despacio|mas alto)\\b"
+            + ".*\\b(volumen|" + MUSIC_WORD.substring(1, MUSIC_WORD.length() - 1) + ")\\b|\\bvolumen\\b");
+    private static final Pattern MUSIC_DOWN = Pattern.compile("\\b(baja\\w*|mas bajo|mas despacio|menos)\\b");
+    // "Pone musica", "poneme la cancion despacito", "escuchemos algo": sin link, Rocco lo pide.
+    private static final Pattern MUSIC_PLAY = Pattern.compile("\\b(pone\\w*|pon|reproduc\\w*|toca\\w*|escuchemos|mete\\w*|tirate\\w*|cantame|canta)\\b"
+            + " (algo de |un poco de |la |el |una |un |unos |unas |tu |alguna )?" + MUSIC_WORD + "( de| que se llama| llamad[oa])?\\b(.*)");
+    private static final Pattern MUSIC_VERB = Pattern.compile("\\b(pone\\w*|pon|reproduc\\w*|toca\\w*|escucha\\w*|mira|play|musica|cancion|tema)\\b");
+
+    // null si no es nada de musica. 'raw' es lo que escribio (el link tiene que quedar entero).
+    @org.jetbrains.annotations.Nullable
+    private static Answer music(String raw, String text)
+    {
+        String url = com.cristoree.rocco.music.RoccoMusic.findUrl(raw);
+        if (url != null)
+        {
+            // Un link solo, o con "pone esto" / "escucha esto": es para que lo ponga.
+            String rest = text.replaceAll("https?://\\S+", " ").trim();
+            if (rest.split("\\s+").length <= 5 || MUSIC_VERB.matcher(rest).find())
+            {
+                return new Answer("", RoccoExpression.HAPPY, "poner_musica", url);
+            }
+        }
+        if (MUSIC_STOP.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.HAPPY, "parar_musica", "");
+        }
+        if (MUSIC_PAUSE.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.HAPPY, "pausar_musica", "");
+        }
+        if (MUSIC_RESUME.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.HAPPY, "seguir_musica", "");
+        }
+        if (MUSIC_VOLUME.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.HAPPY, "volumen", MUSIC_DOWN.matcher(text).find() ? "bajar" : "subir");
+        }
+        if (MUSIC_PLAY.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.HAPPY, "poner_musica", "");
+        }
+        return null;
+    }
 
     // "Rocco, veni" dicho desde lejos: alcanza con eso para que aparezca.
     public static boolean isCall(String message)
@@ -854,6 +921,14 @@ public final class OfflineRocco
             case "combat_win", "armor_equip", "death_info_safe", "ender_already", "photosynthesis" ->
             {
                 return RoccoExpression.SMUG;
+            }
+            case "music_start", "music_resume", "music_louder" ->
+            {
+                return RoccoExpression.CHEER;
+            }
+            case "music_fail", "music_site_fail" ->
+            {
+                return RoccoExpression.SAD;
             }
             case "cola_request", "cola_after", "grave_back", "unequip_done" ->
             {
@@ -1436,6 +1511,42 @@ public final class OfflineRocco
             Map.entry("unequip_nothing", new String[]{
                     "No tengo nada puesto."}),
 
+            // Musica con links.
+            Map.entry("music_loading", new String[]{
+                    "A ver que me pasaste...",
+                    "Dame un segundo que lo busco."}),
+            Map.entry("music_start", new String[]{
+                    "Dale! Suena {title}.",
+                    "Ahi va {title}. Buen gusto, eh.",
+                    "{title}! Esta la canto yo."}),
+            Map.entry("music_fail", new String[]{
+                    "No pude abrir ese link. Seguro que es de una cancion?",
+                    "Ese link no me da musica. Proba con otro."}),
+            Map.entry("music_site_fail", new String[]{
+                    "De ahi no puedo poner musica. Pasame el link de un MP3 o de una radio.",
+                    "Esos links no los puedo abrir. Uno de un MP3 o de una radio si."}),
+            Map.entry("music_need_link", new String[]{
+                    "Pasame el link de la cancion y la pongo.",
+                    "Que pongo? Pasame un link de un MP3 o de una radio."}),
+            Map.entry("music_none", new String[]{
+                    "No esta sonando nada."}),
+            Map.entry("music_stop", new String[]{
+                    "Listo, apagada.",
+                    "Bueno, silencio."}),
+            Map.entry("music_pause", new String[]{
+                    "En pausa. Decime y sigo."}),
+            Map.entry("music_resume", new String[]{
+                    "Y seguimos!"}),
+            Map.entry("music_end", new String[]{
+                    "Que temazo. Pasame otra si queres.",
+                    "Se termino. Otra?"}),
+            Map.entry("music_off", new String[]{
+                    "La musica esta apagada en la configuracion."}),
+            Map.entry("music_louder", new String[]{
+                    "Mas fuerte!"}),
+            Map.entry("music_quieter", new String[]{
+                    "Mas bajito."}),
+
             // Pelear porque se lo pediste.
             Map.entry("attack_ack", new String[]{
                     "Dejamelo a mi.",
@@ -1733,7 +1844,7 @@ public final class OfflineRocco
             Map.entry("present_hours", new String[]{
                     "Volviste! Mientras no estabas di unas vueltas y te junte unas cositas.",
                     "Ah, aparecio. Me aburri tanto que sali a pasear, y mira lo que encontre.",
-                    "Te fuiste un rato y no me quede de brazos cruzados. Bah, no tengo brazos para cruzar. Pero te traje algo."}),
+                    "Te fuiste un rato y no me quede de brazos cruzados. Mira todo lo que te traje."}),
             Map.entry("present_day", new String[]{
                     "Un dia entero sin vos! Por suerte me entretuve juntando cosas. Son todas tuyas.",
                     "Volviste! Pense que te habia comido un creeper. Mientras tanto te junte un monton de cosas.",

@@ -17,6 +17,7 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, entien
 - **Pelea a tu lado:** te defiende, ataca lo que vos atacás y pelea cuando se lo pedís ("atacá a ese zombie"). Vos elegís a quién puede atacar.
 - **Si se muere, vuelve:** a los 15 segundos reaparece enterradito cerca tuyo. Con un cofre de ender gana el poder de no perder nunca sus cosas.
 - **Come y se cura:** se cura solo con el tiempo, más rápido después de comer, y si lo dejás toma pociones y se come manzanas doradas en apuros.
+- **Pone música:** pasale un link y suena desde él mientras la canta y la baila al ritmo. Y si suena un tocadiscos cerca, va a bailar.
 - **Roco Cola:** su gaseosa favorita (y no le digas Coca Cola).
 - **Regalos:** si te vas un rato, cuando volvés te dejó cosas que juntó. Y de vez en cuando te regala alguna rareza.
 - **Voz y micrófono (opcional):** habla en voz alta con Fish Audio, imita voces de personajes y te escucha con Deepgram.
@@ -41,11 +42,12 @@ Para que charle con IA, poné una clave gratuita (Groq, Gemini u OpenRouter, o O
 
 ## 🔒 Privacidad y servicios externos
 
-Sin claves, Rocco **no se conecta a ningún lado**. Solo si vos ponés una clave, se conecta a ese servicio:
+Sin claves, Rocco **no se conecta a ningún lado** (salvo al link de una canción que le pases, ver abajo). Solo si vos ponés una clave, se conecta a ese servicio:
 
 - **IA** (el proveedor que elijas): lo que le decís, la charla reciente y un resumen de lo que pasa en el juego.
 - **Fish Audio**: el texto que va a decir en voz alta, o el nombre de un personaje para buscar su voz pública.
 - **Deepgram**: el audio de tu micrófono, solo mientras mantenés la tecla (o con detección de voz).
+- **El sitio del link de una canción**: cuando vos u otro jugador cerca le pasa un link, tu juego lo abre para escucharlo, como un navegador. Se apaga en **Config > Charla > Música**.
 
 Las claves quedan solo en tu configuración. El mod no junta datos ni manda nada a ningún otro lado. No trae voces de personas reales.
 
@@ -59,10 +61,22 @@ Minecraft es marca de Mojang AB. Rocco no está afiliado a Mojang ni a Microsoft
 
 ## 🇬🇧 English
 
-**Rocco is an AI adventure companion that sprouts from the ground next to you.** He chats with his own personality, follows you everywhere (flying, swimming and in his own little boat), farms, crafts with real recipes, cooks, enchants your gear once a day, drinks mate, wears armor and 3D weapons, fights by your side, comes back buried next to your respawn point if he dies, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram).
+**Rocco is an AI adventure companion that sprouts from the ground next to you.** He chats with his own personality, follows you everywhere (flying, swimming and in his own little boat), farms, crafts with real recipes, cooks, enchants your gear once a day, drinks mate, wears armor and 3D weapons, fights by your side, comes back buried next to your respawn point if he dies, plays music from links (audio files, internet radios, Bandcamp, Twitch) and sings and dances to it, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram).
 
-He speaks **Spanish** and works **without any account or key** thanks to hundreds of built-in lines. A free AI key (Groq, Gemini, OpenRouter or a local Ollama) makes him chat for real.
+He speaks **Spanish** and works **without any account or key** thanks to hundreds of built-in lines. A free AI key (Groq, Gemini, OpenRouter or a local Ollama) makes him chat for real. With a key you can also make him reply in English: in his menu (sneak + right-click) open **Personalidad** and set **Dialect** to **Automatic**: he follows your game language. The menus, his built-in lines and the chat orders without AI are in Spanish.
 
 **Requires** Minecraft 1.20.1, Forge 47.4.10+ and GeckoLib 4.7.4+, on both client and server.
 
-**External services:** without keys he connects to nothing. Only if you add a key does he talk to that service (your messages go to the AI provider you chose, the spoken text to Fish Audio, your microphone audio to Deepgram). Nothing is collected or sent anywhere else.
+**External services:** without keys he connects to nothing, except the site of a music link someone gives him, which your game opens to play it. Only if you add a key does he talk to that service (your messages go to the AI provider you chose, the spoken text to Fish Audio, your microphone audio to Deepgram). Nothing is collected or sent anywhere else.
+
+---
+
+## 🇧🇷 Português
+
+**Rocco é um companheiro de aventuras com IA que brota da terra ao seu lado.** Ele conversa com personalidade própria, te segue para todo lado (voando, nadando e no seu barquinho), planta, crafta com as receitas reais, cozinha, encanta suas ferramentas uma vez por dia, toma chimarrão, usa armadura e armas 3D, luta ao seu lado, volta enterradinho perto de você se morrer, toca música a partir de links (arquivos de áudio, rádios, Bandcamp, Twitch) cantando e dançando, e pode falar em voz alta (Fish Audio) e te ouvir pelo microfone (Deepgram).
+
+Ele fala **espanhol** e funciona **sem nenhuma conta ou chave**, com centenas de falas próprias. Com uma chave de IA gratuita (Groq, Gemini, OpenRouter ou um Ollama local) ele conversa de verdade, e pode responder em português: no menu dele (agachado + clique direito) abra **Personalidad** e coloque **Dialect** em **Automatic**: ele segue o idioma do seu jogo. Os menus, as falas prontas e as ordens sem IA são em espanhol.
+
+**Requer** Minecraft 1.20.1, Forge 47.4.10+ e GeckoLib 4.7.4+, no cliente e no servidor.
+
+**Serviços externos:** sem chaves ele não se conecta a nada, exceto ao site de um link de música que alguém passar para ele, que o seu jogo abre para tocar. Só se você colocar uma chave ele se conecta a esse serviço (suas mensagens vão para o provedor de IA escolhido, o texto falado para a Fish Audio, o áudio do microfone para a Deepgram). Nada é coletado nem enviado para outro lugar.

@@ -23,8 +23,8 @@ public final class RoccoNetwork
     // Sube cuando cambian los mensajes: un cliente y un servidor con versiones distintas de Rocco
     // se avisan al conectar en vez de fallar a mitad de partida. 2: se agrego OpenSetup.
     // 3: se agrego VoiceLines (las frases grabadas). 4: el menu de Rocco (OpenMenu y MenuAction).
-    // 5: CallRocco (traerlo desde la config o con su tecla).
-    private static final String PROTOCOL = "5";
+    // 5: CallRocco (traerlo desde la config o con su tecla). 6: la musica desde links.
+    private static final String PROTOCOL = "6";
     public static final int CHUNK_BYTES = 30_000;
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -139,6 +139,91 @@ public final class RoccoNetwork
         }
     }
 
+    // ---------- musica (ver RoccoMusic) ----------
+
+    // Al jugador que pidio la cancion: "abri este link y decime si se puede escuchar".
+    public record MusicResolve(int request, String url)
+    {
+        static void encode(MusicResolve msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.request);
+            buf.writeUtf(msg.url, 600);
+        }
+
+        static MusicResolve decode(FriendlyByteBuf buf)
+        {
+            return new MusicResolve(buf.readVarInt(), buf.readUtf(600));
+        }
+    }
+
+    // La respuesta: si suena, el link final, el titulo y cuanto dura (0 si es una radio). Si no, por que.
+    public record MusicResolved(int request, boolean ok, String url, String title, long durationMs, String error)
+    {
+        static void encode(MusicResolved msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.request);
+            buf.writeBoolean(msg.ok);
+            buf.writeUtf(msg.url, 600);
+            buf.writeUtf(msg.title, 200);
+            buf.writeVarLong(Math.max(0L, msg.durationMs));
+            buf.writeUtf(msg.error, 300);
+        }
+
+        static MusicResolved decode(FriendlyByteBuf buf)
+        {
+            return new MusicResolved(buf.readVarInt(), buf.readBoolean(), buf.readUtf(600), buf.readUtf(200),
+                    buf.readVarLong(), buf.readUtf(300));
+        }
+    }
+
+    // A todos los de cerca: "este Rocco esta tocando esto desde el tick tal".
+    public record MusicPlay(int entityId, int session, String url, String title, long durationMs, long startTick)
+    {
+        static void encode(MusicPlay msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeVarInt(msg.session);
+            buf.writeUtf(msg.url, 600);
+            buf.writeUtf(msg.title, 200);
+            buf.writeVarLong(Math.max(0L, msg.durationMs));
+            buf.writeLong(msg.startTick);
+        }
+
+        static MusicPlay decode(FriendlyByteBuf buf)
+        {
+            return new MusicPlay(buf.readVarInt(), buf.readVarInt(), buf.readUtf(600), buf.readUtf(200),
+                    buf.readVarLong(), buf.readLong());
+        }
+    }
+
+    public record MusicStop(int entityId, int session)
+    {
+        static void encode(MusicStop msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeVarInt(msg.session);
+        }
+
+        static MusicStop decode(FriendlyByteBuf buf)
+        {
+            return new MusicStop(buf.readVarInt(), buf.readVarInt());
+        }
+    }
+
+    // "Subí el volumen": cambia el volumen de la musica de Rocco en la config de ese jugador.
+    public record MusicVolume(float delta)
+    {
+        static void encode(MusicVolume msg, FriendlyByteBuf buf)
+        {
+            buf.writeFloat(msg.delta);
+        }
+
+        static MusicVolume decode(FriendlyByteBuf buf)
+        {
+            return new MusicVolume(buf.readFloat());
+        }
+    }
+
     // "/rocco setup": que el jugador abra la pantalla de bienvenida (los comandos corren en el servidor).
     public record OpenSetup()
     {
@@ -168,6 +253,82 @@ public final class RoccoNetwork
                 RoccoNetwork::onMenuAction, Optional.of(NetworkDirection.PLAY_TO_SERVER));
         CHANNEL.registerMessage(6, CallRocco.class, CallRocco::encode, CallRocco::decode,
                 RoccoNetwork::onCallRocco, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(7, MusicResolve.class, MusicResolve::encode, MusicResolve::decode,
+                RoccoNetwork::onMusicResolve, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(8, MusicResolved.class, MusicResolved::encode, MusicResolved::decode,
+                RoccoNetwork::onMusicResolved, Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        CHANNEL.registerMessage(9, MusicPlay.class, MusicPlay::encode, MusicPlay::decode,
+                RoccoNetwork::onMusicPlay, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(10, MusicStop.class, MusicStop::encode, MusicStop::decode,
+                RoccoNetwork::onMusicStop, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(11, MusicVolume.class, MusicVolume::encode, MusicVolume::decode,
+                RoccoNetwork::onMusicVolume, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+    }
+
+    public static void sendMusicResolve(ServerPlayer player, MusicResolve msg)
+    {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), msg);
+    }
+
+    public static void sendMusicResolved(MusicResolved msg)
+    {
+        CHANNEL.sendToServer(msg);
+    }
+
+    public static void sendMusicPlay(ServerPlayer player, MusicPlay msg)
+    {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), msg);
+    }
+
+    public static void sendMusicStop(ServerPlayer player, MusicStop msg)
+    {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), msg);
+    }
+
+    public static void sendMusicVolume(ServerPlayer player, MusicVolume msg)
+    {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), msg);
+    }
+
+    private static void onMusicResolve(MusicResolve msg, Supplier<NetworkEvent.Context> context)
+    {
+        context.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.music.RoccoMusicClient.resolve(msg)));
+        context.get().setPacketHandled(true);
+    }
+
+    private static void onMusicResolved(MusicResolved msg, Supplier<NetworkEvent.Context> context)
+    {
+        ServerPlayer sender = context.get().getSender();
+        context.get().enqueueWork(() ->
+        {
+            if (sender != null)
+            {
+                com.cristoree.rocco.music.RoccoMusic.onResolved(sender, msg);
+            }
+        });
+        context.get().setPacketHandled(true);
+    }
+
+    private static void onMusicPlay(MusicPlay msg, Supplier<NetworkEvent.Context> context)
+    {
+        context.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.music.RoccoMusicClient.play(msg)));
+        context.get().setPacketHandled(true);
+    }
+
+    private static void onMusicStop(MusicStop msg, Supplier<NetworkEvent.Context> context)
+    {
+        context.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.music.RoccoMusicClient.stop(msg)));
+        context.get().setPacketHandled(true);
+    }
+
+    private static void onMusicVolume(MusicVolume msg, Supplier<NetworkEvent.Context> context)
+    {
+        context.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.music.RoccoMusicClient.changeVolume(msg.delta())));
+        context.get().setPacketHandled(true);
     }
 
     public static void callRocco()

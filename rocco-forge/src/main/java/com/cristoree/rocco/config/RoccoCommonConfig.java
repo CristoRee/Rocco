@@ -115,6 +115,9 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.BooleanValue DEFAULT_ATTACK_PEACEFUL;
     public static final ForgeConfigSpec.BooleanValue DEFAULT_ATTACK_PLAYERS;
     public static final ForgeConfigSpec.DoubleValue COLA_IDLE_CHANCE;
+    public static final ForgeConfigSpec.BooleanValue MUSIC_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue MUSIC_DANCE_JUKEBOX;
+    public static final ForgeConfigSpec.BooleanValue MUSIC_SING;
     public static final ForgeConfigSpec.IntValue COLA_IDLE_COOLDOWN_MINUTES;
     public static final ForgeConfigSpec.BooleanValue ENDER_MESSAGE_TO_ALL;
     public static final ForgeConfigSpec.BooleanValue AVOID_WATER;
@@ -552,6 +555,16 @@ public final class RoccoCommonConfig
         COLA_IDLE_COOLDOWN_MINUTES = b
                 .comment("Minutos minimos entre dos Roco Colas que se toma solo.")
                 .defineInRange("colaIdleCooldownMinutes", 10, 0, 1440);
+        MUSIC_ENABLED = b
+                .comment("Rocco pone musica cuando le pasas un link (\"Rocco, pone esto: https://...\").",
+                         "Cada jugador la escucha desde su juego; el volumen es el de \"Discos\".")
+                .define("musicEnabled", true);
+        MUSIC_DANCE_JUKEBOX = b
+                .comment("Si suena un disco en un tocadiscos cerca, va y baila.")
+                .define("musicDanceJukebox", true);
+        MUSIC_SING = b
+                .comment("Mientras suena la musica que puso, canta y baila.")
+                .define("musicSing", true);
         ENDER_MESSAGE_TO_ALL = b
                 .comment("El aviso de que gano el poder del cofre de ender les llega tambien a los que estan cerca.")
                 .define("enderMessageToAll", false);

@@ -117,7 +117,7 @@ public final class RoccoActions
             "talar", "conseguir", "encantar", "mate", "cebar_mate", "aplaudir", "festejar", "bailar", "recordar_lugar", "olvidar_lugar", "ir_a", "criar", "pescar",
             "comprar", "vender", "ordenar", "teletransportarse", "abrir", "comer", "seguir", "esperar",
             "sentarse", "dormir", "levantarse", "parar", "tomar_roco_cola", "equipar", "desequipar", "comer_cofre_ender",
-            "tomar_pocion", "atacar");
+            "tomar_pocion", "atacar", "poner_musica", "parar_musica", "pausar_musica", "seguir_musica", "volumen");
 
     private static final java.util.Set<String> UNDOCUMENTED_WARNED = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
@@ -156,7 +156,8 @@ public final class RoccoActions
             "poner", "colocar", "iluminar", "romper", "talar", "conseguir", "abrir", "comer", "tragar", "seguir",
             "esperar", "quedarse", "sentarse", "dormir", "levantarse", "despertarse", "parar", "cancelar",
             "tomar_roco_cola", "roco_cola", "equipar", "desequipar", "comer_cofre_ender", "tomar_pocion", "beber",
-            "atacar", "pelear", "disparar");
+            "atacar", "pelear", "disparar", "poner_musica", "musica", "reproducir", "parar_musica", "pausar_musica",
+            "seguir_musica", "volumen");
 
     public static Outcome run(RoccoEntity rocco, @Nullable ServerPlayer player, String verb, String argument)
     {
@@ -167,7 +168,9 @@ public final class RoccoActions
 
         // Una orden nueva corta el mate, el encantamiento o el baile que estuviera haciendo.
         boolean mateVerb = verb.equals("cebar_mate") || verb.equals("compartir_mate");
-        if ((!verb.equals("mate") || rocco.getActiveTask() != RoccoTask.MATE) && !(mateVerb && rocco.isSharingMate()))
+        // El volumen no corta nada: sigue cantando.
+        if ((!verb.equals("mate") || rocco.getActiveTask() != RoccoTask.MATE) && !(mateVerb && rocco.isSharingMate())
+                && !verb.equals("volumen"))
         {
             rocco.interruptActivity();
         }
@@ -178,7 +181,7 @@ public final class RoccoActions
             case "cebar_mate", "compartir_mate" -> shareMate(rocco, player);
             case "aplaudir" -> celebrate(rocco, player, RoccoTask.CLAPPING);
             case "festejar" -> celebrate(rocco, player, RoccoTask.CELEBRATING);
-            case "bailar" -> celebrate(rocco, player, RoccoTask.DANCING);
+            case "bailar" -> dance(rocco, player);
             case "encantar" -> enchant(rocco, player, argument);
             case "recordar_lugar" -> rememberPlace(rocco, player, argument);
             case "olvidar_lugar" -> forgetPlace(rocco, argument);
@@ -227,12 +230,49 @@ public final class RoccoActions
             case "comer_cofre_ender" -> eatEnderChest(rocco, player, level);
             case "tomar_pocion", "beber" -> drinkPotion(rocco, argument);
             case "atacar", "pelear", "disparar" -> attack(rocco, player, level, argument);
+            case "poner_musica", "musica", "reproducir" -> playMusic(rocco, player, argument);
+            case "parar_musica" -> com.cristoree.rocco.music.RoccoMusic.stop(rocco, true) ? OK : SAID;
+            case "pausar_musica" -> { com.cristoree.rocco.music.RoccoMusic.pause(rocco); yield SAID; }
+            case "seguir_musica" -> { com.cristoree.rocco.music.RoccoMusic.resume(rocco); yield SAID; }
+            case "volumen" -> { com.cristoree.rocco.music.RoccoMusic.volume(rocco, player,
+                    !Names.normalize(argument).matches(".*\b(bajar|baja|bajale|menos|despacio|bajito|-)\b.*")); yield SAID; }
             default ->
             {
                 RoccoMod.LOGGER.debug("[Rocco] Accion desconocida de la IA: {}", verb);
                 yield new Outcome(false, null);
             }
         };
+    }
+
+    // "Bailá": uno de los bailes nuevos (dos vueltas), ahi donde esta.
+    private static Outcome dance(RoccoEntity rocco, @Nullable ServerPlayer player)
+    {
+        if (rocco.isTravelling())
+        {
+            rocco.sayLine("celebrate_cant");
+            return SAID;
+        }
+        rocco.cancelErrand();
+        rocco.danceOnRequest(player);
+        return OK;
+    }
+
+    // "Poné esto: https://...": el link lo abre el juego
+    // del que lo pidio. Si la IA no copio el link, se busca en lo que dijo el jugador.
+    private static Outcome playMusic(RoccoEntity rocco, @Nullable ServerPlayer player, String argument)
+    {
+        String what = argument == null ? "" : argument.trim();
+        if (com.cristoree.rocco.music.RoccoMusic.findUrl(what) == null && rocco.brain() != null)
+        {
+            String said = rocco.brain().lastPlayerMessage();
+            String url = said == null ? null : com.cristoree.rocco.music.RoccoMusic.findUrl(said);
+            if (url != null)
+            {
+                what = url;
+            }
+        }
+        com.cristoree.rocco.music.RoccoMusic.request(rocco, player, what);
+        return SAID;
     }
 
     private static Outcome start(RoccoEntity rocco, com.cristoree.rocco.work.Errand errand)

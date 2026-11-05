@@ -1,0 +1,21 @@
+Rocco includes the following third-party software, used to play music from links.
+Each one keeps its own license. Rocco does not modify them.
+
+lavaplayer 2.2.7 (dev.arbjerg:lavaplayer, lava-common, lavaplayer-natives)
+  https://github.com/lavalink-devs/lavaplayer
+  Apache License 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+  The native libraries (natives/*) bundle third-party decoders:
+    libmpg123 - GNU LGPL 2.1 (https://www.mpg123.de). It is loaded as a separate dynamic
+      library (natives/win-x86-64/libmpg123-0.dll and inside libconnector) and can be replaced.
+    Opus (BSD), libvorbis/libogg (BSD), libsamplerate (BSD), fdk-aac (Fraunhofer FDK AAC license).
+
+Jackson 2.15.2 (com.fasterxml.jackson.core) - Apache License 2.0
+  https://github.com/FasterXML/jackson
+jsoup 1.16.1 (org.jsoup) - MIT License
+  https://jsoup.org
+JSON-java 20240303 (org.json) - Public Domain
+  https://github.com/stleary/JSON-java
+Base64 2.3.9 (net.iharder) - Public Domain
+
+These libraries are packaged with their packages renamed under com.cristoree.rocco.lib
+(except lavaplayer), so they do not clash with other mods.

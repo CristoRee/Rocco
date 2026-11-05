@@ -37,7 +37,8 @@ Se le habla por el chat (o por micrófono). Algunos ejemplos:
 | "encantame este pico" / "...con eficiencia 5" | Una vez por día: al azar como una mesa de encantamientos, o solo el encantamiento que pidas. |
 | "tomate un mate" | Ceba y se toma unos mates. También lo hace solo cuando estás tranquilo en tu casa. |
 | "pasame un mate" | Te ceba uno y te lo ofrece: clic derecho para agarrarlo, lo tomás en tres sorbos y se lo devolvés con clic derecho para que te cebe otro. Si no lo agarrás, se lo toma él. |
-| "bailá", "aplaudí", "festejá" | Baila tarareando, aplaude o salta con confeti. Solo, festeja tus logros y baila cuando estás tranquilo. |
+| "bailá", "aplaudí", "festejá" | Baila (dos bailes nuevos en bucle, de 8 segundos cada vuelta), aplaude o salta con confeti. Solo, festeja tus logros y baila cuando estás tranquilo. Si suena un disco en un tocadiscos cerca, va y baila hasta que se termina. |
+| "poné esto: https://..." | Pone la música de un link y la canta y la baila al ritmo de la canción. Ver **Música** abajo. |
 | "esta es mi casa" / "llevame a casa" | Recuerda lugares y te guía hasta ellos. |
 | "traeme carbón", "guardá todo", "ordená los cofres" | Busca, guarda y ordena las cosas de tus cofres. |
 | "talá un árbol", "conseguime 10 de madera", "iluminá" | Junta materiales de la naturaleza y pone antorchas donde está oscuro. |
@@ -60,6 +61,15 @@ Clic derecho sobre Rocco abre su tapa: un inventario de 36 lugares. En modo Chil
 - **Si se muere:** hace su caída, suelta lo que llevaba y a los 15 segundos reaparece **enterradito** cerca tuyo. Hacé clic derecho en el montículo y sale de un salto. Si no lo desenterrás, a los 5 minutos la tumba se muda a tu punto de reaparición. Se puede elegir que muera para siempre o que sea inmortal (**Config > Vida y rutina**).
 - **Traerlo siempre:** **Mods > Rocco > Config > Traer a Rocco**, una tecla en **Controles > Rocco** (sin asignar de fábrica) o `/rocco llamar`.
 - **El poder del cofre de ender:** dale un cofre de ender (o ponelo cerca para que se lo coma) y desde ahí no pierde sus cosas al morir.
+
+### Música
+
+Pasale un link a Rocco y lo pone: suena desde él (camina con la música, como un parlante con patas) y mientras tanto canta con su micrófono y a veces baila, al ritmo de la canción. Las canciones lentas las canta suave, y el rap y el trap con actitud.
+
+- **Qué links andan:** archivos de audio (MP3, OGG, M4A, FLAC, WAV), radios por internet, Bandcamp y canales de Twitch que estén en vivo. Los de YouTube, Spotify, SoundCloud y otras apps de videos o música no: esos sitios no dejan sacar el audio, y Rocco te pide otro link.
+- **Por chat:** "poné esto https://...", "pausá la música", "seguí con la música", "pará la música", "subí/bajá el volumen".
+- **En multijugador** todos los que están cerca escuchan lo mismo al mismo tiempo, y el que llega tarde entra en el punto justo. Cada uno la escucha desde su juego.
+- **El volumen** es el de **Discos** (Opciones > Música y sonidos), más el de **Config > Charla > Música**. Mientras Rocco habla, la música baja un poco.
 
 ### Roco Cola
 
@@ -141,8 +151,11 @@ Sin claves, Rocco no se conecta a ningún lado. Solo si vos ponés una clave, el
 | IA (Groq, Gemini, OpenRouter, Ollama o un proveedor propio) | Cuando le hablás y no es una orden simple | Lo que le dijiste, la charla reciente, su personalidad y un resumen de lo que pasa en el juego (vida, inventario, cofres cerca, hora). |
 | Fish Audio | Cuando habla en voz alta, o busca la voz de un personaje para imitarlo | El texto que va a decir, o el nombre del personaje. |
 | Deepgram | Mientras mantenés la tecla del micrófono (o con detección de voz) | El audio de tu micrófono. |
+| El sitio del link de una canción | Cuando vos u otro jugador cerca le pasa un link a Rocco | Tu juego abre ese link para escucharlo, como un navegador: ese sitio ve tu conexión. Se apaga en **Config > Charla > Música > Escuchar su música**. |
 
 Las claves quedan solo en tu archivo de configuración (o en variables de entorno, ver los comentarios de la config). El mod no junta datos ni manda nada a CristoRee ni a ningún otro lado.
+
+Para la música, Rocco trae adentro lavaplayer y otras librerías de código abierto: ver `META-INF/THIRD-PARTY-NOTICES.txt` en el jar.
 
 ## Licencia
 
@@ -154,6 +167,6 @@ Minecraft es marca de Mojang AB. Rocco no está afiliado a Mojang ni a Microsoft
 
 ### English
 
-Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms (planting the seeds he has or finds in your chests), crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate (and shares one with you if you ask), remembers places, breeds animals, fishes, trades with villagers, sorts your chests, brings you gifts when you come back after being away, has a sneak + right-click menu, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He wears armor (with a cute style per material) and 3D weapons, fights by your side (you choose who he may attack), heals with sunlight, comes back buried next to your respawn point if he dies, keeps his items forever if he eats an ender chest, and loves Roco Cola. He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.
+Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms (planting the seeds he has or finds in your chests), crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate (and shares one with you if you ask), remembers places, breeds animals, fishes, trades with villagers, sorts your chests, brings you gifts when you come back after being away, has a sneak + right-click menu, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He wears armor (with a cute style per material) and 3D weapons, fights by your side (you choose who he may attack), plays music from links (audio files, internet radios, Bandcamp, Twitch) and sings and dances to it, heals with sunlight, comes back buried next to your respawn point if he dies, keeps his items forever if he eats an ender chest, and loves Roco Cola. He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.
 
-**External services:** without keys, Rocco connects to nothing. Only if you add a key does it talk to that service (your messages go to the AI provider you chose, the spoken text to Fish Audio, your microphone audio to Deepgram). Nothing is collected or sent anywhere else.
+**External services:** without keys, Rocco connects to nothing (except the site of a music link someone gives him, which your game opens to play it). Only if you add a key does it talk to that service (your messages go to the AI provider you chose, the spoken text to Fish Audio, your microphone audio to Deepgram). Nothing is collected or sent anywhere else.

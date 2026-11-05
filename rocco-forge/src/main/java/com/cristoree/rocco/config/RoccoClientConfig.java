@@ -18,6 +18,9 @@ public final class RoccoClientConfig
     // audio
     public static final ForgeConfigSpec.DoubleValue VOICE_VOLUME;
     public static final ForgeConfigSpec.BooleanValue SPATIAL_AUDIO;
+    public static final ForgeConfigSpec.BooleanValue MUSIC_LISTEN;
+    public static final ForgeConfigSpec.DoubleValue MUSIC_VOLUME;
+    public static final ForgeConfigSpec.BooleanValue MUSIC_BEAT_SYNC;
 
     // input
     public static final ForgeConfigSpec.ConfigValue<String> MIC_DEVICE;
@@ -67,6 +70,19 @@ public final class RoccoClientConfig
         SPATIAL_AUDIO = b
                 .comment("La voz suena desde donde esta Rocco, no en el centro.")
                 .define("spatialAudio", true);
+        b.pop();
+
+        b.comment("La musica que pone Rocco con un link.").push("music");
+        MUSIC_LISTEN = b
+                .comment("Escuchar la musica que pone Rocco (tambien la que le piden otros jugadores).",
+                         "Para escucharla, tu juego abre el link: el sitio de ese link ve tu conexion.")
+                .define("musicListen", true);
+        MUSIC_VOLUME = b
+                .comment("Volumen de esa musica (ademas del control \"Discos\" de Opciones > Musica y sonidos).")
+                .defineInRange("musicVolume", 0.8D, 0.0D, 1.0D);
+        MUSIC_BEAT_SYNC = b
+                .comment("Rocco canta y baila al ritmo de la cancion (calcula el ritmo mientras suena).")
+                .define("musicBeatSync", true);
         b.pop();
 
         b.comment("Microfono. La tecla para hablarle se cambia en Opciones > Controles.").push("input");

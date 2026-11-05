@@ -1,10 +1,8 @@
 {
   "entity.rocco.rocco": "Rocco",
   "item.rocco.rocco_spawn_egg": "Huevo generador de Rocco",
-
   "key.categories.rocco": "Rocco",
   "key.rocco.talk": "Hablarle a Rocco (micrófono)",
-
   "subtitles.rocco.awaken_pop": "Rocco sale de la tierra",
   "subtitles.rocco.chew": "Rocco mastica",
   "subtitles.rocco.dirt": "Tierra removida",
@@ -37,7 +35,6 @@
   "subtitles.rocco.cheer": "Rocco festeja",
   "subtitles.rocco.giggle": "Rocco se ríe",
   "subtitles.rocco.think": "Rocco piensa",
-
   "rocco.chat.impression": "%s (como %s)",
   "rocco.blocked.1": "Mejor me lo guardo.",
   "rocco.blocked.2": "Iba a decir algo, pero mejor no.",
@@ -51,7 +48,6 @@
   "rocco.problem.hint": "[Rocco] La IA no responde (%s). Uso mis frases propias mientras tanto. /rocco ia para ver el detalle.",
   "rocco.toast.no_ai.title": "Rocco todavía no puede hablar",
   "rocco.toast.no_ai.text": "Configuralo en Opciones > Mods > Rocco.",
-
   "rocco.config.reset": "Volver al valor por defecto",
   "rocco.config.range": "Entre %s y %s",
   "rocco.config.default": "Por defecto: %s",
@@ -69,7 +65,6 @@
   "rocco.config.tip.impression_voices": "Nombre=ID de voz de Fish Audio, separados por punto y coma (Vegeta=abc123; Goku=def456). El mod no trae voces de personas reales: sin voz, Rocco imita solo con el texto.",
   "rocco.config.opt.impression_search": "Buscar voces públicas",
   "rocco.config.tip.impression_search": "Si un personaje no está en la lista, busca una voz pública con ese nombre en Fish Audio y la recuerda.",
-
   "rocco.personality.title": "Personalidad",
   "rocco.personality.button.tip": "Chill, Sin filtro o a tu medida: cómo te trata, cuánto se burla, sus miedos, su historia.",
   "rocco.personality.mode.chill": "Chill",
@@ -94,7 +89,6 @@
   "rocco.personality.group.language": "Idioma",
   "rocco.personality.group.extra": "Extra",
   "rocco.personality.group.advanced": "Avanzado",
-
   "rocco.config.trait.origin": "Historia de origen",
   "rocco.config.tip.origin": "De dónde salió Rocco y por qué te ayuda. \"Escrita por mí\" usa el texto de abajo.",
   "rocco.config.trait.custom_origin": "Tu historia (600 letras)",
@@ -145,7 +139,6 @@
   "rocco.config.tip.own_file": "Usa tu archivo de personalidad en vez de estos rasgos. /rocco personalidad reset escribe ahí la actual para que la edites.",
   "rocco.config.trait.prompt_file": "Archivo de personalidad",
   "rocco.config.tip.prompt_file": "El nombre del archivo, dentro de config/rocco/.",
-
   "rocco.value.Origin.CHILL": "Chill",
   "rocco.value.Origin.SIN_FILTRO": "Sin filtro",
   "rocco.value.Origin.PERSONALIZADO": "Escrita por mí",
@@ -192,7 +185,6 @@
   "rocco.value.Dialect.LATINO": "Latino neutro",
   "rocco.value.Dialect.RIOPLATENSE": "Rioplatense",
   "rocco.value.Dialect.ESPANA": "España",
-
   "rocco.test.works": "Funciona.",
   "rocco.test.bad_key": "La clave no es válida.",
   "rocco.test.offline": "Sin conexión (o el servicio no responde).",
@@ -201,7 +193,6 @@
   "rocco.test.not_configured": "Falta la clave.",
   "rocco.test.blocked": "El proveedor bloqueó la respuesta.",
   "rocco.test.other": "No anduvo: %s",
-
   "rocco.command.personality.mode": "Personalidad: %s",
   "rocco.command.personality.modes": "Cambiala con /rocco personalidad chill | sin_filtro | personalizado, o en Mods > Rocco > Config > Personalidad.",
   "rocco.command.personality.file": "Usa tu archivo: %s",
@@ -210,7 +201,6 @@
   "rocco.command.personality.needs_debug": "Activá \"Más detalle en el log\" (Config > IA avanzada) para usar este comando.",
   "rocco.command.personality.dumped": "Guardé el prompt en %s (%s caracteres, unos %s tokens).",
   "rocco.command.personality.reset": "Escribí la personalidad actual en %s. Para usarla: modo Personalizado y \"Usar mi propio archivo\".",
-
   "rocco.setup.button": "Bienvenida",
   "rocco.setup.button.tip": "El asistente para dejar a Rocco listo: claves, voz, micrófono y personalidad.",
   "rocco.setup.title": "Rocco",
@@ -273,8 +263,7 @@
   "rocco.setup.summary.tested": " (probado)",
   "rocco.setup.privacy.title": "Privacidad",
   "rocco.setup.privacy.text": "Lo que le decís a Rocco y algunos datos de tu partida se envían a los proveedores que elijas. Tus claves se guardan solo en tu computadora.",
-  "rocco.personality.migrate":"[Rocco] Tenés una personalidad editada de una versión anterior en %s. Para seguir usándola: Mods > Rocco > Config > Personalidad, modo Personalizado y \"Usar mi propio archivo\".",
-
+  "rocco.personality.migrate": "[Rocco] Tenés una personalidad editada de una versión anterior en %s. Para seguir usándola: Mods > Rocco > Config > Personalidad, modo Personalizado y \"Usar mi propio archivo\".",
   "item.rocco.mate": "Mate de Rocco",
   "subtitles.rocco.player_sip": "Sorbo de mate",
   "rocco.value.LidStyle.AUTO": "Según el modo",
@@ -313,11 +302,6 @@
   "subtitles.rocco.cola_ahh_1": "Rocco: «¡ah!»",
   "subtitles.rocco.cola_ahh_2": "Rocco: «¡aaah!»",
   "subtitles.rocco.cola_ahh_3": "Rocco: «¡AAAAH, qué fresca!»",
-  "subtitles.rocco.food_bite": "Rocco muerde",
-  "subtitles.rocco.food_munch": "Rocco mastica",
-  "subtitles.rocco.food_swallow": "Rocco traga",
-  "subtitles.rocco.potion_open": "Rocco destapa una poción",
-  "subtitles.rocco.potion_drink": "Rocco toma una poción",
-  "subtitles.rocco.potion_magic": "Efecto de poción",
-  "subtitles.rocco.yuck": "Rocco: «¡puaj!»"
+  "subtitles.rocco.music": "Rocco pone música",
+  "rocco.music.volume": "Volumen de la música de Rocco: %s%%"
 }

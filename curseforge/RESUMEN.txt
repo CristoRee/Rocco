@@ -1,7 +1,11 @@
 Resumen (campo "Summary", hasta 255 caracteres):
 
-Un compañero con IA que brota de la tierra: charla con su personalidad, te sigue volando y nadando, cultiva, craftea, cocina, encanta, toma mate, pelea con armadura y armas, y te habla en voz alta. Funciona sin claves.
+Un compañero con IA que brota de la tierra: charla con su personalidad, te sigue volando y nadando, cultiva, craftea, cocina, encanta, toma mate, pelea con armadura y armas, pone música y te habla en voz alta. Funciona sin claves.
 
 English summary:
 
-An AI companion that sprouts from the ground: chats with his own personality, follows you flying and swimming, farms, crafts, cooks, enchants, drinks mate, fights with armor and weapons, and talks out loud. Works without keys. Spanish only.
+An AI companion that sprouts from the ground: chats with his own personality, follows you flying and swimming, farms, crafts, cooks, enchants, drinks mate, fights with armor and weapons, plays music and talks out loud. Works without keys. In Spanish.
+
+Resumo em português:
+
+Um companheiro com IA que brota da terra: conversa com personalidade própria, te segue voando e nadando, planta, crafta, cozinha, encanta, toma chimarrão, luta com armadura e armas, toca música e fala em voz alta. Funciona sem chaves. Em espanhol.

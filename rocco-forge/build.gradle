@@ -3,6 +3,8 @@ plugins {
     id 'idea'
     id 'maven-publish'
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    // Para meter adentro del jar el reproductor de musica (lavaplayer) con sus paquetes renombrados.
+    id 'com.gradleup.shadow' version '8.3.5'
 }
 
 version = mod_version
@@ -128,6 +130,7 @@ repositories {
     //     dir 'libs'
     // }
 
+
     maven {
         name = 'GeckoLib'
         url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
@@ -136,6 +139,13 @@ repositories {
             includeGroup("com.eliotlash.mclib")
         }
     }
+}
+
+configurations {
+    shade
+    implementation.extendsFrom shade
+    // En el entorno de desarrollo el juego necesita estas librerias en su propia capa.
+    minecraftLibrary.extendsFrom shade
 }
 
 dependencies {
@@ -163,6 +173,23 @@ dependencies {
 
     // GeckoLib: motor de animaciones/modelos para la entidad de Rocco
     implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")
+
+    // Musica desde links (MP3, radios, Bandcamp, Twitch): lavaplayer abre el link y decodifica.
+    // Va adentro del jar (shade). Lo que Minecraft ya trae (httpclient, commons-io,
+    // commons-codec, slf4j) no se repite: se usa el del juego.
+    shade("dev.arbjerg:lavaplayer:${lavaplayer_version}") { excludeProvidedByMinecraft(delegate) }
+}
+
+def excludeProvidedByMinecraft(dep)
+{
+    dep.exclude group: 'org.apache.httpcomponents'
+    dep.exclude group: 'commons-io'
+    dep.exclude group: 'commons-codec'
+    dep.exclude group: 'commons-logging'
+    dep.exclude group: 'org.slf4j'
+    dep.exclude group: 'org.jetbrains', module: 'annotations'
+    // Rhino (JavaScript) solo lo usa la fuente de YouTube de lavaplayer, que no se usa.
+    dep.exclude group: 'org.mozilla'
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -198,9 +225,36 @@ tasks.named('jar', Jar).configure {
         ])
     }
 
+    // El jar sin las librerias queda aparte; el que se publica es el de shadowJar.
+    archiveClassifier = 'slim'
+
     // This is the preferred method to reobfuscate your jar file
     finalizedBy 'reobfJar'
 }
+
+// El jar que se publica: el mod mas lavaplayer adentro. Las librerias comunes se renombran para
+// no chocar con otros mods. lavaplayer queda con sus paquetes: sus decodificadores nativos (Opus,
+// MP3, AAC) se enganchan por el nombre de la clase. De los nativos van Windows, Linux y Mac.
+tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar).configure {
+    configurations = [project.configurations.shade]
+    archiveClassifier = ''
+    manifest.inheritFrom tasks.jar.manifest
+    relocate 'com.fasterxml.jackson', 'com.cristoree.rocco.lib.jackson'
+    relocate 'org.jsoup', 'com.cristoree.rocco.lib.jsoup'
+    relocate 'org.json', 'com.cristoree.rocco.lib.json'
+    relocate 'net.iharder', 'com.cristoree.rocco.lib.iharder'
+    mergeServiceFiles()
+    exclude 'natives/linux-x86/**', 'natives/linux-arm/**', 'natives/linux-armhf/**', 'natives/linux-aarch32/**',
+            'natives/linux-musl-*/**', 'natives/win-x86/**'
+    exclude 'META-INF/versions/**/module-info.class', 'module-info.class', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+    finalizedBy 'reobfShadowJar'
+}
+
+reobf {
+    shadowJar {}
+}
+
+tasks.named('assemble') { dependsOn 'shadowJar' }
 
 // However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing:
 // tasks.named('publish').configure {

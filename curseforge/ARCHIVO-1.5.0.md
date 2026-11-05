@@ -1,6 +1,9 @@
 ## Rocco 1.5.0
 
 **Nuevo**
+- Música desde links: Rocco pone la canción, suena desde él y la canta y la baila al ritmo. Archivos de audio (MP3, OGG...), radios por internet, Bandcamp y Twitch. En multijugador todos escuchan lo mismo a la vez.
+- Dos bailes nuevos en bucle, y baila cuando suena un tocadiscos cerca.
+- Snorkel nuevo.
 - Armaduras con un estilo para cada material (coronita de oro, cuerno de unicornio de diamante, orejitas y colita de gato de netherite, pluma de hierro, moño de cota de malla, margarita de cuero que se tiñe, caparazón de tortuga).
 - Armas 3D: espada y hacha de cada material, tridente, arco, ballesta y escudo.
 - Menú de equipo (agachado + clic derecho > Equipo) y "ponete la armadura" por chat.
@@ -19,6 +22,9 @@
 - Ya no es inmortal por defecto.
 
 **Arreglado**
+- Rocco no movía la boca al hablar, y muchas animaciones se veían cortadas (fotogramas fuera de orden).
+- Ya no dice que no tiene brazos.
+- La comida y las pociones se ven derechas y del tamaño justo, con los sonidos del juego.
 - Rocco no atacaba ni defendía si había nacido sin dueño, ni si estaba sentado o tomando mate.
 - "Quedate quieto" ya no se convierte en "pará": después de un mate sigue quieto.
 - La "boca de monstruo" ya no se ve entreabierta a los costados.

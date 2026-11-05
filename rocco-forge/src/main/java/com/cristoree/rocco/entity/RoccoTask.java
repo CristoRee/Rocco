@@ -38,12 +38,30 @@ public enum RoccoTask
     FOOD_EAT(52, 40),
     FOOD_EAT_BAD(60, 40),
     POTION_DRINK(50, 30),
-    POTION_DRINK_BAD(56, 30);
+    POTION_DRINK_BAD(56, 30),
+    // Bailes en bucle de la v12 (8 s cada vuelta, 16 tiempos a 120 bpm): de a dos vueltas.
+    DANCE_FIESTA(320, 320),
+    DANCE_MENEITO(320, 320),
+    // Cantando la musica que pone (bucles de 2,4 s, 1,25 s y 1,3 s): de a 16 segundos.
+    SING_SOFT(320, 320),
+    SING_GROOVE(320, 320),
+    SING_RAP(320, 320);
 
     // Las cuatro de comer y tomar con la comida o la pocion en la mano.
     public boolean consuming()
     {
         return this == FOOD_EAT || this == FOOD_EAT_BAD || this == POTION_DRINK || this == POTION_DRINK_BAD;
+    }
+
+    // Los bailes y el canto de la musica: animaciones en bucle que siguen mientras suene algo.
+    public boolean musical()
+    {
+        return this == DANCE_FIESTA || this == DANCE_MENEITO || this == SING_SOFT || this == SING_GROOVE || this == SING_RAP;
+    }
+
+    public boolean singing()
+    {
+        return this == SING_SOFT || this == SING_GROOVE || this == SING_RAP;
     }
 
     private static final RoccoTask[] VALUES = values();

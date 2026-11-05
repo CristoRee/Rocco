@@ -303,6 +303,13 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.COLA_IDLE_CHANCE, "Chance de Roco Cola"),
                         opt(common, RoccoCommonConfig.COLA_IDLE_COOLDOWN_MINUTES, "Minutos entre Roco Colas"),
                         opt(common, RoccoCommonConfig.ENDER_MESSAGE_TO_ALL, "Aviso del cofre de ender a todos")),
+                group("Música",
+                        opt(common, RoccoCommonConfig.MUSIC_ENABLED, "Pone música con links"),
+                        opt(client, RoccoClientConfig.MUSIC_LISTEN, "Escuchar su música"),
+                        opt(client, RoccoClientConfig.MUSIC_VOLUME, "Volumen de su música"),
+                        opt(common, RoccoCommonConfig.MUSIC_SING, "Canta y baila con su música"),
+                        opt(client, RoccoClientConfig.MUSIC_BEAT_SYNC, "Al ritmo de la canción"),
+                        opt(common, RoccoCommonConfig.MUSIC_DANCE_JUKEBOX, "Baila con el tocadiscos")),
                 group("Regalos",
                         opt(common, RoccoCommonConfig.RETURN_GIFTS_ENABLED, "Regalos al volver"),
                         opt(common, RoccoCommonConfig.SURPRISES_ENABLED, "Sorpresas y su diario")))));
