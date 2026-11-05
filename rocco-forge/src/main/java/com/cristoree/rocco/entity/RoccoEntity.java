@@ -73,9 +73,6 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     public static final int LID_CLOSE_TICKS = 26;
     public static final int LID_FACE_RESTORE_TICK = 23;
 
-    // 4 filas de 9, como un cofre y un tercio.
-    public static final int INVENTORY_SIZE = 36;
-
     private static final int LID_CLOSED = 0;
     private static final int LID_OPENED = 1;
     private static final int LID_CLOSING = 2;
@@ -117,6 +114,9 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.BOOLEAN);
     // Volando, en el agua o en el barquito: que animacion de viaje tiene que verse.
     private static final EntityDataAccessor<Integer> DATA_MOTION =
+            SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
+    // Que mochila lleva puesta (0 a 6): el modelo muestra esa.
+    private static final EntityDataAccessor<Integer> DATA_BACKPACK =
             SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
     // Pensando la respuesta de la IA (solo despues de un ratito, para que no parpadee).
     private static final EntityDataAccessor<Boolean> DATA_THINKING =
@@ -257,6 +257,17 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     private final RoccoContainer inventory = new RoccoContainer();
+    // La mochila puesta. Lo que lleva adentro esta en el inventario mientras la tiene puesta.
+    private ItemStack backpack = ItemStack.EMPTY;
+    // Lo que ya no le entra (un Rocco de antes, con 36 lugares): lo suelta al despertar.
+    private final List<ItemStack> overflow = new ArrayList<>();
+    private final RoccoGifts gifts = new RoccoGifts(this);
+    private final RoccoGates gates = new RoccoGates(this);
+    // Lo que dice en cada tick de la animacion de un regalo (arranca recien cuando llega a tu lado).
+    private final java.util.Map<Integer, String> taskLines = new java.util.HashMap<>();
+    // Desde cuando puede volver a darte una Roco Cola, y los lobos en los que se puede subir.
+    private long nextColaGift;
+    private final Set<UUID> allowedWolves = new HashSet<>();
     private final RoccoTravel journey = new RoccoTravel(this);
     private final MateShare share = new MateShare(this);
     private final RoccoLife life = new RoccoLife(this);
@@ -517,6 +528,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.entityData.define(DATA_BOBBER, BlockPos.ZERO);
         this.entityData.define(DATA_BOBBER_BITE, false);
         this.entityData.define(DATA_MOTION, RoccoMotion.NONE.ordinal());
+        this.entityData.define(DATA_BACKPACK, 0);
         this.entityData.define(DATA_THINKING, false);
         this.entityData.define(DATA_GARDEN_LID, false);
         this.entityData.define(DATA_MATE_STEP, 0);
@@ -974,7 +986,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // El jardincito de la tapa (modo Chill) solo existe mientras la tapa esta abierta o cerrandose.
     public boolean showsGarden()
     {
-        return this.entityData.get(DATA_GARDEN_LID) && this.entityData.get(DATA_LID) != LID_CLOSED;
+        return getActiveTask().chillGift() || (this.entityData.get(DATA_GARDEN_LID) && this.entityData.get(DATA_LID) != LID_CLOSED);
     }
 
     public boolean isLidOpen()
@@ -1067,6 +1079,261 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     public Container inventory()
     {
         return this.inventory;
+    }
+
+    // Camina como cualquiera, pero sabe pasar por las puertas de valla (RoccoGates).
+    @Override
+    protected net.minecraft.world.entity.ai.navigation.PathNavigation createNavigation(Level level)
+    {
+        return new GroundPathNavigation(this, level)
+        {
+            @Override
+            protected net.minecraft.world.level.pathfinder.PathFinder createPathFinder(int maxVisitedNodes)
+            {
+                this.nodeEvaluator = new RoccoGates.Nodes();
+                this.nodeEvaluator.setCanPassDoors(true);
+                return new net.minecraft.world.level.pathfinder.PathFinder(this.nodeEvaluator, maxVisitedNodes);
+            }
+        };
+    }
+
+    // ---------- mochila ----------
+
+    public int backpackTier()
+    {
+        return this.entityData.get(DATA_BACKPACK);
+    }
+
+    public ItemStack backpack()
+    {
+        return this.backpack;
+    }
+
+    // Se la pone: la vieja vuelve al jugador con lo que lleva adentro, y lo de la nueva pasa a sus
+    // lugares. Se muestra si esta libre.
+    private void equipBackpack(Player player, ItemStack held)
+    {
+        ItemStack old = takeOffBackpack();
+        ItemStack worn = held.split(1);
+        wearBackpack(worn);
+        if (!old.isEmpty() && !player.getInventory().add(old))
+        {
+            player.drop(old, false);
+        }
+        if (isFreeTime())
+        {
+            perform(RoccoTask.BACKPACK_SHOW, player);
+        }
+        else
+        {
+            playRoccoSound(ModSounds.BACKPACK_EQUIP.get(), 0.8F);
+        }
+    }
+
+    // Desde el menu: te la devuelve con todo adentro; si no hay lugar, a tus pies.
+    public boolean removeBackpack(Player player)
+    {
+        if (this.backpack.isEmpty())
+        {
+            sayLine("backpack_none");
+            return false;
+        }
+        ItemStack old = takeOffBackpack();
+        if (!player.getInventory().add(old))
+        {
+            player.drop(old, false);
+        }
+        playRoccoSound(ModSounds.BACKPACK_CLOSE.get(), 0.8F);
+        sayLine("backpack_removed");
+        return true;
+    }
+
+    // Lo que esta en los lugares de la mochila queda adentro de ella.
+    private ItemStack takeOffBackpack()
+    {
+        if (this.backpack.isEmpty())
+        {
+            return ItemStack.EMPTY;
+        }
+        ItemStack old = this.backpack;
+        net.minecraft.nbt.ListTag stored = new net.minecraft.nbt.ListTag();
+        for (int slot = com.cristoree.rocco.item.BackpackItem.BASE_SLOTS; slot < this.inventory.getContainerSize(); slot++)
+        {
+            ItemStack stack = this.inventory.getItem(slot);
+            if (!stack.isEmpty())
+            {
+                CompoundTag entry = new CompoundTag();
+                entry.putShort("Slot", (short) (slot - com.cristoree.rocco.item.BackpackItem.BASE_SLOTS));
+                stored.add(stack.save(entry));
+                this.inventory.setItem(slot, ItemStack.EMPTY);
+            }
+        }
+        if (stored.isEmpty())
+        {
+            old.removeTagKey("Items");
+        }
+        else
+        {
+            old.getOrCreateTag().put("Items", stored);
+        }
+        this.backpack = ItemStack.EMPTY;
+        this.entityData.set(DATA_BACKPACK, 0);
+        this.inventory.resize(com.cristoree.rocco.item.BackpackItem.BASE_SLOTS);
+        return old;
+    }
+
+    private void wearBackpack(ItemStack worn)
+    {
+        int tier = worn.getItem() instanceof com.cristoree.rocco.item.BackpackItem item ? item.tier() : 0;
+        this.backpack = worn;
+        this.entityData.set(DATA_BACKPACK, tier);
+        this.inventory.resize(com.cristoree.rocco.item.BackpackItem.slotsFor(tier));
+        CompoundTag tag = worn.getTag();
+        if (tag == null || !tag.contains("Items"))
+        {
+            return;
+        }
+        net.minecraft.nbt.ListTag stored = tag.getList("Items", 10);
+        for (int i = 0; i < stored.size(); i++)
+        {
+            CompoundTag entry = stored.getCompound(i);
+            ItemStack stack = ItemStack.of(entry);
+            int slot = com.cristoree.rocco.item.BackpackItem.BASE_SLOTS + entry.getShort("Slot");
+            if (slot < this.inventory.getContainerSize() && this.inventory.getItem(slot).isEmpty())
+            {
+                this.inventory.setItem(slot, stack);
+            }
+            else
+            {
+                keep(stack);
+            }
+        }
+        worn.removeTagKey("Items");
+    }
+
+    // ---------- regalos y Roco Cola ----------
+
+    // Arranca un regalo: se acerca si hace falta, mira al jugador y lo entrega en su tick.
+    void startGift(RoccoTask task, Player toward, ItemStack shown, double reach, Runnable deliver)
+    {
+        interruptActivity();
+        this.autoRestTicks = 0;
+        lookAtPlayer(toward);
+        queueJob(Job.custom(task, toward.blockPosition(), shown, level -> deliver.run(), null).reaching(reach));
+    }
+
+    // Una frase en ese momento de la animacion, si sigue en ella.
+    void sayDuring(int atTick, String text)
+    {
+        this.taskLines.put(atTick, text);
+    }
+
+    boolean hostileNearbyWithin(double radius)
+    {
+        return hostileNearby(radius);
+    }
+
+    // "Dame una Roco Cola": la saca de atras de la espalda y te la da. Se tiene que enfriar otra.
+    public boolean giveCola(Player player)
+    {
+        if (getRoccoState() != RoccoState.ACTIVE || isTravelling() || isInWater())
+        {
+            sayLine("celebrate_cant");
+            return false;
+        }
+        if (level().getGameTime() < this.nextColaGift)
+        {
+            sayLine("cola_give_wait");
+            return false;
+        }
+        cancelErrand();
+        standUp();
+        ItemStack cola = new ItemStack(com.cristoree.rocco.registry.ModItems.ROCO_COLA.get());
+        startGift(RoccoTask.GIVE_COLA, player, cola, 3.0D, () ->
+        {
+            this.nextColaGift = level().getGameTime() + COLA_GIFT_COOLDOWN;
+            if (player instanceof ServerPlayer serverPlayer && serverPlayer.isAlive())
+            {
+                RoccoGifts.hand(serverPlayer, cola.copy());
+            }
+        });
+        return true;
+    }
+
+    private static final int COLA_GIFT_COOLDOWN = 20 * 60 * 5;
+
+    // Te escucho eructar: te mira, se queja y, si estaba en el cono, le vuelan las hojitas.
+    public void reactToBurp(Player player, boolean inCone, net.minecraft.world.phys.Vec3 look)
+    {
+        if (getRoccoState() != RoccoState.ACTIVE)
+        {
+            return;
+        }
+        if (inCone && !isTravelling())
+        {
+            push(look.x * 0.4D, 0.2D, look.z * 0.4D);
+            this.hurtMarked = true;
+        }
+        if (isFreeTime())
+        {
+            perform(RoccoTask.REACT_BURP, player);
+            sayDuring(44, OfflineRocco.line("burp_react"));
+        }
+    }
+
+    public boolean wolfAllowed(UUID wolf)
+    {
+        return this.allowedWolves.contains(wolf);
+    }
+
+    // true si ahora puede subirse a ese lobo.
+    public boolean toggleWolf(UUID wolf)
+    {
+        if (this.allowedWolves.remove(wolf))
+        {
+            return false;
+        }
+        this.allowedWolves.add(wolf);
+        return true;
+    }
+
+    public boolean anyWolfAllowed()
+    {
+        return !this.allowedWolves.isEmpty();
+    }
+
+    public RoccoTravel journey()
+    {
+        return this.journey;
+    }
+
+    // Va montado: en el asiento que le corresponde (el del juego no sirve para un segundo pasajero).
+    @Override
+    public void rideTick()
+    {
+        super.rideTick();
+        Entity vehicle = getVehicle();
+        if (vehicle instanceof net.minecraft.world.entity.animal.horse.AbstractHorse horse)
+        {
+            // Las medidas son para un caballo adulto: el burro y la mula son mas chicos.
+            double size = horse.getPassengersRidingOffset() / HORSE_SEAT_HEIGHT;
+            seatOn(horse, 0.406D * size, 1.375D * size);
+        }
+        else if (vehicle instanceof net.minecraft.world.entity.animal.Wolf wolf)
+        {
+            seatOn(wolf, -0.094D, 0.844D);
+        }
+    }
+
+    private static final double HORSE_SEAT_HEIGHT = 1.6D * 0.75D;
+
+    private void seatOn(LivingEntity vehicle, double forward, double up)
+    {
+        float yaw = vehicle.yBodyRot;
+        net.minecraft.world.phys.Vec3 front = net.minecraft.world.phys.Vec3.directionFromRotation(0.0F, yaw);
+        setPos(vehicle.getX() + front.x * forward, vehicle.getY() + up, vehicle.getZ() + front.z * forward);
+        setYRot(yaw);
+        this.yBodyRot = yaw;
     }
 
     // ---------- postura ----------
@@ -1488,6 +1755,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             case POTION_DRINK_BAD -> "potion_drink_bad";
             // Van por estado: al cambiar la tarea, la animacion se va sola.
             case DANCE_FIESTA, DANCE_MENEITO, SING_SOFT, SING_GROOVE, SING_RAP -> "music";
+            case GIVE_SEED, GIVE_SEED_CHILL, GIVE_FLOWER, GIVE_FLOWER_CHILL, GIVE_COLA, REACT_BURP, BACKPACK_SHOW -> this.task.scriptedAnimation();
             default -> null;
         };
         if (animation == null)
@@ -1531,7 +1799,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 ? previewOf(job.target())
                 : job.shown().copy();
 
-        if (job.task() == RoccoTask.SWALLOWING || job.task() == RoccoTask.ENDER_ABSORB || job.task().consuming())
+        if (job.task() == RoccoTask.SWALLOWING || job.task() == RoccoTask.ENDER_ABSORB || job.task().usesHeld())
         {
             // Lo que traga o absorbe flota en el hueso grab. La comida y la pocion se dibujan en el
             // hueso held (ROCCO-V12): el arma queda en su mano, sin dibujarse mientras come.
@@ -1628,6 +1896,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 triggerAnim("main", "ender_awaken");
                 this.life.startAwakening();
             }
+            case GIVE_SEED, GIVE_SEED_CHILL, GIVE_FLOWER, GIVE_FLOWER_CHILL, GIVE_COLA, REACT_BURP, BACKPACK_SHOW ->
+            {
+                this.faceBeforeSwallow = calmFace();
+                triggerAnim("main", job.task().scriptedAnimation());
+            }
             case FOOD_EAT, FOOD_EAT_BAD, POTION_DRINK, POTION_DRINK_BAD ->
             {
                 this.faceBeforeSwallow = calmFace();
@@ -1658,7 +1931,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         return task == RoccoTask.MATE || task == RoccoTask.DANCING || task == RoccoTask.CLAPPING
                 || task == RoccoTask.CELEBRATING || task == RoccoTask.COLA || task == RoccoTask.EQUIP_PROUD
-                || task == RoccoTask.ENDER_ABSORB || task == RoccoTask.ENDER_AWAKEN || task.consuming() || task.musical();
+                || task == RoccoTask.ENDER_ABSORB || task == RoccoTask.ENDER_AWAKEN || task.consuming() || task.musical() || task.scripted();
     }
 
     // La cara a la que vuelve despues: si tenia una automatica (golpe, sueño), vuelve a happy.
@@ -1709,6 +1982,33 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 case DANCING -> t == 7 || t == 57 ? RoccoExpression.HUM : t == 51 || t == 117 ? RoccoExpression.HAPPY : null;
                 case CLAPPING -> t == 2 ? RoccoExpression.CHEER : t == 25 ? RoccoExpression.HAPPY : null;
                 default -> t == 47 ? RoccoExpression.HAPPY : null;
+            };
+            if (face != null)
+            {
+                setExpression(face);
+            }
+        }
+        else if (this.task.scripted())
+        {
+            String line = this.taskLines.remove(t);
+            if (line != null)
+            {
+                say(line, null);
+            }
+            // ROCCO-V13-MOCHILAS-REGALOS-MONTAR-COLA.md (segundos x 20).
+            RoccoExpression face = switch (this.task)
+            {
+                case GIVE_SEED, GIVE_SEED_CHILL -> t == 0 ? RoccoExpression.HAPPY : t == 4 ? RoccoExpression.THINK : t == 11 ? RoccoExpression.SCARED
+                        : t == 16 ? RoccoExpression.WOW : t == 26 ? RoccoExpression.HAPPY : t == 32 ? RoccoExpression.THINK : t == 46 ? RoccoExpression.SMUG
+                        : t == 55 ? RoccoExpression.HAPPY : t == 66 ? RoccoExpression.BLISS : t == 77 ? RoccoExpression.CHEER : t == 86 ? RoccoExpression.HAPPY : null;
+                case GIVE_FLOWER, GIVE_FLOWER_CHILL -> t == 0 ? RoccoExpression.HAPPY : t == 6 ? RoccoExpression.BLISS : t == 46 ? RoccoExpression.WOW
+                        : t == 84 ? RoccoExpression.BLISS : t == 112 ? RoccoExpression.HAPPY : t == 120 ? RoccoExpression.BLISS : t == 144 ? RoccoExpression.CHEER
+                        : t == 156 ? RoccoExpression.HAPPY : null;
+                case GIVE_COLA -> t == 0 ? RoccoExpression.HAPPY : t == 12 ? RoccoExpression.SMUG : t == 23 ? RoccoExpression.CHEER
+                        : t == 36 ? RoccoExpression.HAPPY : t == 48 ? RoccoExpression.CHEER : t == 58 ? RoccoExpression.HAPPY : null;
+                case REACT_BURP -> t == 0 ? RoccoExpression.WINDY : t == 26 ? RoccoExpression.SCARED : t == 30 ? RoccoExpression.DIZZY : t == 43 ? RoccoExpression.SMUG : null;
+                default -> t == 0 ? RoccoExpression.HAPPY : t == 6 ? RoccoExpression.CHEER : t == 20 ? RoccoExpression.SMUG : t == 58 ? RoccoExpression.CHEER
+                        : t == 70 ? RoccoExpression.HAPPY : null;
             };
             if (face != null)
             {
@@ -1857,7 +2157,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (this.task == RoccoTask.SWALLOWING || this.task == RoccoTask.MATE || this.task == RoccoTask.ENCHANTING
                 || this.task == RoccoTask.DANCING || this.task == RoccoTask.CLAPPING || this.task == RoccoTask.CELEBRATING
                 || this.task == RoccoTask.COLA || this.task == RoccoTask.EQUIP_PROUD || this.task == RoccoTask.ENDER_ABSORB
-                || this.task == RoccoTask.ENDER_AWAKEN || this.task.consuming() || this.task.musical())
+                || this.task == RoccoTask.ENDER_AWAKEN || this.task.consuming() || this.task.musical() || this.task.scripted())
         {
             setExpression(this.faceBeforeSwallow);
         }
@@ -1872,6 +2172,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             clearCrack();
         }
 
+        this.taskLines.clear();
         this.task = RoccoTask.NONE;
         this.currentJob = null;
         this.taskTicks = 0;
@@ -2005,7 +2306,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
         if (victim instanceof ItemEntity item)
         {
-            ItemStack leftover = this.inventory.addItem(item.getItem().copy());
+            ItemStack leftover = Inv.insert(this.inventory, item.getItem());
             if (leftover.isEmpty())
             {
                 item.discard();
@@ -2057,7 +2358,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             else if (this.task == RoccoTask.MATE || this.task == RoccoTask.ENCHANTING || this.task == RoccoTask.DANCING
                     || this.task == RoccoTask.CLAPPING || this.task == RoccoTask.CELEBRATING || this.task == RoccoTask.COLA
                     || this.task == RoccoTask.EQUIP_PROUD || this.task == RoccoTask.ENDER_ABSORB
-                    || this.task == RoccoTask.ENDER_AWAKEN || this.task.consuming() || this.task.musical())
+                    || this.task == RoccoTask.ENDER_AWAKEN || this.task.consuming() || this.task.musical() || this.task.scripted())
             {
                 tickActivityFace();
                 tickConsumingHand(this.taskTicks - ANIM_LAG);
@@ -2559,6 +2860,41 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                     playRoccoSound(ModSounds.MAGIC_BURST.get(), 0.8F);
                 }
             }
+            // ROCCO-V13: la tapa se abre y sale el regalo.
+            case GIVE_SEED, GIVE_SEED_CHILL ->
+            {
+                switch (tick)
+                {
+                    case 11 -> playRoccoSound(ModSounds.LID_OPEN.get(), 0.8F);
+                    case 12 -> playSound(ModSounds.GIFT_SEED.get(), 0.9F, 1.0F);
+                    case 59 -> playRoccoSound(ModSounds.LID_CLOSE.get(), 0.8F);
+                    default -> { }
+                }
+            }
+            case GIVE_FLOWER, GIVE_FLOWER_CHILL ->
+            {
+                switch (tick)
+                {
+                    case 30 -> playRoccoSound(ModSounds.LID_OPEN.get(), 0.8F);
+                    case 43 -> playSound(ModSounds.GIFT_FLOWER.get(), 0.9F, 1.0F);
+                    case 99 -> playRoccoSound(ModSounds.LID_CLOSE.get(), 0.8F);
+                    default -> { }
+                }
+            }
+            case GIVE_COLA ->
+            {
+                if (tick == 16)
+                {
+                    playSound(ModSounds.COLA_CLINK.get(), 0.5F, 1.0F);
+                }
+            }
+            case BACKPACK_SHOW ->
+            {
+                if (tick == 0)
+                {
+                    playSound(ModSounds.BACKPACK_EQUIP.get(), 0.8F, 1.0F);
+                }
+            }
             // Ticks de ROCCO-COLA-COMBATE-ARMADURAS-CANTO.md.
             case COLA ->
             {
@@ -2664,7 +3000,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             schedule(ANIM_LAG + 8, () -> playRoccoSound(ModSounds.LEAF_GROW.get(), 0.4F));
         }
         this.gooTicks = 40 + this.random.nextInt(40);
-        player.openMenu(this);
+        if (backpackTier() > 0)
+        {
+            playRoccoSound(ModSounds.BACKPACK_OPEN.get(), 0.7F);
+        }
+        net.minecraftforge.network.NetworkHooks.openScreen(player, this, buf -> buf.writeVarInt(this.inventory.getContainerSize()));
     }
 
     // Desde el menu: le abre la tapa si puede (no en medio de un trabajo ni mientras viaja).
@@ -2684,6 +3024,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.lidCloseTicks = 0;
         // El "clonc" del archivo cae a los 0,58 s, igual que en la animacion.
         schedule(ANIM_LAG, () -> playRoccoSound(ModSounds.LID_CLOSE.get(), 0.8F));
+        if (backpackTier() > 0)
+        {
+            playRoccoSound(ModSounds.BACKPACK_CLOSE.get(), 0.7F);
+        }
     }
 
     private void tickLid()
@@ -2724,8 +3068,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     @Override
     public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player)
     {
-        // fourRows: 4 filas de 9 (36 lugares).
-        return new ChestMenu(net.minecraft.world.inventory.MenuType.GENERIC_9x4, containerId, playerInventory, this.inventory, 4);
+        return new com.cristoree.rocco.menu.RoccoInventoryMenu(containerId, playerInventory, this);
     }
 
     // ---------- interaccion ----------
@@ -2747,7 +3090,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 case PLANT, BURIED -> InteractionResult.SUCCESS;
                 case AWAKENING, DYING, RISING -> InteractionResult.PASS;
                 case ACTIVE -> !player.isShiftKeyDown() && !isSharingMate() && (isWorking() || isTravelling())
-                        && !(RoccoFood.isConsumable(player.getItemInHand(hand)) && !isTravelling())
+                        && !((RoccoFood.isConsumable(player.getItemInHand(hand)) || player.getItemInHand(hand).getItem() instanceof com.cristoree.rocco.item.BackpackItem) && !isTravelling())
                         ? InteractionResult.PASS
                         : InteractionResult.SUCCESS;
             };
@@ -2789,8 +3132,25 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                     this.share.interact(serverPlayer);
                     return InteractionResult.CONSUME;
                 }
-                // Con comida o una pocion en la mano: se la das y la usa enseguida.
                 ItemStack held = player.getItemInHand(hand);
+                // Con una mochila en la mano: se la pone (solo su dueño).
+                if (held.getItem() instanceof com.cristoree.rocco.item.BackpackItem && player instanceof ServerPlayer)
+                {
+                    if (this.ownerId != null && !this.ownerId.equals(player.getUUID()))
+                    {
+                        sayLine("menu_not_yours");
+                    }
+                    else if (isTravelling())
+                    {
+                        sayLine("travel_busy");
+                    }
+                    else
+                    {
+                        equipBackpack(player, held);
+                    }
+                    return InteractionResult.CONSUME;
+                }
+                // Con comida o una pocion en la mano: se la das y la usa enseguida.
                 if (RoccoFood.isConsumable(held) && !isTravelling())
                 {
                     feedFromHand(player, held);
@@ -2960,7 +3320,18 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 ServerPlayer leader = owner();
                 applyWaterMalus(this.following && leader != null && leader.isInWater());
             }
+            if (!this.overflow.isEmpty())
+            {
+                // Antes tenia mas lugar: lo que ya no entra queda a sus pies.
+                this.overflow.forEach(this::spawnAtLocation);
+                this.overflow.clear();
+                sayLine("inventory_shrunk");
+            }
             tickWork();
+            if (level() instanceof ServerLevel gateLevel)
+            {
+                this.gates.tick(gateLevel);
+            }
             tickMusic();
             tickGifts();
             tickCompanionship();
@@ -3092,6 +3463,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
         ServerPlayer owner = owner();
         rememberWhereIAm(owner);
+        ServerPlayer mine = trueOwner();
+        if (mine != null)
+        {
+            this.gifts.tick(mine);
+        }
         if (owner == null || owner.level() != level())
         {
             return;
@@ -3555,6 +3931,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             }
             this.forcedChunk = null;
         }
+        if (level() instanceof ServerLevel gateLevel)
+        {
+            this.gates.putBack(gateLevel, true);
+        }
         if (leaving && !this.homeChunks.isEmpty() && level() instanceof ServerLevel serverLevel)
         {
             for (Long chunk : this.homeChunks)
@@ -3747,7 +4127,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     protected void dropCustomDeathLoot(DamageSource source, int looting, boolean recentlyHit)
     {
         super.dropCustomDeathLoot(source, looting, recentlyHit);
-        dropEverything();
+        dropEverything(true);
     }
 
     @Override
@@ -3758,6 +4138,17 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         tag.putInt("RoccoExpression", getExpression().ordinal());
         tag.putInt("AwakenTicks", this.awakenTicks);
         tag.put("Inventory", this.inventory.createTag());
+        if (!this.backpack.isEmpty())
+        {
+            tag.put("Backpack", this.backpack.save(new CompoundTag()));
+        }
+        tag.putLong("NextColaGift", this.nextColaGift);
+        if (!this.allowedWolves.isEmpty())
+        {
+            net.minecraft.nbt.ListTag wolves = new net.minecraft.nbt.ListTag();
+            this.allowedWolves.forEach(wolf -> wolves.add(net.minecraft.nbt.NbtUtils.createUUID(wolf)));
+            tag.put("AllowedWolves", wolves);
+        }
 
         // La postura se guarda ya resuelta: si lo apagaste mientras se sentaba, vuelve sentado.
         RoccoPose pose = getRoccoPose();
@@ -3841,9 +4232,23 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         setExpression(RoccoExpression.byId(tag.getInt("RoccoExpression")));
         this.awakenTicks = tag.getInt("AwakenTicks");
 
+        // La mochila primero: dice cuantos lugares tiene.
+        if (tag.contains("Backpack"))
+        {
+            this.backpack = ItemStack.of(tag.getCompound("Backpack"));
+            int tier = this.backpack.getItem() instanceof com.cristoree.rocco.item.BackpackItem item ? item.tier() : 0;
+            this.entityData.set(DATA_BACKPACK, tier);
+            this.inventory.resize(com.cristoree.rocco.item.BackpackItem.slotsFor(tier));
+        }
         if (tag.contains("Inventory"))
         {
             this.inventory.fromTag(tag.getList("Inventory", 10));
+        }
+        this.nextColaGift = tag.getLong("NextColaGift");
+        this.allowedWolves.clear();
+        for (net.minecraft.nbt.Tag wolf : tag.getList("AllowedWolves", 11))
+        {
+            this.allowedWolves.add(net.minecraft.nbt.NbtUtils.loadUUID(wolf));
         }
 
         this.entityData.set(DATA_POSE, RoccoPose.byId(tag.getInt("Pose")).ordinal());
@@ -4496,8 +4901,9 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.deathTime = 0;
     }
 
-    // Todo lo que lleva, al piso: el inventario, la armadura, el arma y el escudo.
-    void dropEverything()
+    // Todo lo que lleva, al piso: el inventario, la armadura, el arma y el escudo. La mochila no se
+    // pierde: la tiene puesta (vacia) hasta en la tumba, y solo muriendo para siempre queda en el piso.
+    void dropEverything(boolean forGood)
     {
         for (int slot = 0; slot < this.inventory.getContainerSize(); slot++)
         {
@@ -4508,6 +4914,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             }
         }
         this.inventory.clearContent();
+        if (forGood && !this.backpack.isEmpty())
+        {
+            spawnAtLocation(this.backpack);
+            this.backpack = ItemStack.EMPTY;
+            this.entityData.set(DATA_BACKPACK, 0);
+            this.inventory.resize(com.cristoree.rocco.item.BackpackItem.BASE_SLOTS);
+        }
         for (EquipmentSlot slot : EquipmentSlot.values())
         {
             ItemStack worn = gear(slot);
@@ -4691,6 +5104,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 .triggerableAnim("food_eat_bad", FOOD_EAT_BAD)
                 .triggerableAnim("potion_drink", POTION_DRINK)
                 .triggerableAnim("potion_drink_bad", POTION_DRINK_BAD)
+                .triggerableAnim("give_seed", RawAnimation.begin().thenPlay("animation.rocco.give_seed"))
+                .triggerableAnim("give_seed_chill", RawAnimation.begin().thenPlay("animation.rocco.give_seed_chill"))
+                .triggerableAnim("give_flower", RawAnimation.begin().thenPlay("animation.rocco.give_flower"))
+                .triggerableAnim("give_flower_chill", RawAnimation.begin().thenPlay("animation.rocco.give_flower_chill"))
+                .triggerableAnim("give_cola", RawAnimation.begin().thenPlay("animation.rocco.give_cola"))
+                .triggerableAnim("react_burp", RawAnimation.begin().thenPlay("animation.rocco.react_burp"))
+                .triggerableAnim("backpack_show", RawAnimation.begin().thenPlay("animation.rocco.backpack_show"))
                 // Las animaciones traen sus particulas (florcitas, vapor, runas): las dibuja el cliente.
                 .setParticleKeyframeHandler(event -> PARTICLE_HOOK.spawn(this,
                         event.getKeyframeData().getEffect(), event.getKeyframeData().getLocator())));
@@ -4841,11 +5261,139 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     }
 
     // Cuenta los jugadores que lo tienen abierto, como un cofre: la tapa baja con el ultimo.
-    private class RoccoContainer extends SimpleContainer
+    // Tiene lugar para la mochila mas grande, pero solo existen los lugares de la que lleva puesta.
+    private class RoccoContainer implements Container
     {
-        RoccoContainer()
+        private final net.minecraft.core.NonNullList<ItemStack> items =
+                net.minecraft.core.NonNullList.withSize(com.cristoree.rocco.item.BackpackItem.MAX_SLOTS, ItemStack.EMPTY);
+        private int size = com.cristoree.rocco.item.BackpackItem.BASE_SLOTS;
+
+        // Lo que quede afuera al achicarse no se pierde: lo suelta al despertar.
+        void resize(int slots)
         {
-            super(INVENTORY_SIZE);
+            for (int slot = slots; slot < this.items.size(); slot++)
+            {
+                if (!this.items.get(slot).isEmpty())
+                {
+                    RoccoEntity.this.overflow.add(this.items.get(slot));
+                    this.items.set(slot, ItemStack.EMPTY);
+                }
+            }
+            this.size = slots;
+        }
+
+        @Override
+        public int getContainerSize()
+        {
+            return this.size;
+        }
+
+        @Override
+        public boolean isEmpty()
+        {
+            for (int slot = 0; slot < this.size; slot++)
+            {
+                if (!this.items.get(slot).isEmpty())
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public ItemStack getItem(int slot)
+        {
+            return slot >= 0 && slot < this.size ? this.items.get(slot) : ItemStack.EMPTY;
+        }
+
+        @Override
+        public ItemStack removeItem(int slot, int amount)
+        {
+            ItemStack taken = net.minecraft.world.ContainerHelper.removeItem(this.items, slot, amount);
+            if (!taken.isEmpty())
+            {
+                setChanged();
+            }
+            return taken;
+        }
+
+        @Override
+        public ItemStack removeItemNoUpdate(int slot)
+        {
+            return net.minecraft.world.ContainerHelper.takeItem(this.items, slot);
+        }
+
+        @Override
+        public void setItem(int slot, ItemStack stack)
+        {
+            if (slot >= 0 && slot < this.items.size())
+            {
+                this.items.set(slot, stack);
+            }
+        }
+
+        // Una mochila adentro de otra, no.
+        @Override
+        public boolean canPlaceItem(int slot, ItemStack stack)
+        {
+            return !(stack.getItem() instanceof com.cristoree.rocco.item.BackpackItem);
+        }
+
+        @Override
+        public void setChanged()
+        {
+        }
+
+        @Override
+        public void clearContent()
+        {
+            this.items.clear();
+        }
+
+        net.minecraft.nbt.ListTag createTag()
+        {
+            net.minecraft.nbt.ListTag list = new net.minecraft.nbt.ListTag();
+            for (int slot = 0; slot < this.size; slot++)
+            {
+                ItemStack stack = this.items.get(slot);
+                if (!stack.isEmpty())
+                {
+                    CompoundTag entry = new CompoundTag();
+                    entry.putShort("Slot", (short) slot);
+                    list.add(stack.save(entry));
+                }
+            }
+            return list;
+        }
+
+        // Los guardados de antes no traen el lugar: se acomodan en orden. Lo que no entra, al piso.
+        void fromTag(net.minecraft.nbt.ListTag list)
+        {
+            this.items.clear();
+            List<ItemStack> unplaced = new ArrayList<>();
+            for (int i = 0; i < list.size(); i++)
+            {
+                CompoundTag entry = list.getCompound(i);
+                ItemStack stack = ItemStack.of(entry);
+                int slot = entry.contains("Slot") ? entry.getShort("Slot") : -1;
+                if (slot >= 0 && slot < this.size && this.items.get(slot).isEmpty())
+                {
+                    this.items.set(slot, stack);
+                }
+                else
+                {
+                    unplaced.add(stack);
+                }
+            }
+            for (ItemStack stack : unplaced)
+            {
+                ItemStack rest = Inv.insert(this, stack);
+                if (!rest.isEmpty())
+                {
+                    RoccoEntity.this.overflow.add(rest);
+                }
+            }
         }
 
         @Override

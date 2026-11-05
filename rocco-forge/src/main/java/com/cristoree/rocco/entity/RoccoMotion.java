@@ -33,9 +33,22 @@ public enum RoccoMotion
     BOAT_ENTER("boat_enter", 18, Kind.BOAT),
     BOAT_IDLE("boat_idle", 0, Kind.BOAT),
     BOAT_ROW("boat_row", 0, Kind.BOAT),
-    BOAT_EXIT("boat_exit", 16, Kind.BOAT);
+    BOAT_EXIT("boat_exit", 16, Kind.BOAT),
 
-    public enum Kind { GROUND, AIR, SURFACE, UNDERWATER, BOAT }
+    // Montado adelante tuyo en el caballo, o en tu lobo si le diste permiso (ROCCO-V13).
+    RIDE_HORSE_MOUNT("ride_horse_mount", 19, Kind.RIDE),
+    RIDE_HORSE_IDLE("ride_horse_idle", 0, Kind.RIDE),
+    RIDE_HORSE_WALK("ride_horse_walk", 0, Kind.RIDE),
+    RIDE_HORSE_GALLOP("ride_horse_gallop", 0, Kind.RIDE),
+    RIDE_HORSE_JUMP("ride_horse_jump", 20, Kind.RIDE),
+    RIDE_HORSE_DISMOUNT("ride_horse_dismount", 19, Kind.RIDE),
+    RIDE_WOLF_MOUNT("ride_wolf_mount", 18, Kind.RIDE),
+    RIDE_WOLF_IDLE("ride_wolf_idle", 0, Kind.RIDE),
+    RIDE_WOLF_WALK("ride_wolf_walk", 0, Kind.RIDE),
+    RIDE_WOLF_RUN("ride_wolf_run", 0, Kind.RIDE),
+    RIDE_WOLF_DISMOUNT("ride_wolf_dismount", 18, Kind.RIDE);
+
+    public enum Kind { GROUND, AIR, SURFACE, UNDERWATER, BOAT, RIDE }
 
     private static final RoccoMotion[] VALUES = values();
 
@@ -89,7 +102,14 @@ public enum RoccoMotion
     // superficie flota con el agua de verdad y nada con la navegacion de siempre.
     public boolean steered()
     {
-        return this.kind == Kind.AIR || this.kind == Kind.UNDERWATER || this.kind == Kind.BOAT;
+        return this.kind == Kind.AIR || this.kind == Kind.UNDERWATER || this.kind == Kind.BOAT || this.kind == Kind.RIDE;
+    }
+
+    // En el caballo va pegado a tu pecho: ahi la mochila no se ve.
+    public boolean onHorse()
+    {
+        return this == RIDE_HORSE_MOUNT || this == RIDE_HORSE_IDLE || this == RIDE_HORSE_WALK || this == RIDE_HORSE_GALLOP
+                || this == RIDE_HORSE_JUMP || this == RIDE_HORSE_DISMOUNT;
     }
 
     // Las animaciones de vuelo ya lo acuestan; el renderer ademas lo inclina con el jugador.

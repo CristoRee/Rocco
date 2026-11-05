@@ -82,7 +82,7 @@ public class RoccoMenuScreen extends Screen
     {
         this.columnWidth = Mth.clamp((this.width - 2 * PAD - 2 * GAP - 16) / 3, 92, 118);
         this.panelWidth = 3 * this.columnWidth + 2 * GAP + 2 * PAD;
-        this.panelHeight = HEADER + LABEL + 4 * ROW + 3 * GAP + 6 + LABEL + ROW + 10 + ROW + 18 + PAD;
+        this.panelHeight = HEADER + LABEL + 5 * ROW + 4 * GAP + 6 + LABEL + ROW + 10 + ROW + 18 + PAD;
         this.left = (this.width - this.panelWidth) / 2;
         this.top = Math.max(4, (this.height - this.panelHeight) / 2);
         this.gridTop = this.top + HEADER + LABEL;
@@ -100,16 +100,25 @@ public class RoccoMenuScreen extends Screen
                         : new Entry("Sentate", Items.OAK_STAIRS, travelling ? away : "Se sienta acá y te espera.", "sentarse", !travelling, null),
                 has(RoccoMenu.SLEEPING)
                         ? order("Despertate", Items.RED_BED, "Se despierta y te sigue.", "levantarse")
-                        : new Entry("A dormir", Items.RED_BED, travelling ? away : "Se echa una siesta acá.", "dormir", !travelling, null)));
+                        : new Entry("A dormir", Items.RED_BED, travelling ? away : "Se echa una siesta acá.", "dormir", !travelling, null),
+                has(RoccoMenu.RIDING)
+                        ? order("Bajate", Items.SADDLE, "Se baja de donde está montado.", "bajar")
+                        : new Entry("Subite al lobo", Items.BONE, has(RoccoMenu.WOLF)
+                                ? "Se sube a un lobo tuyo que tenga permiso."
+                                : "Para darle permiso: agachado + clic derecho con la mano vacía a tu lobo, con Rocco cerca.",
+                                "montar_lobo", has(RoccoMenu.WOLF) && !travelling, null)));
 
         column(1, List.of(
-                new Entry("Su inventario", Items.CHEST, travelling ? away : "Abre su tapa: 36 lugares para tus cosas.",
+                new Entry("Su inventario", Items.CHEST, travelling ? away : "Abre su tapa. Con una mochila tiene más lugar (clic derecho con la mochila en la mano).",
                         "inventario", !travelling, null),
                 order("Guardar todo", Items.BARREL, "Guarda lo que lleva encima en los cofres de alrededor, cada cosa en su lugar.", "guardar"),
                 order("Ordenar cofres", Items.HOPPER, "Acomoda los cofres de alrededor: cada uno de un tema y todo agrupado.", "ordenar"),
                 has(RoccoMenu.TENDING)
                         ? order("Dejar de cuidar", Items.WHEAT, "Deja de cuidar la casa y te sigue.", "seguir")
-                        : order("Cuidar la casa", Items.WHEAT, "Se queda acá mientras explorás: cosecha y replanta, esquila, hace criar a los animales (sin pasarse del tope), junta lo que dejan y guarda todo en los cofres. Al volver te cuenta qué hizo.", "casa")));
+                        : order("Cuidar la casa", Items.WHEAT, "Se queda acá mientras explorás: cosecha y replanta, esquila, hace criar a los animales (sin pasarse del tope), junta lo que dejan y guarda todo en los cofres. Al volver te cuenta qué hizo.", "casa"),
+                new Entry("Quitar mochila", com.cristoree.rocco.registry.ModItems.MOCHILA_1.get(), has(RoccoMenu.BACKPACK)
+                        ? "Te la devuelve con lo que lleva adentro. Lo que va en sus lugares viaja con ella."
+                        : "No tiene ninguna puesta.", "quitar_mochila", has(RoccoMenu.BACKPACK) && !travelling, null)));
 
         column(2, List.of(
                 new Entry("Cebame un mate", Items.FLOWER_POT, travelling ? away : "Ceba y te pasa el mate. Lo tomás y se lo devolvés con clic derecho.", "cebar_mate", !travelling, null),
@@ -118,10 +127,12 @@ public class RoccoMenuScreen extends Screen
                         ? order("Charlá más", Items.BELL, "Vuelve a comentar cosas por su cuenta, y más seguido.", "charlar")
                         : order("Callate un rato", Items.BELL, "No habla por su cuenta por un buen rato. Si le hablás, contesta igual.", "callar"),
                 new Entry("Lugares", Items.COMPASS, "Los lugares que recuerda: te lleva, guarda uno nuevo o se olvida de uno.",
-                        null, true, () -> this.minecraft.setScreen(new RoccoPlacesScreen(this, this.state.entityId(), this.state.places())))));
+                        null, true, () -> this.minecraft.setScreen(new RoccoPlacesScreen(this, this.state.entityId(), this.state.places()))),
+                new Entry("Roco Cola", com.cristoree.rocco.registry.ModItems.ROCO_COLA.get(), travelling ? away : "Te da una Roco Cola bien helada. Cuidado con lo que viene después de tomarla.",
+                        "dar_cola", !travelling, null)));
 
         // Pelea: su equipo y a quien puede atacar (tres casillas que se guardan en este Rocco).
-        int fightTop = this.gridTop + 4 * ROW + 3 * GAP + 6 + LABEL;
+        int fightTop = this.gridTop + 5 * ROW + 4 * GAP + 6 + LABEL;
         int quarter = (this.panelWidth - 2 * PAD - 3 * GAP) / 4;
         MenuButton gear = new MenuButton(this.left + PAD, fightTop, quarter, Component.literal("Equipo"),
                 new ItemStack(Items.IRON_CHESTPLATE), b -> send("equipo"));
@@ -259,7 +270,7 @@ public class RoccoMenuScreen extends Screen
             graphics.drawString(this.font, Component.literal(sections[i]).withStyle(ChatFormatting.YELLOW),
                     this.left + PAD + i * (this.columnWidth + GAP) + 1, this.gridTop - LABEL + 1, 0xFFFFFF);
         }
-        int fightLabel = this.gridTop + 4 * ROW + 3 * GAP + 6;
+        int fightLabel = this.gridTop + 5 * ROW + 4 * GAP + 6;
         graphics.drawString(this.font, Component.literal("Pelea").withStyle(ChatFormatting.YELLOW),
                 this.left + PAD + 1, fightLabel + 1, 0xFFFFFF);
         Component canAttack = Component.literal("Puede atacar a:").withStyle(ChatFormatting.GRAY);

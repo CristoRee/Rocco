@@ -86,6 +86,10 @@ public final class RoccoContextBuilder
         Errand errand = rocco.currentErrand();
         facts.put("What you are doing", errand == null ? "nothing in particular" : errand.describe());
         facts.put("Your inventory", inventoryOf(rocco));
+        facts.put("Your backpack", rocco.backpackTier() == 0
+                ? "none (" + rocco.inventory().getContainerSize() + " slots in your lid; the player can craft you one once they have the seed you give them when you become friends)"
+                : "number " + rocco.backpackTier() + " of 6 (" + rocco.inventory().getContainerSize() + " slots in total)");
+        facts.put("Wolves you may ride", rocco.anyWolfAllowed() ? "yes, the player gave you permission" : "none yet");
         facts.put("Free farmland nearby", String.valueOf(freeFarmland(level, rocco)));
         facts.put("Ripe crops nearby", String.valueOf(Crops.findRipe(level, rocco.blockPosition(), 8, 64).size()));
         facts.put("Chests nearby", chestsNear(level, rocco, player));

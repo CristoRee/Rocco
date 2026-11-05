@@ -3,6 +3,11 @@
 ## 1.5.0
 
 ### Nuevo
+- **Mochilas:** 6 mochilas que Rocco lleva puestas y le agrandan el inventario. Arranca con 3 filas (27 lugares) y la mochila N le suma N filas: 36, 54, 81, 117, 162 y 216 lugares, en páginas de hasta 6x9 con botones arriba para pasar de una a otra. Clic derecho con la mochila para ponérsela, "Quitar mochila" en su menú para sacársela. Lo que va en esos lugares viaja adentro de la mochila, y mejorarla en la mesa de crafteo lo conserva. Cada una se ve en su espalda.
+- **Regalos de Rocco:** la **Semillita**, cuando se hacen amigos (con ella se fabrica la primera mochila), y la **Flor de la Amistad**, dos días de juego juntos después de matar al Ender Dragon, al Wither y al Warden (con ella se fabrica la última). Con su animación y sus frases.
+- **A caballo:** si vas en caballo, burro o mula ensillados, se sube adelante tuyo, con animaciones para quieto, al paso, al galope, saltando, subir y bajar.
+- **En tu lobo:** agachado + clic derecho con la mano vacía a tu lobo le das permiso, y se sube si te alejás o si se lo pedís.
+- **Roco Cola para vos:** "dame una Roco Cola" y te da una. Refresca y a los 2,5 segundos sale un eructo gigante con viento y hojas que empuja a los mobs de adelante. Rocco reacciona.
 - **Cuidar la casa:** "quedate cuidando la casa" (o el botón **Cuidar la casa** de su menú) y se queda ahí mientras explorás, dando una vuelta cada medio minuto: cosecha y replanta, esquila las ovejas (si no tiene tijeras se las hace con 2 de hierro), les da de comer a los animales de a pares para que tengan crías hasta 16 por especie, saca de a poco los adultos que sobran (avisa la primera vez), junta lo que dejan (lana, huevos, plumas, carne, cuero) y guarda todo en los cofres. Nunca toca animales con nombre, atados, montados o domesticados. La zona de la casa queda cargada aunque estés lejos, así la huerta crece y los animales se mueven; si lo atacan se defiende y sigue, y cuando volvés te cuenta qué hizo. También "cuidá los animales" solo, "esquilá las ovejas" y "dales de comer a los animales". Se ajusta en **Config > Trabajo > Cuidar la casa**.
 - **Te dice dónde guardó las cosas:** "¿dónde guardaste?" y te contesta en qué cofre (el de la cosecha, el de un lugar que recuerda o a cuántos bloques y para qué lado), con IA o sin ella.
 - **Música desde links:** pasale un link a Rocco ("poné esto: https://...") y la pone. Suena desde él y lo sigue a donde vaya, y mientras tanto canta con su micrófono y a veces baila, al ritmo de la canción: mide el ritmo mientras suena. Las lentas las canta suave, y el rap y el trap con actitud. Andan archivos de audio (MP3, OGG, M4A, FLAC, WAV), radios por internet, Bandcamp y canales de Twitch en vivo (YouTube, Spotify y otras apps no dejan sacar el audio). En multijugador todos escuchan lo mismo al mismo tiempo, y el que llega tarde entra en el punto justo. Por chat: "pausá", "seguí", "pará la música", "subí/bajá el volumen". El volumen es el de Discos, y la música baja un poco mientras Rocco habla.
@@ -22,6 +27,7 @@
 - **Caras nuevas:** asombro, cantando y el "¡qué fresco!" de la Roco Cola. La IA puede usar la de asombro.
 
 ### Cambiado
+- **El inventario arranca con 27 lugares** (antes 36): ahora crece con las mochilas. Un Rocco con más cosas deja a sus pies lo que ya no le entra.
 - **"Cuidar la huerta" del menú ahora es "Cuidar la casa"** (huerta y animales). La huerta sola se sigue pidiendo por chat.
 - **La caja de Rocco ya no le sobra medio bloque:** ahora mide un bloque de alto (antes 1,3), así encaja con el modelo y pasa por huecos de un bloque. Enterrado, la caja es chiquita y a ras del montículo.
 - **Atado no se teletransporta:** con una rienda atada a un poste no aparece solo al lado tuyo ni vuela, nada o rema con vos. Para traerlo igual, `/rocco llamar` lo desata y lo trae. Se puede apagar en **Config > Movimiento > Teletransporte**.
@@ -29,6 +35,9 @@
 - **Ya no es inmortal por defecto:** con la tumba, morirse ya no es perderlo. Las configs que tenían el valor viejo se actualizan solas.
 
 ### Arreglado
+- **No abría las puertas de valla:** ahora las abre cuando quiere pasar y las cierra al pasar. Paseando solo no las abre, para no soltarte los animales.
+- **Trampillas:** cierra la que le corta el paso o la que es un agujero en el piso, abre la que le queda a la altura de la cabeza, y al pasar las deja como estaban. Las puertas y trampillas de hierro ya no las toca (son con redstone).
+- **El contorno del mewing se partía al hablar:** ahora es una parte fija de la cara.
 - **No se le podía pegar:** la opción "Tus golpes lo lastiman" venía apagada, y así tus golpes no le hacían nada (ni la animación). Ahora viene prendida y las configs que la tenían apagada se actualizan solas; si alguien la quiere apagar, se respeta.
 - **Guardaba todo sin que se lo pidieras:** si le preguntabas algo mientras todavía pensaba la respuesta anterior, la pregunta se leía como una orden: "¿dónde guardaste?" lo ponía a guardar todo en los cofres (y la respuesta que estaba esperando se perdía). Ahora una pregunta, o algo en pasado ("¿guardaste?", "¿cosechaste?"), nunca es una orden, y la IA sabe que no tiene que hacer nada por su cuenta.
 - **Se ponía a tomar mate en vez de contestarte:** si le hablabas, a los dos segundos podía arrancar un mate o un baile por su cuenta y parecía que se olvidaba de responder. Ahora, mientras piensa la respuesta y un rato después de que le hablaste, no arranca nada solo.

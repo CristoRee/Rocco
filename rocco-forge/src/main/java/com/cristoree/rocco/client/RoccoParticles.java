@@ -264,6 +264,14 @@ public final class RoccoParticles
         public static final Look ENDER_SPARK = new Look(20, 30, 0.07F, 0.6F, -0.25F, false, 0.6F, true, 0.15F, 0.04F, 0.95D);
         public static final Look ENDER_BURST = new Look(8, 8, 0.45F, 1.6F, 0.0F, true, 0.3F, true, 0.0F, 0.0F, 0.0D);
         public static final Look ENDER_RING = new Look(15, 15, 0.07F, 0.8F, 0.0F, false, 0.5F, true, 0.0F, 0.0F, 0.9D);
+        // El eructo (viento, hojas y nube) y los regalos de amistad (ROCCO-V13).
+        public static final Look BURP_WIND = new Look(10, 14, 0.22F, 1.4F, 0.0F, true, 0.5F, false, 0.0F, 0.0F, 0.97D);
+        public static final Look BURP_LEAF = new Look(25, 40, 0.1F, 1.0F, 0.02F, false, 0.7F, false, 0.25F, 0.0F, 0.97D);
+        public static final Look BURP_PUFF = new Look(18, 18, 0.55F, 0.45F, 0.0F, true, 0.5F, false, 0.0F, 0.0F, 0.9D);
+        public static final Look FRIEND_GLOW = new Look(18, 26, 0.1F, 1.2F, 0.0F, true, 0.5F, true, 0.05F, 0.02F, 0.95D);
+        public static final Look HEART_POP = new Look(20, 26, 0.12F, 0.9F, 0.0F, true, 0.6F, true, 0.0F, 0.03F, 0.98D);
+        public static final Look JOY_TEAR = new Look(14, 18, 0.07F, 1.0F, 0.05F, true, 0.6F, false, 0.0F, 0.0F, 0.98D);
+        public static final Look SEED_POP = new Look(14, 20, 0.09F, 1.0F, 0.03F, true, 0.6F, true, 0.15F, 0.0F, 0.96D);
     }
 
     public static final class Tuned extends TextureSheetParticle

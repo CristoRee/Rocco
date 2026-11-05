@@ -91,6 +91,16 @@ public final class ModSounds
     // La musica de un link: igual que la voz, el audio lo pone el mod (categoria "Discos").
     public static final RegistryObject<SoundEvent> MUSIC = register("music");
 
+    // v13: el eructo, la cola refrescante, las mochilas y los regalos.
+    public static final RegistryObject<SoundEvent> PLAYER_BURP = register("player_burp");
+    public static final RegistryObject<SoundEvent> BURP_GUST = register("burp_gust");
+    public static final RegistryObject<SoundEvent> COLA_REFRESH = register("cola_refresh");
+    public static final RegistryObject<SoundEvent> BACKPACK_EQUIP = register("backpack_equip");
+    public static final RegistryObject<SoundEvent> BACKPACK_OPEN = register("backpack_open");
+    public static final RegistryObject<SoundEvent> BACKPACK_CLOSE = register("backpack_close");
+    public static final RegistryObject<SoundEvent> GIFT_SEED = register("gift_seed");
+    public static final RegistryObject<SoundEvent> GIFT_FLOWER = register("gift_flower");
+
     public static void register(IEventBus modEventBus)
     {
         SOUNDS.register(modEventBus);

@@ -8,10 +8,16 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.animal.Wolf;
+import net.minecraft.world.entity.animal.camel.Camel;
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
+import net.minecraft.world.entity.animal.horse.Llama;
 import net.minecraft.world.entity.projectile.FireworkRocketEntity;
 import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,7 +25,8 @@ import org.jetbrains.annotations.Nullable;
 //  - volando: si el jugador planea con elytra (o vuela en creativo), despega con sus hojas-ala y
 //    vuela a su derecha, un poco atras, inclinandose con el;
 //  - en el agua: flota con su patito; si el jugador bucea, se pone las antiparras y bucea con el;
-//  - en bote: no se sube al del jugador, tiene el suyo y rema al costado.
+//  - en bote: no se sube al del jugador, tiene el suyo y rema al costado;
+//  - a caballo: se sube adelante del jugador, y en su lobo si le dio permiso (ROCCO-V13).
 // Corre solo en el servidor, una vez por tick, despues de la fisica normal de la entidad.
 public final class RoccoTravel
 {
@@ -47,6 +54,21 @@ public final class RoccoTravel
     private static final double SWIM_STILL = 0.03D;
     private static final double BOAT_SNAP = 12.0D;
 
+    // A caballo y en el lobo (bloques por tick, ROCCO-V13).
+    private static final double HORSE_REACH = 2.5D;
+    private static final int HORSE_WAIT_TICKS = 60;
+    private static final double RIDE_STILL_SPEED = 0.02D;
+    private static final double HORSE_GALLOP_SPEED = 0.15D;
+    private static final double HORSE_JUMP_RISE = 0.25D;
+    private static final double WOLF_RUN_SPEED = 0.12D;
+    private static final double WOLF_RANGE = 6.0D;
+    private static final double WOLF_ASKED_RANGE = 16.0D;
+    private static final double WOLF_REACH = 2.5D;
+    private static final double WOLF_OWNER_FAR = 8.0D;
+    private static final double WOLF_LOST = 32.0D;
+    private static final int WOLF_WAIT_TICKS = 200;
+    private static final int RIDE_CHANGE_TICKS = 5;
+
     // Solo despega o se mete al bote si el jugador no esta lejisimo (si no, primero lo alcanza).
     private static final double ACCOMPANY_RANGE = 64.0D;
 
@@ -67,6 +89,14 @@ public final class RoccoTravel
     private int surfacedTicks;
     private int boatLostTicks;
     private int boatSide;
+    @Nullable
+    private Vec3 vehicleLast;
+    private int horseWait;
+    private int wolfWait;
+    private int rideChange;
+    private boolean stayOffHorse;
+    private boolean wolfAsked;
+    private boolean wantsDown;
     private int bubbleTicks;
     @Nullable
     private Vec3 landing;
@@ -96,6 +126,7 @@ public final class RoccoTravel
             case SURFACE -> surface(owner, motion);
             case UNDERWATER -> underwater(owner, ownerVelocity, motion);
             case BOAT -> boat(owner, motion);
+            case RIDE -> ride(owner, motion);
         }
 
         // Tiene snorkel: nunca se ahoga.
@@ -121,6 +152,10 @@ public final class RoccoTravel
     // Vuelve a caminar ya mismo (un teleport, un cambio de dimension, una orden de parar).
     void reset()
     {
+        if (this.rocco.getMotion().kind() == RoccoMotion.Kind.RIDE || this.rocco.isPassenger())
+        {
+            this.rocco.stopRiding();
+        }
         if (this.rocco.getMotion() != RoccoMotion.NONE)
         {
             set(RoccoMotion.NONE);
@@ -157,7 +192,20 @@ public final class RoccoTravel
 
     private void ground(@Nullable ServerPlayer owner)
     {
+        // Volvio del guardado arriba de algo, sin saber que estaba montado.
+        if (this.rocco.isPassenger())
+        {
+            this.rocco.stopRiding();
+        }
         boolean near = accompanies(owner) && this.rocco.distanceToSqr(owner) < ACCOMPANY_RANGE * ACCOMPANY_RANGE;
+        if (near && RoccoCommonConfig.ACCOMPANY_HORSE.get() && mountHorse(owner))
+        {
+            return;
+        }
+        if (near && mountWolf(owner))
+        {
+            return;
+        }
         if (near && RoccoCommonConfig.ACCOMPANY_FLIGHT.get() && isFlying(owner))
         {
             takeOff();
@@ -212,6 +260,258 @@ public final class RoccoTravel
         return this.rocco.getRoccoState() == RoccoState.ACTIVE
                 && this.rocco.isInWater()
                 && waterDepth() > 0.5D;
+    }
+
+    // ---------- montando ----------
+
+    // Un caballo, burro o mula ensillado con el jugador arriba y nadie mas. La llama y el camello no.
+    @Nullable
+    private AbstractHorse horseOf(ServerPlayer owner)
+    {
+        return owner.getVehicle() instanceof AbstractHorse horse && !(horse instanceof Llama) && !(horse instanceof Camel)
+                && horse.isSaddled() && horse.getPassengers().size() == 1 ? horse : null;
+    }
+
+    private boolean mountHorse(ServerPlayer owner)
+    {
+        AbstractHorse horse = horseOf(owner);
+        if (horse == null)
+        {
+            this.horseWait = 0;
+            this.stayOffHorse = false;
+            return false;
+        }
+        if (this.stayOffHorse)
+        {
+            return false;
+        }
+        // Lo normal es que te alcance caminando; si te vas al galope, a los 3 segundos salta igual.
+        double distance = this.rocco.distanceTo(horse);
+        if (distance > HORSE_REACH && ++this.horseWait < HORSE_WAIT_TICKS)
+        {
+            return false;
+        }
+        this.horseWait = 0;
+        this.rocco.prepareForTravel();
+        this.rocco.startRiding(horse, true);
+        set(RoccoMotion.RIDE_HORSE_MOUNT);
+        this.vehicleLast = horse.position();
+        return true;
+    }
+
+    // Un lobo con permiso, cerca y libre: se sube si te alejaste, o si se lo pediste.
+    private boolean mountWolf(ServerPlayer owner)
+    {
+        if (!this.rocco.anyWolfAllowed() || (!this.wolfAsked && this.ticks % 10 != 0))
+        {
+            return false;
+        }
+        boolean far = this.rocco.distanceToSqr(owner) > WOLF_OWNER_FAR * WOLF_OWNER_FAR && this.rocco.currentErrand() == null;
+        if (!far && !this.wolfAsked)
+        {
+            return false;
+        }
+        Wolf wolf = nearestWolf(this.wolfAsked ? WOLF_ASKED_RANGE : WOLF_RANGE);
+        if (wolf == null)
+        {
+            return false;
+        }
+        if (this.rocco.distanceTo(wolf) > WOLF_REACH)
+        {
+            // Se lo pediste: va caminando hasta el.
+            if (this.wolfAsked && ++this.wolfWait < WOLF_WAIT_TICKS)
+            {
+                if (this.wolfWait % 10 == 1)
+                {
+                    this.rocco.getNavigation().moveTo(wolf, 1.1D);
+                }
+                return false;
+            }
+            this.wolfAsked = false;
+            this.wolfWait = 0;
+            if (!far)
+            {
+                return false;
+            }
+        }
+        this.wolfAsked = false;
+        this.wolfWait = 0;
+        this.rocco.prepareForTravel();
+        this.rocco.startRiding(wolf, true);
+        set(RoccoMotion.RIDE_WOLF_MOUNT);
+        this.vehicleLast = wolf.position();
+        return true;
+    }
+
+    @Nullable
+    private Wolf nearestWolf(double range)
+    {
+        return this.rocco.level().getEntitiesOfClass(Wolf.class, this.rocco.getBoundingBox().inflate(range), this::wolfFree).stream()
+                .min(java.util.Comparator.comparingDouble(wolf -> wolf.distanceToSqr(this.rocco)))
+                .orElse(null);
+    }
+
+    private boolean wolfFree(Wolf wolf)
+    {
+        return wolf.isAlive() && this.rocco.wolfAllowed(wolf.getUUID()) && !wolf.isOrderedToSit() && !wolf.isBaby() && !wolf.isInWater()
+                && wolf.getTarget() == null && !wolf.isVehicle();
+    }
+
+    // "Subite al lobo". false si no hay ninguno con permiso cerca.
+    public boolean askForWolf()
+    {
+        if (nearestWolf(WOLF_ASKED_RANGE) == null)
+        {
+            return false;
+        }
+        this.wolfAsked = true;
+        this.wolfWait = 0;
+        return true;
+    }
+
+    // "Bajate". false si no esta montado en nada.
+    public boolean askDown()
+    {
+        if (this.rocco.getMotion().kind() != RoccoMotion.Kind.RIDE)
+        {
+            return false;
+        }
+        this.wantsDown = true;
+        return true;
+    }
+
+    // Le pediste algo que se hace en el piso: se baja ya mismo (y no se vuelve a subir solo).
+    public void hopOff()
+    {
+        Entity vehicle = this.rocco.getVehicle();
+        if (vehicle == null || this.rocco.getMotion().kind() != RoccoMotion.Kind.RIDE)
+        {
+            return;
+        }
+        boolean onWolf = vehicle instanceof Wolf;
+        this.stayOffHorse = !onWolf;
+        stepOff(leader(), vehicle, onWolf);
+    }
+
+    private void ride(@Nullable ServerPlayer owner, RoccoMotion motion)
+    {
+        Entity vehicle = this.rocco.getVehicle();
+        // Se murio o desaparecio el caballo: cae como cualquiera.
+        if (vehicle == null || !vehicle.isAlive() || this.rocco.getRoccoState() != RoccoState.ACTIVE)
+        {
+            this.wantsDown = false;
+            this.rocco.stopRiding();
+            set(RoccoMotion.NONE);
+            return;
+        }
+        boolean onWolf = vehicle instanceof Wolf;
+        if (motion == RoccoMotion.RIDE_HORSE_DISMOUNT || motion == RoccoMotion.RIDE_WOLF_DISMOUNT)
+        {
+            if (this.ticks >= motion.ticks() + RoccoEntity.ANIM_LAG)
+            {
+                stepOff(owner, vehicle, onWolf);
+            }
+            return;
+        }
+        if (this.wantsDown || (onWolf ? !staysOnWolf(owner, (Wolf) vehicle) : !staysOnHorse(owner, vehicle)))
+        {
+            this.stayOffHorse = this.wantsDown && !onWolf;
+            this.wantsDown = false;
+            set(onWolf ? RoccoMotion.RIDE_WOLF_DISMOUNT : RoccoMotion.RIDE_HORSE_DISMOUNT);
+            return;
+        }
+        if (onWolf)
+        {
+            steerWolf(owner, (Wolf) vehicle);
+        }
+
+        // La velocidad sale de cuanto se movio: un caballo que manejas vos no la tiene en el servidor.
+        Vec3 here = vehicle.position();
+        Vec3 last = this.vehicleLast == null ? here : this.vehicleLast;
+        this.vehicleLast = here;
+        double dx = here.x - last.x;
+        double dz = here.z - last.z;
+        double speed = Math.sqrt(dx * dx + dz * dz);
+        double rise = here.y - last.y;
+        if (motion.isTransition() && this.ticks < motion.ticks() + RoccoEntity.ANIM_LAG)
+        {
+            return;
+        }
+        RoccoMotion next;
+        if (onWolf)
+        {
+            next = speed > WOLF_RUN_SPEED ? RoccoMotion.RIDE_WOLF_RUN : speed > RIDE_STILL_SPEED ? RoccoMotion.RIDE_WOLF_WALK : RoccoMotion.RIDE_WOLF_IDLE;
+        }
+        else if (rise > HORSE_JUMP_RISE)
+        {
+            next = RoccoMotion.RIDE_HORSE_JUMP;
+        }
+        else
+        {
+            next = speed > HORSE_GALLOP_SPEED ? RoccoMotion.RIDE_HORSE_GALLOP : speed > RIDE_STILL_SPEED ? RoccoMotion.RIDE_HORSE_WALK : RoccoMotion.RIDE_HORSE_IDLE;
+        }
+        // Con un poco de margen, para que no titile entre una y otra.
+        this.rideChange = next == motion ? 0 : this.rideChange + 1;
+        if (next != motion && (this.rideChange >= RIDE_CHANGE_TICKS || motion.isTransition() || next == RoccoMotion.RIDE_HORSE_JUMP))
+        {
+            this.rideChange = 0;
+            set(next);
+        }
+    }
+
+    private boolean staysOnHorse(@Nullable ServerPlayer owner, Entity vehicle)
+    {
+        return accompanies(owner) && owner.getVehicle() == vehicle && RoccoCommonConfig.ACCOMPANY_HORSE.get();
+    }
+
+    // Se baja antes de que el lobo pelee, si se sienta, si se moja o si le sacaste el permiso.
+    private boolean staysOnWolf(@Nullable ServerPlayer owner, Wolf wolf)
+    {
+        return accompanies(owner) && this.rocco.wolfAllowed(wolf.getUUID()) && !wolf.isOrderedToSit() && !wolf.isInWater()
+                && wolf.getTarget() == null && wolf.distanceToSqr(owner) < WOLF_LOST * WOLF_LOST;
+    }
+
+    // Con Rocco arriba el juego le apaga al lobo sus ganas de seguirte: lo lleva el.
+    private void steerWolf(@Nullable ServerPlayer owner, Wolf wolf)
+    {
+        if (owner == null || this.ticks % 10 != 0)
+        {
+            return;
+        }
+        double distance = wolf.distanceTo(owner);
+        if (distance > 3.0D)
+        {
+            wolf.getNavigation().moveTo(owner, distance > 8.0D ? 1.4D : 1.0D);
+        }
+        else
+        {
+            wolf.getNavigation().stop();
+        }
+    }
+
+    // Termina la animacion de bajarse: queda en el piso a su derecha, sin aparecer adentro de un bloque.
+    private void stepOff(@Nullable ServerPlayer owner, Entity vehicle, boolean onWolf)
+    {
+        Vec3 seat = this.rocco.position();
+        float yaw = this.rocco.getYRot();
+        double side = onWolf ? 0.469D : 0.594D;
+        double down = onWolf ? 0.844D : 1.375D;
+        this.rocco.stopRiding();
+        set(RoccoMotion.NONE);
+        Vec3 spot = seat.add(right(yaw).scale(side)).subtract(0.0D, down, 0.0D);
+        AABB box = this.rocco.getBoundingBox().move(spot.subtract(this.rocco.position()));
+        if (this.rocco.level().noCollision(this.rocco, box))
+        {
+            this.rocco.setPos(spot);
+        }
+        else if (owner != null)
+        {
+            BlockPos ground = RoccoFollowGoal.findSpotNear(this.rocco.serverLevel(), owner);
+            if (ground != null)
+            {
+                this.rocco.setPos(ground.getX() + 0.5D, ground.getY(), ground.getZ() + 0.5D);
+            }
+        }
     }
 
     // ---------- volando ----------
@@ -875,6 +1175,15 @@ public final class RoccoTravel
         }
         switch (motion)
         {
+            case RIDE_HORSE_MOUNT, RIDE_WOLF_MOUNT ->
+            {
+                if (t == 3) play(ModSounds.STEP.get(), 0.2F);
+                else if (t == 12) play(ModSounds.SIT_PLOP.get(), 0.5F);
+            }
+            case RIDE_HORSE_DISMOUNT, RIDE_WOLF_DISMOUNT ->
+            {
+                if (t == 13) play(ModSounds.STEP.get(), 0.2F);
+            }
             case FLY_TAKEOFF ->
             {
                 if (t == 4) play(ModSounds.LEAF_FWIP.get(), 0.7F);
@@ -951,6 +1260,13 @@ public final class RoccoTravel
     {
         RoccoExpression face = switch (motion)
         {
+            case RIDE_HORSE_MOUNT, RIDE_WOLF_MOUNT -> t == 0 ? RoccoExpression.FOCUS : t == 7 ? RoccoExpression.CHEER : t == 15 ? RoccoExpression.HAPPY : null;
+            case RIDE_HORSE_DISMOUNT, RIDE_WOLF_DISMOUNT -> t == 0 ? RoccoExpression.HAPPY : t == 6 ? RoccoExpression.CHEER : t == 16 ? RoccoExpression.HAPPY : null;
+            case RIDE_HORSE_GALLOP -> t % 80 == 0 ? RoccoExpression.WINDY : t % 80 == 50 ? RoccoExpression.CHEER : t % 80 == 72 ? RoccoExpression.WINDY : null;
+            case RIDE_HORSE_JUMP -> t == 0 ? RoccoExpression.WOW : t == 15 ? RoccoExpression.CHEER : null;
+            case RIDE_WOLF_IDLE -> t % 80 == 0 ? RoccoExpression.HAPPY : t % 80 == 30 ? RoccoExpression.BLISS : t % 80 == 50 ? RoccoExpression.HAPPY : null;
+            case RIDE_WOLF_RUN -> t == 0 ? RoccoExpression.WINDY : null;
+            case RIDE_HORSE_IDLE, RIDE_HORSE_WALK, RIDE_WOLF_WALK -> t == 0 ? RoccoExpression.HAPPY : null;
             case FLY_TAKEOFF, FLY_GLIDE, FLY_DIVE, FLY_LAND, FLOAT_IDLE, SWIM_UNDER_IDLE, SWIM_SURFACE,
                  BOAT_ENTER, BOAT_EXIT -> t == 0 ? RoccoExpression.HAPPY : null;
             case FLY_BOOST -> t == 0 ? RoccoExpression.WINDY : null;

@@ -55,6 +55,15 @@ public final class ModParticles
     public static final RegistryObject<SimpleParticleType> ENDER_RING = register("ender_ring");
     public static final RegistryObject<SimpleParticleType> DIRT_CLOD = register("dirt_clod");
 
+    // El eructo de la Roco Cola y los regalos de amistad.
+    public static final RegistryObject<SimpleParticleType> BURP_WIND = register("burp_wind");
+    public static final RegistryObject<SimpleParticleType> BURP_LEAF = register("burp_leaf");
+    public static final RegistryObject<SimpleParticleType> BURP_PUFF = register("burp_puff");
+    public static final RegistryObject<SimpleParticleType> FRIEND_GLOW = register("friend_glow");
+    public static final RegistryObject<SimpleParticleType> HEART_POP = register("heart_pop");
+    public static final RegistryObject<SimpleParticleType> JOY_TEAR = register("joy_tear");
+    public static final RegistryObject<SimpleParticleType> SEED_POP = register("seed_pop");
+
     public static void register(IEventBus modEventBus)
     {
         PARTICLES.register(modEventBus);

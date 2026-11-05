@@ -1,0 +1,31 @@
+{
+  "type": "rocco:backpack_upgrade",
+  "category": "equipment",
+  "pattern": [
+    "GNG",
+    "SBS",
+    "GAG"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:gold_block"
+    },
+    "N": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "S": {
+      "item": "minecraft:shulker_shell"
+    },
+    "A": {
+      "item": "minecraft:amethyst_block"
+    },
+    "B": {
+      "item": "rocco:mochila_4"
+    }
+  },
+  "result": {
+    "item": "rocco:mochila_5",
+    "count": 1
+  },
+  "source": "rocco:mochila_4"
+}

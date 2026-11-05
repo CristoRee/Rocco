@@ -30,6 +30,9 @@ public final class RoccoMenu
     public static final int TARGET_PEACEFUL = 1 << 8;
     public static final int TARGET_PLAYERS = 1 << 9;
     public static final int ENDER_POCKET = 1 << 10;
+    public static final int BACKPACK = 1 << 11;
+    public static final int RIDING = 1 << 12;
+    public static final int WOLF = 1 << 13;
 
     private static final double REACH = 24.0D;
 
@@ -57,6 +60,9 @@ public final class RoccoMenu
         if ((targets & com.cristoree.rocco.entity.RoccoCombat.PEACEFUL) != 0) flags |= TARGET_PEACEFUL;
         if ((targets & com.cristoree.rocco.entity.RoccoCombat.PLAYERS) != 0) flags |= TARGET_PLAYERS;
         if (rocco.life().hasEnderPocket()) flags |= ENDER_POCKET;
+        if (rocco.backpackTier() > 0) flags |= BACKPACK;
+        if (rocco.getMotion().kind() == com.cristoree.rocco.entity.RoccoMotion.Kind.RIDE) flags |= RIDING;
+        if (rocco.anyWolfAllowed()) flags |= WOLF;
 
         Relationship bond = rocco.relationship();
         long magicLeft = rocco.enchantCooldownLeft();
@@ -93,6 +99,10 @@ public final class RoccoMenu
             case "mate" -> order(player, rocco, "Tomate un mate.", "mate", "", "mate_ack");
             case "cebar_mate" -> order(player, rocco, "Cebame un mate.", "cebar_mate", "", "mate_share_ack");
             case "bailar" -> order(player, rocco, "Baila.", "bailar", "", "dance_ack");
+            case "dar_cola" -> order(player, rocco, "Dame una Roco Cola.", "dar_cola", "", "cola_give");
+            case "quitar_mochila" -> order(player, rocco, "Sacate la mochila.", "quitar_mochila", "", "");
+            case "montar_lobo" -> order(player, rocco, "Subite al lobo.", "montar_lobo", "", "");
+            case "bajar" -> order(player, rocco, "Bajate.", "bajar", "", "");
             case "ir_a" -> order(player, rocco, "Llevame a " + place + ".", "ir_a", place, "guide_ack");
             case "recordar_lugar" -> order(player, rocco, "Recorda este lugar como " + place + ".", "recordar_lugar", place, "");
             case "olvidar_lugar" -> order(player, rocco, "Olvidate de " + place + ".", "olvidar_lugar", place, "");
@@ -152,6 +162,7 @@ public final class RoccoMenu
                 case AIR -> "Volando con vos";
                 case BOAT -> "Remando en su barquito";
                 case UNDERWATER -> "Buceando con vos";
+                case RIDE -> "Montando con vos";
                 default -> "Flotando con su patito";
             };
         }

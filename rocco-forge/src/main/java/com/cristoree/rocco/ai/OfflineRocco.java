@@ -47,6 +47,11 @@ public final class OfflineRocco
     private static final Pattern TEND_ANIMALS = Pattern.compile("\\b(cuida|cuidar|cuidame|cuidando|atende|atender)\\b.*\\b(animales|bichos|vacas|ovejas|gallinas|pollos|cerdos|chanchos|conejos|cabras|corral|corrales|establo)\\b");
     // "Esquila las ovejas", "cortales la lana", "sacales la lana a las ovejas".
     private static final Pattern SHEAR = Pattern.compile("\\b(esquila\\w*|trasquila\\w*)\\b|\\b(corta\\w*|saca\\w*)\\b.*\\blana\\b");
+    // "Dame una Roco Cola": te la da a vos (tomarsela el es "tomate una").
+    private static final Pattern COLA_GIVE = Pattern.compile("\\b(dame|damela|pasame|pasamela|traeme|convidame|regalame|invitame|quiero|queres darme)\\b.*\\b(roco ?cola|coca ?cola|cocacola|coca|colita)\\b");
+    private static final Pattern BACKPACK_OFF = Pattern.compile("\\b(saca\\w*|quita\\w*|desequipa\\w*)\\b.*\\bmochila\\b");
+    private static final Pattern WOLF_UP = Pattern.compile("\\b(subi\\w*|sube\\w*|monta\\w*)\\b.*\\b(lobo|lobito|perro|perrito)\\b");
+    private static final Pattern RIDE_DOWN = Pattern.compile("\\bbajate\\b|\\bbaja\\w*\\b.*\\b(lobo|lobito|perro|perrito|caballo|burro|mula)\\b");
     // "Alimenta a las vacas", "dales de comer a los animales": criar (comen de a pares y tienen crias).
     private static final Pattern FEED = Pattern.compile("\\b(alimenta\\w*)\\b(.*)|\\b(dales?|darles?|dale) de comer a (las |los |mis )?(.+)");
     private static final Pattern HARVEST_CHEST = Pattern.compile("\\bcofre\\b.*\\bcosecha\\b|\\bcosecha\\b.*\\b(este|ese|aca|ahi) cofre\\b");
@@ -318,6 +323,7 @@ public final class OfflineRocco
             + "|pone\\w*|pon|coloca\\w*|trae\\w*|alcanza\\w*|dame\\w*|pasame\\w*|tira\\w*|suelta\\w*|larga\\w*|junta\\w*"
             + "|recoge\\w*|consegui\\w*|consigue\\w*|busca\\w*|fijate|mina\\w*|pica\\w*|tala\\w*|corta\\w*|ilumina\\w*"
             + "|esquila\\w*|trasquila\\w*|alimenta\\w*|vigila\\w*|dales? de comer|darles? de comer|dale de comer"
+            + "|convidame|regalame|invitame|quiero|subi\\w*|sube\\w*|monta\\w*|bajate|baja\\w*"
             + "|alumbra\\w*|ara\\w*|labra\\w*|prepara\\w*|cuida\\w*|atende\\w*|encanta\\w*|hechiza\\w*|toma\\w*|ceba\\w*|equipa\\w*|desequipa\\w*|bebe\\w*|ataca\\w*|mata\\w*|pegale\\w*|dispara\\w*|defende\\w*|usa\\w*"
             + "|teletransport\\w*|tepea\\w*|tpea\\w*|aparece\\w*|llevame|guiame|acompaname|cria\\w*|pesca\\w*|compra\\w*"
             + "|vende\\w*|ordena\\w*|acomoda\\w*|organiza\\w*|baila\\w*|bailemos|aplaud\\w*|festej\\w*|celebra\\w*"
@@ -543,6 +549,22 @@ public final class OfflineRocco
         if (CALL.matcher(text).find())
         {
             return act("teleport_ack", RoccoExpression.SMUG, "teletransportarse", "");
+        }
+        if (COLA_GIVE.matcher(text).find())
+        {
+            return act("cola_give", RoccoExpression.CHEER, "dar_cola", "");
+        }
+        if (BACKPACK_OFF.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.HAPPY, "quitar_mochila", "");
+        }
+        if (WOLF_UP.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.CHEER, "montar_lobo", "");
+        }
+        if (RIDE_DOWN.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.HAPPY, "bajar", "");
         }
         // Cuidar la casa va antes que la huerta sola, y los animales antes que criar.
         if (TEND_HOME.matcher(text).find())
@@ -1001,7 +1023,7 @@ public final class OfflineRocco
             {
                 return RoccoExpression.HAPPY;
             }
-            case "cola_coca", "cola_cooldown" ->
+            case "cola_coca", "cola_cooldown", "cola_give_wait" ->
             {
                 return RoccoExpression.SMUG;
             }
@@ -1047,6 +1069,13 @@ public final class OfflineRocco
     }
 
     // Elige una frase al azar sin repetir la anterior de esa categoria.
+    // Esa frase de la categoria: los regalos dicen las de una misma secuencia.
+    public static String lineAt(String category, int index)
+    {
+        String[] lines = LINES.get(category);
+        return lines == null || lines.length == 0 ? "..." : lines[Math.floorMod(index, lines.length)];
+    }
+
     private static String pick(String category)
     {
         String[] lines = LINES.get(category);
@@ -1574,6 +1603,55 @@ public final class OfflineRocco
             Map.entry("cola_after", new String[]{
                     "Que rica! Bien fresquita.",
                     "Ahh... esto me cambio el dia."}),
+            // La Roco Cola para el jugador, y lo que viene despues.
+            Map.entry("cola_give", new String[]{
+                    "Una Roco Cola bien helada, saliendo!",
+                    "Toma, pero no te la tomes de un trago, eh?",
+                    "La mejor bebida del mundo. La invente yo... bueno, casi."}),
+            Map.entry("cola_give_wait", new String[]{
+                    "Para, que se me tiene que enfriar otra."}),
+            Map.entry("burp_react", new String[]{
+                    "Alamaura, casi me dejas sordo. Todo eso lo tenias guardado?",
+                    "Che, avisa antes... me volaron las hojitas.",
+                    "Eso no fue un eructo. Fue un temporal.",
+                    "Siguen mis hojitas en la cabeza? Decime que si."}),
+
+            // Las mochilas, el lobo y el caballo.
+            Map.entry("backpack_none", new String[]{
+                    "No tengo ninguna mochila puesta."}),
+            Map.entry("backpack_removed", new String[]{
+                    "Toma, ahi esta. Con todo lo que tenia adentro."}),
+            Map.entry("inventory_shrunk", new String[]{
+                    "Se me achico la tapa: lo que no me entra te lo dejo aca. Una mochila me vendria barbara."}),
+            Map.entry("wolf_none", new String[]{
+                    "No hay ningun lobo tuyo cerca que me deje subir."}),
+            Map.entry("wolf_ack", new String[]{
+                    "Arre, lobito!"}),
+            Map.entry("ride_down_none", new String[]{
+                    "Si ya estoy en el piso."}),
+
+            // Los regalos de amistad. Cada indice es una misma secuencia.
+            Map.entry("gift_seed_start", new String[]{
+                    "Ay... que es esto? Me hace cosquillas la cabeza.",
+                    "Espera, espera... algo se mueve aca arriba.",
+                    "Ay! Que fue eso?"}),
+            Map.entry("gift_seed_give", new String[]{
+                    "Mira, me crecio adentro. A mi no me sirve para nada, pero vos sos mi amigo. Toma, cuidala.",
+                    "Una semillita. Salio de mi, asi que obvio que es especial. Te la regalo.",
+                    "Bueno, no se de donde salio, pero si es mia es buena. Es tuya, amigo."}),
+            Map.entry("gift_flower_1", new String[]{
+                    "Te acordas cuando recien nos conociamos? No sabias ni para donde ir.",
+                    "Che... sabes que estuve pensando? En todo lo que anduvimos.",
+                    "Hoy es un dia lindo para decirte algo."}),
+            Map.entry("gift_flower_2", new String[]{
+                    "Pasamos un monton juntos... y en todo este tiempo algo me fue creciendo aca adentro, despacito.",
+                    "Cada aventura me dejo algo. Y mira lo que salio de todo eso.",
+                    "Desde que brotamos juntos en esta aventura, esto fue creciendo en mi sin que me diera cuenta."}),
+            Map.entry("gift_flower_3", new String[]{
+                    "Es para vos. Bueno... es de los dos. Gracias por dejarme acompañarte.",
+                    "Obvio que sin mi no llegabas a ningun lado. Pero no lo hubiese querido con nadie mas. Toma.",
+                    "Es una flor de la amistad. Nunca se marchita... como nosotros."}),
+
             Map.entry("cola_cooldown", new String[]{
                     "Recien me tome una, queres que explote?"}),
 

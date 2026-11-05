@@ -1,0 +1,31 @@
+{
+  "type": "rocco:backpack_upgrade",
+  "category": "equipment",
+  "pattern": [
+    "IWI",
+    "LBL",
+    "ICI"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "W": {
+      "item": "minecraft:red_wool"
+    },
+    "L": {
+      "item": "minecraft:leather"
+    },
+    "C": {
+      "item": "minecraft:chest"
+    },
+    "B": {
+      "item": "rocco:mochila_1"
+    }
+  },
+  "result": {
+    "item": "rocco:mochila_2",
+    "count": 1
+  },
+  "source": "rocco:mochila_1"
+}

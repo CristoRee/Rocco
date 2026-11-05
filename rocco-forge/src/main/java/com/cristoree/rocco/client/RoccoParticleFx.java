@@ -255,6 +255,27 @@ public final class RoccoParticleFx
                     add(level, ModParticles.DIRT_CLOD.get(), at, new Vec3(spread(random, 0.1D), 0.1D + random.nextDouble() * 0.05D, spread(random, 0.1D)));
                 }
             }
+            // Los regalos de amistad.
+            case "rocco:heart_pop" ->
+            {
+                int count = 2 + random.nextInt(3);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.HEART_POP.get(), at.add(spread(random, 0.2D), 0.0D, spread(random, 0.2D)),
+                            new Vec3(spread(random, 0.01D), 0.04D, spread(random, 0.01D)));
+                }
+            }
+            case "rocco:friend_glow" ->
+            {
+                int count = 3 + random.nextInt(3);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.FRIEND_GLOW.get(), at.add(spread(random, 0.2D), spread(random, 0.2D), spread(random, 0.2D)),
+                            new Vec3(spread(random, 0.015D), 0.02D, spread(random, 0.015D)));
+                }
+            }
+            case "rocco:joy_tear" -> add(level, ModParticles.JOY_TEAR.get(), at, new Vec3(spread(random, 0.02D), 0.03D, spread(random, 0.02D)));
+            case "rocco:seed_pop" -> add(level, ModParticles.SEED_POP.get(), at, new Vec3(spread(random, 0.04D), 0.1D, spread(random, 0.04D)));
             case "rocco:butterfly" -> add(level, ModParticles.BUTTERFLY.get(), at, Vec3.ZERO);
             case "rocco:petal" ->
             {
@@ -320,6 +341,8 @@ public final class RoccoParticleFx
             case "fx_mic" -> { side = -0.2D; up = 0.7D; ahead = 0.25D; }
             case "fx_belly" -> { side = 0.0D; up = 0.35D; ahead = 0.2D; }
             case "fx_body" -> { side = 0.0D; up = 0.45D; ahead = 0.0D; }
+            case "fx_held" -> { side = 0.0D; up = 0.5D; ahead = 0.3D; }
+            case "fx_backpack" -> { side = 0.0D; up = 0.55D; ahead = -0.35D; }
             case "fx_grave", "fx_soil" -> { side = 0.0D; up = 0.1D; ahead = 0.0D; }
             case "item_right" -> { side = -0.35D; up = 0.45D; ahead = 0.35D; }
             default -> { side = 0.0D; up = 0.6D; ahead = 0.2D; }

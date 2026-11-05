@@ -242,6 +242,43 @@ public final class RoccoCompanionTracker
         }
     }
 
+    // Al irte del mundo, Rocco se baja: si no, se guardaria con tu caballo adentro de tus datos.
+    @SubscribeEvent
+    public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event)
+    {
+        if (event.getEntity() instanceof ServerPlayer player)
+        {
+            RoccoEntity rocco = find(player);
+            if (rocco != null && rocco.isPassenger())
+            {
+                rocco.stopTravelling();
+            }
+        }
+    }
+
+    // Agachado + clic derecho con la mano vacia a TU lobo, con Rocco cerca: le das (o le sacas) el
+    // permiso de subirse a ese lobo.
+    @SubscribeEvent
+    public static void onInteractEntity(net.minecraftforge.event.entity.player.PlayerInteractEvent.EntityInteract event)
+    {
+        if (!(event.getEntity() instanceof ServerPlayer player) || event.getHand() != net.minecraft.world.InteractionHand.MAIN_HAND
+                || !player.isShiftKeyDown() || !player.getMainHandItem().isEmpty()
+                || !(event.getTarget() instanceof net.minecraft.world.entity.animal.Wolf wolf) || !wolf.isOwnedBy(player))
+        {
+            return;
+        }
+        RoccoEntity rocco = find(player);
+        if (rocco == null || rocco.level() != player.level() || rocco.distanceToSqr(wolf) > 16.0D * 16.0D)
+        {
+            return;
+        }
+        boolean allowed = rocco.toggleWolf(wolf.getUUID());
+        player.displayClientMessage(net.minecraft.network.chat.Component.translatable(
+                allowed ? "rocco.wolf.allowed" : "rocco.wolf.denied", wolf.getDisplayName()), true);
+        event.setCanceled(true);
+        event.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);
+    }
+
     // Tambien al cruzar un portal: si no, se queda del otro lado.
     @SubscribeEvent
     public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event)
@@ -297,6 +334,11 @@ public final class RoccoCompanionTracker
         {
             event.getEntity().getPersistentData().putUUID(TAG_ROCCO_UUID, old.getUUID(TAG_ROCCO_UUID));
         }
+        // Los regalos de Rocco son una sola vez, aunque te mueras.
+        CompoundTag fresh = event.getEntity().getPersistentData();
+        fresh.putBoolean(com.cristoree.rocco.entity.RoccoGifts.TAG_SEED, old.getBoolean(com.cristoree.rocco.entity.RoccoGifts.TAG_SEED));
+        fresh.putBoolean(com.cristoree.rocco.entity.RoccoGifts.TAG_FLOWER, old.getBoolean(com.cristoree.rocco.entity.RoccoGifts.TAG_FLOWER));
+        fresh.putInt(com.cristoree.rocco.entity.RoccoGifts.TAG_FLOWER_TICKS, old.getInt(com.cristoree.rocco.entity.RoccoGifts.TAG_FLOWER_TICKS));
     }
 
     // El boton de la config o la tecla: lo trae siempre (atado tambien: lo desata), y avisa.

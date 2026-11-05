@@ -68,7 +68,11 @@ public class RoccoWanderGoal extends Goal
     @Override
     public void start()
     {
-        rocco.getNavigation().moveTo(this.destination.x, this.destination.y, this.destination.z, 0.6D);
+        net.minecraft.world.level.pathfinder.Path path = rocco.getNavigation().createPath(this.destination.x, this.destination.y, this.destination.z, 0);
+        if (path != null && !RoccoGates.crossesClosedGate(rocco.level(), path))
+        {
+            rocco.getNavigation().moveTo(path, 0.6D);
+        }
     }
 
     @Override

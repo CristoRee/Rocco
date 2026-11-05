@@ -79,6 +79,24 @@ public class RoccoMod
             {
                 event.accept(ModItems.ROCCO_SPAWN_EGG);
             }
+            else if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES)
+            {
+                event.accept(ModItems.MOCHILA_1);
+                event.accept(ModItems.MOCHILA_2);
+                event.accept(ModItems.MOCHILA_3);
+                event.accept(ModItems.MOCHILA_4);
+                event.accept(ModItems.MOCHILA_5);
+                event.accept(ModItems.MOCHILA_6);
+            }
+            else if (event.getTabKey() == CreativeModeTabs.INGREDIENTS)
+            {
+                event.accept(ModItems.SEMILLITA);
+                event.accept(ModItems.FLOR_AMISTAD);
+            }
+            else if (event.getTabKey() == CreativeModeTabs.FOOD_AND_DRINKS)
+            {
+                event.accept(ModItems.ROCO_COLA);
+            }
         }
     }
 
@@ -98,6 +116,9 @@ public class RoccoMod
             // La pantalla del equipo de Rocco (armadura, arma y escudo).
             event.enqueueWork(() -> net.minecraft.client.gui.screens.MenuScreens.register(
                     com.cristoree.rocco.registry.ModMenus.EQUIPMENT.get(), com.cristoree.rocco.client.menu.RoccoEquipmentScreen::new));
+            // Su inventario, con una pagina por cada 6 filas.
+            event.enqueueWork(() -> net.minecraft.client.gui.screens.MenuScreens.register(
+                    com.cristoree.rocco.registry.ModMenus.INVENTORY.get(), com.cristoree.rocco.client.menu.RoccoInventoryScreen::new));
             // El registro de propiedades de items no es seguro desde varios hilos.
             event.enqueueWork(com.cristoree.rocco.client.RoccoFishingLine::installRodModel);
             // El agua del mate baja con cada sorbo (el modelo trae lleno, 2/3, 1/3 y vacio).
@@ -142,6 +163,13 @@ public class RoccoMod
             tuned(event, ModParticles.ENDER_BURST.get(), Look.ENDER_BURST);
             tuned(event, ModParticles.ENDER_RING.get(), Look.ENDER_RING);
             event.registerSpriteSet(ModParticles.DIRT_CLOD.get(), com.cristoree.rocco.client.RoccoParticles.DirtClodProvider::new);
+            tuned(event, ModParticles.BURP_WIND.get(), Look.BURP_WIND);
+            tuned(event, ModParticles.BURP_LEAF.get(), Look.BURP_LEAF);
+            tuned(event, ModParticles.BURP_PUFF.get(), Look.BURP_PUFF);
+            tuned(event, ModParticles.FRIEND_GLOW.get(), Look.FRIEND_GLOW);
+            tuned(event, ModParticles.HEART_POP.get(), Look.HEART_POP);
+            tuned(event, ModParticles.JOY_TEAR.get(), Look.JOY_TEAR);
+            tuned(event, ModParticles.SEED_POP.get(), Look.SEED_POP);
         }
 
         private static void tuned(net.minecraftforge.client.event.RegisterParticleProvidersEvent event,

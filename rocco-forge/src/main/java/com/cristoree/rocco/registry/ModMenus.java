@@ -18,6 +18,10 @@ public final class ModMenus
     public static final RegistryObject<MenuType<RoccoEquipmentMenu>> EQUIPMENT = MENUS.register("equipment",
             () -> IForgeMenuType.create(RoccoEquipmentMenu::fromNetwork));
 
+    // Su inventario: se agranda con las mochilas, con una pagina cada 6 filas.
+    public static final RegistryObject<MenuType<com.cristoree.rocco.menu.RoccoInventoryMenu>> INVENTORY = MENUS.register("inventory",
+            () -> IForgeMenuType.create(com.cristoree.rocco.menu.RoccoInventoryMenu::fromNetwork));
+
     public static void register(IEventBus modEventBus)
     {
         MENUS.register(modEventBus);

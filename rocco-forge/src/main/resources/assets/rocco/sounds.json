@@ -358,6 +358,56 @@
       "rocco:cola_drink_3"
     ]
   },
+  "player_burp": {
+    "subtitle": "subtitles.rocco.player_burp",
+    "sounds": [
+      "rocco:player_burp1",
+      "rocco:player_burp2"
+    ]
+  },
+  "burp_gust": {
+    "subtitle": "subtitles.rocco.burp_gust",
+    "sounds": [
+      "rocco:burp_gust1",
+      "rocco:burp_gust2"
+    ]
+  },
+  "cola_refresh": {
+    "subtitle": "subtitles.rocco.cola_refresh",
+    "sounds": [
+      "rocco:cola_refresh1"
+    ]
+  },
+  "backpack_equip": {
+    "subtitle": "subtitles.rocco.backpack_equip",
+    "sounds": [
+      "rocco:backpack_equip1"
+    ]
+  },
+  "backpack_open": {
+    "subtitle": "subtitles.rocco.backpack_open",
+    "sounds": [
+      "rocco:backpack_open1"
+    ]
+  },
+  "backpack_close": {
+    "subtitle": "subtitles.rocco.backpack_close",
+    "sounds": [
+      "rocco:backpack_close1"
+    ]
+  },
+  "gift_seed": {
+    "subtitle": "subtitles.rocco.gift_seed",
+    "sounds": [
+      "rocco:gift_seed1"
+    ]
+  },
+  "gift_flower": {
+    "subtitle": "subtitles.rocco.gift_flower",
+    "sounds": [
+      "rocco:gift_flower1"
+    ]
+  },
   "voice": {
     "subtitle": "subtitles.rocco.voice",
     "sounds": [

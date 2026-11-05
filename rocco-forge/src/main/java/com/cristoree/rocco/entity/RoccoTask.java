@@ -45,7 +45,55 @@ public enum RoccoTask
     // Cantando la musica que pone (bucles de 2,4 s, 1,25 s y 1,3 s): de a 16 segundos.
     SING_SOFT(320, 320),
     SING_GROOVE(320, 320),
-    SING_RAP(320, 320);
+    SING_RAP(320, 320),
+    // Los regalos de la v13: lo entrega en el tick de impacto (3,55 s, 6,25 s y 2,05 s).
+    GIVE_SEED(92, 71),
+    GIVE_SEED_CHILL(92, 71),
+    GIVE_FLOWER(164, 125),
+    GIVE_FLOWER_CHILL(164, 125),
+    GIVE_COLA(62, 41),
+    // Reacciona al eructo (2,7 s) y se muestra con la mochila nueva (3,8 s): sin efecto.
+    REACT_BURP(54, 54),
+    BACKPACK_SHOW(76, 76);
+
+    // Le da algo al jugador: lo que entrega se dibuja en el hueso held.
+    public boolean gifting()
+    {
+        return this == GIVE_SEED || this == GIVE_SEED_CHILL || this == GIVE_FLOWER || this == GIVE_FLOWER_CHILL || this == GIVE_COLA;
+    }
+
+    // Con la tapa de flores (el modo chill de los regalos).
+    public boolean chillGift()
+    {
+        return this == GIVE_SEED_CHILL || this == GIVE_FLOWER_CHILL;
+    }
+
+    // Animaciones de la v13 con sus caras y sonidos: se hacen ahi donde esta, mirando al jugador.
+    public boolean scripted()
+    {
+        return gifting() || this == REACT_BURP || this == BACKPACK_SHOW;
+    }
+
+    // Lo que tiene en las patas va en el hueso held: la comida, la pocion y los regalos.
+    public boolean usesHeld()
+    {
+        return consuming() || gifting();
+    }
+
+    // El nombre de la animacion (solo las de la v13).
+    public String scriptedAnimation()
+    {
+        return switch (this)
+        {
+            case GIVE_SEED -> "give_seed";
+            case GIVE_SEED_CHILL -> "give_seed_chill";
+            case GIVE_FLOWER -> "give_flower";
+            case GIVE_FLOWER_CHILL -> "give_flower_chill";
+            case GIVE_COLA -> "give_cola";
+            case REACT_BURP -> "react_burp";
+            default -> "backpack_show";
+        };
+    }
 
     // Las cuatro de comer y tomar con la comida o la pocion en la mano.
     public boolean consuming()

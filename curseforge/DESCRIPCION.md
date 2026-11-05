@@ -19,7 +19,9 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, entien
 - **Si se muere, vuelve:** a los 15 segundos reaparece enterradito cerca tuyo. Con un cofre de ender gana el poder de no perder nunca sus cosas.
 - **Come y se cura:** se cura solo con el tiempo, más rápido después de comer, y si lo dejás toma pociones y se come manzanas doradas en apuros.
 - **Pone música:** pasale un link y suena desde él mientras la canta y la baila al ritmo. Y si suena un tocadiscos cerca, va a bailar.
-- **Roco Cola:** su gaseosa favorita (y no le digas Coca Cola).
+- **Mochilas:** 6 mochilas que se fabrican en orden y le agrandan el inventario hasta 216 lugares. La primera empieza con un regalo suyo cuando se hacen amigos; la última, con otro que solo llega después de las grandes aventuras.
+- **A caballo:** se sube adelante tuyo. Y en tu lobo, si le das permiso.
+- **Roco Cola:** su gaseosa favorita (y no le digas Coca Cola). Te convida una, y lo que viene después empuja a los mobs.
 - **Regalos:** si te vas un rato, cuando volvés te dejó cosas que juntó. Y de vez en cuando te regala alguna rareza.
 - **Voz y micrófono (opcional):** habla en voz alta con Fish Audio, imita voces de personajes y te escucha con Deepgram.
 
@@ -62,7 +64,7 @@ Minecraft es marca de Mojang AB. Rocco no está afiliado a Mojang ni a Microsoft
 
 ## 🇬🇧 English
 
-**Rocco is an AI adventure companion that sprouts from the ground next to you.** He chats with his own personality, follows you everywhere (flying, swimming and in his own little boat), farms, looks after your home and animals while you explore, crafts with real recipes, cooks, enchants your gear once a day, drinks mate, wears armor and 3D weapons, fights by your side, comes back buried next to your respawn point if he dies, plays music from links (audio files, internet radios, Bandcamp, Twitch) and sings and dances to it, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram).
+**Rocco is an AI adventure companion that sprouts from the ground next to you.** He chats with his own personality, follows you everywhere (flying, swimming and in his own little boat), farms, looks after your home and animals while you explore, crafts with real recipes, cooks, enchants your gear once a day, drinks mate, wears armor and 3D weapons and up to 6 backpacks that grow his inventory, rides in front of you on your horse, fights by your side, comes back buried next to your respawn point if he dies, plays music from links (audio files, internet radios, Bandcamp, Twitch) and sings and dances to it, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram).
 
 He speaks **Spanish** and works **without any account or key** thanks to hundreds of built-in lines. A free AI key (Groq, Gemini, OpenRouter or a local Ollama) makes him chat for real. With a key you can also make him reply in English: in his menu (sneak + right-click) open **Personalidad** and set **Dialect** to **Automatic**: he follows your game language. The menus, his built-in lines and the chat orders without AI are in Spanish.
 
@@ -74,7 +76,7 @@ He speaks **Spanish** and works **without any account or key** thanks to hundred
 
 ## 🇧🇷 Português
 
-**Rocco é um companheiro de aventuras com IA que brota da terra ao seu lado.** Ele conversa com personalidade própria, te segue para todo lado (voando, nadando e no seu barquinho), planta, cuida da casa e dos animais enquanto você explora, crafta com as receitas reais, cozinha, encanta suas ferramentas uma vez por dia, toma chimarrão, usa armadura e armas 3D, luta ao seu lado, volta enterradinho perto de você se morrer, toca música a partir de links (arquivos de áudio, rádios, Bandcamp, Twitch) cantando e dançando, e pode falar em voz alta (Fish Audio) e te ouvir pelo microfone (Deepgram).
+**Rocco é um companheiro de aventuras com IA que brota da terra ao seu lado.** Ele conversa com personalidade própria, te segue para todo lado (voando, nadando e no seu barquinho), planta, cuida da casa e dos animais enquanto você explora, crafta com as receitas reais, cozinha, encanta suas ferramentas uma vez por dia, toma chimarrão, usa armadura, armas 3D e até 6 mochilas que aumentam o inventário dele, sobe na frente no seu cavalo, luta ao seu lado, volta enterradinho perto de você se morrer, toca música a partir de links (arquivos de áudio, rádios, Bandcamp, Twitch) cantando e dançando, e pode falar em voz alta (Fish Audio) e te ouvir pelo microfone (Deepgram).
 
 Ele fala **espanhol** e funciona **sem nenhuma conta ou chave**, com centenas de falas próprias. Com uma chave de IA gratuita (Groq, Gemini, OpenRouter ou um Ollama local) ele conversa de verdade, e pode responder em português: no menu dele (agachado + clique direito) abra **Personalidad** e coloque **Dialect** em **Automatic**: ele segue o idioma do seu jogo. Os menus, as falas prontas e as ordens sem IA são em espanhol.
 

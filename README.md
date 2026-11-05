@@ -40,15 +40,16 @@ Se le habla por el chat (o por micrófono). Algunos ejemplos:
 | "bailá", "aplaudí", "festejá" | Baila (dos bailes nuevos en bucle, de 8 segundos cada vuelta), aplaude o salta con confeti. Solo, festeja tus logros y baila cuando estás tranquilo. Si suena un disco en un tocadiscos cerca, va y baila hasta que se termina. |
 | "poné esto: https://..." | Pone la música de un link y la canta y la baila al ritmo de la canción. Ver **Música** abajo. |
 | "esta es mi casa" / "llevame a casa" | Recuerda lugares y te guía hasta ellos. |
+| "dame una Roco Cola" | Te da una bien helada. Tomala y mirá lo que pasa. Ver **Roco Cola** abajo. |
 | "traeme carbón", "guardá todo", "ordená los cofres" | Busca, guarda y ordena las cosas de tus cofres. Lo que tiene puesto (armadura, arma y escudo) no lo guarda. Si le preguntás "¿dónde guardaste?", te dice en qué cofre. |
 | "talá un árbol", "conseguime 10 de madera", "iluminá" | Junta materiales de la naturaleza y pone antorchas donde está oscuro. |
 | "criá las vacas", "dales de comer a los animales", "esquilá las ovejas" | Les da de comer de a pares para que tengan crías, y esquila las ovejas (si no tiene tijeras, se las hace con 2 de hierro). |
 | "quedate cuidando la casa", "cuidá los animales" | Se queda en tu casa mientras explorás. Ver **Cuidar la casa** abajo. |
 | "andá a pescar", "comprale pan al aldeano" | Pesca con su caña (con boya y todo) y comercia con los aldeanos. |
 
-Clic derecho sobre Rocco abre su tapa: un inventario de 36 lugares. En modo Chill, adentro de su cabeza hay un jardincito con flores en vez de la carne (se cambia en **Config > General > Adentro de su tapa**).
+Clic derecho sobre Rocco abre su tapa: un inventario de 27 lugares, que crece con las **mochilas**. En modo Chill, adentro de su cabeza hay un jardincito con flores en vez de la carne (se cambia en **Config > General > Adentro de su tapa**).
 
-**Agachado + clic derecho** abre su menú: qué está haciendo, qué tan amigos son y si tiene la magia lista, con botones para lo de todos los días (seguir o dejar de seguir, vení, sentate, a dormir, su inventario, guardar todo, ordenar cofres, cuidar la casa, cebarte un mate, baile, callarse un rato), sus lugares guardados (llevame, guardar uno nuevo, olvidar) y accesos a la personalidad y la configuración. En multijugador, el menú es solo del dueño.
+**Agachado + clic derecho** abre su menú: qué está haciendo, qué tan amigos son y si tiene la magia lista, con botones para lo de todos los días (seguir o dejar de seguir, vení, sentate, a dormir, subirse al lobo o bajarse, su inventario, guardar todo, ordenar cofres, cuidar la casa, quitarle la mochila, cebarte un mate, darte una Roco Cola, baile, callarse un rato), sus lugares guardados (llevame, guardar uno nuevo, olvidar) y accesos a la personalidad y la configuración. En multijugador, el menú es solo del dueño.
 
 ### Armadura, armas y pelea
 
@@ -63,6 +64,32 @@ Clic derecho sobre Rocco abre su tapa: un inventario de 36 lugares. En modo Chil
 - **Si se muere:** hace su caída, suelta lo que llevaba y a los 15 segundos reaparece **enterradito** cerca tuyo. Hacé clic derecho en el montículo y sale de un salto. Si no lo desenterrás, a los 5 minutos la tumba se muda a tu punto de reaparición. Se puede elegir que muera para siempre o que sea inmortal (**Config > Vida y rutina**).
 - **Traerlo siempre:** **Mods > Rocco > Config > Traer a Rocco**, una tecla en **Controles > Rocco** (sin asignar de fábrica) o `/rocco llamar`.
 - **El poder del cofre de ender:** dale un cofre de ender (o ponelo cerca para que se lo coma) y desde ahí no pierde sus cosas al morir.
+
+### Mochilas
+
+Rocco arranca con 27 lugares (3 filas). Cada mochila le suma filas, y las cosas que van en esos lugares viajan adentro de la mochila.
+
+| Mochila | Suma | Total | Se fabrica con |
+|---|---|---|---|
+| Morralito de hoja | 1 fila | 36 | Semillita de Rocco, hojas, hilo y cuero |
+| Mochila de viajero | 2 filas | 54 | Morralito, hierro, lana roja, cuero y cofre |
+| Mochila de aventurero | 3 filas | 81 | Mochila de viajero, oro, perla de ender, cofres y farol |
+| Mochila de expedición | 4 filas | 117 | Mochila de aventurero, diamantes, cofres de ender, lana cian y brújula |
+| Mochila del héroe | 5 filas | 162 | Mochila de expedición, bloques de oro, netherita, caparazones de shulker y amatista |
+| Mochila de la amistad | 6 filas (una página entera) | 216 | Mochila del héroe, Flor de la Amistad, fragmentos de eco, caparazones de shulker y estrella del Nether |
+
+- **Ponérsela:** clic derecho a Rocco con la mochila en la mano. Se la prueba y se muestra.
+- **Sacársela:** el botón **Quitar mochila** de su menú, o "sacate la mochila". Te la da con lo que lleva adentro.
+- **Mejorarla:** en la mesa de crafteo, con la mochila anterior. Lo que lleva adentro se conserva.
+- **Páginas:** cada página tiene hasta 6x9 lugares. Si hay más de una, arriba de la ventana aparecen los botones para pasar de una a otra, sin soltar lo que tengas en el cursor.
+- **Si se muere:** la mochila la sigue teniendo puesta, aunque lo que llevaba cae al piso (salvo con el poder del cofre de ender).
+
+**Los dos regalos:** cuando se hacen amigos, a Rocco le crece algo en la cabeza y te da la **Semillita**: con ella empezás. Y después de matar al Ender Dragon, al Wither y al Warden, dos días de juego juntos más tarde y en un momento tranquilo, te da la **Flor de la Amistad**, con la que se fabrica la última. Si no tenés lugar en el inventario, espera. Cada uno, una sola vez. Con la Semillita, las recetas aparecen en tu libro.
+
+### A caballo y en tu lobo
+
+- **Caballo, burro o mula ensillados:** si te sigue y te subís, se sube adelante tuyo. Va como un nene en el caballo: saluda al galope y se baja cuando te bajás. Se apaga en **Config > Movimiento**.
+- **Tu lobo:** agachado + clic derecho con la mano vacía a tu lobo, con Rocco cerca, le das (o le sacás) permiso de subirse a ese lobo. Se sube si te alejás, o si le decís "subite al lobo". Se baja si el lobo se sienta, se moja, va a pelear, o si le decís "bajate".
 
 ### Cuidar la casa
 
@@ -89,6 +116,8 @@ Pasale un link a Rocco y lo pone: suena desde él (camina con la música, como u
 ### Roco Cola
 
 Su gaseosa favorita. Pedile "tomate una Roco Cola" (si le decís "coca", te corrige) y se toma una entera, con tapita voladora, tres tragos y un "¡aaah!". Muy de vez en cuando se toma una solo.
+
+Decile **"dame una Roco Cola"** y te da una a vos (una cada 5 minutos). Refresca (rapidez y prisa, 20 segundos) y a los 2,5 segundos sale un **eructo gigante**: un ventarrón con hojas que empuja a los mobs que tenés adelante, sin hacerles daño. Rocco tiene algo para decir al respecto.
 
 ### Regalos y sorpresas
 
@@ -182,6 +211,6 @@ Minecraft es marca de Mojang AB. Rocco no está afiliado a Mojang ni a Microsoft
 
 ### English
 
-Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms (planting the seeds he has or finds in your chests), crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate (and shares one with you if you ask), remembers places, breeds animals, looks after your home (crops and animals, even while you are far away), fishes, trades with villagers, sorts your chests, brings you gifts when you come back after being away, has a sneak + right-click menu, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He wears armor (with a cute style per material) and 3D weapons, fights by your side (you choose who he may attack), plays music from links (audio files, internet radios, Bandcamp, Twitch) and sings and dances to it, heals with sunlight, comes back buried next to your respawn point if he dies, keeps his items forever if he eats an ender chest, and loves Roco Cola. He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.
+Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms (planting the seeds he has or finds in your chests), crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate (and shares one with you if you ask), remembers places, breeds animals, looks after your home (crops and animals, even while you are far away), fishes, trades with villagers, sorts your chests, brings you gifts when you come back after being away, has a sneak + right-click menu, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He wears armor (with a cute style per material) and 3D weapons, fights by your side (you choose who he may attack), wears up to 6 backpacks that grow his inventory (up to 216 slots, in pages), rides in front of you on your horse, gives you Roco Cola (mind the burp), plays music from links (audio files, internet radios, Bandcamp, Twitch) and sings and dances to it, heals with sunlight, comes back buried next to your respawn point if he dies, keeps his items forever if he eats an ender chest, and loves Roco Cola. He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.
 
 **External services:** without keys, Rocco connects to nothing (except the site of a music link someone gives him, which your game opens to play it). Only if you add a key does it talk to that service (your messages go to the AI provider you chose, the spoken text to Fish Audio, your microphone audio to Deepgram). Nothing is collected or sent anywhere else.

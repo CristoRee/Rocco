@@ -205,11 +205,13 @@ public class RoccoGearLayer extends GeoRenderLayer<RoccoEntity>
         {
             case MATE, COLA, ENCHANTING, EATING, SWALLOWING, ENDER_ABSORB, ENDER_AWAKEN, DANCING, CLAPPING, CELEBRATING,
                  FOOD_EAT, FOOD_EAT_BAD, POTION_DRINK, POTION_DRINK_BAD,
-                 DANCE_FIESTA, DANCE_MENEITO, SING_SOFT, SING_GROOVE, SING_RAP -> true;
+                 DANCE_FIESTA, DANCE_MENEITO, SING_SOFT, SING_GROOVE, SING_RAP,
+                 GIVE_SEED, GIVE_SEED_CHILL, GIVE_FLOWER, GIVE_FLOWER_CHILL, GIVE_COLA, REACT_BURP, BACKPACK_SHOW -> true;
             default -> playing.startsWith("animation.rocco.sing") || playing.startsWith("animation.rocco.mate")
                     || playing.startsWith("animation.rocco.cola") || playing.startsWith("animation.rocco.enchant")
                     || playing.startsWith("animation.rocco.dance") || playing.startsWith("animation.rocco.food_eat")
-                    || playing.startsWith("animation.rocco.potion_drink");
+                    || playing.startsWith("animation.rocco.potion_drink") || playing.startsWith("animation.rocco.give_")
+                    || playing.equals("animation.rocco.react_burp") || playing.equals("animation.rocco.backpack_show");
         };
     }
 

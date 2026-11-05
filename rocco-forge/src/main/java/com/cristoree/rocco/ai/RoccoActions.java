@@ -119,7 +119,8 @@ public final class RoccoActions
             "talar", "conseguir", "encantar", "mate", "cebar_mate", "aplaudir", "festejar", "bailar", "recordar_lugar", "olvidar_lugar", "ir_a", "criar", "esquilar", "pescar",
             "comprar", "vender", "ordenar", "teletransportarse", "abrir", "comer", "seguir", "esperar",
             "sentarse", "dormir", "levantarse", "parar", "tomar_roco_cola", "equipar", "desequipar", "comer_cofre_ender",
-            "tomar_pocion", "atacar", "poner_musica", "parar_musica", "pausar_musica", "seguir_musica", "volumen");
+            "tomar_pocion", "atacar", "poner_musica", "parar_musica", "pausar_musica", "seguir_musica", "volumen",
+            "dar_cola", "quitar_mochila", "montar_lobo", "bajar");
 
     private static final java.util.Set<String> UNDOCUMENTED_WARNED = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
@@ -160,13 +161,23 @@ public final class RoccoActions
             "esperar", "quedarse", "sentarse", "dormir", "levantarse", "despertarse", "parar", "cancelar",
             "tomar_roco_cola", "roco_cola", "equipar", "desequipar", "comer_cofre_ender", "tomar_pocion", "beber",
             "atacar", "pelear", "disparar", "poner_musica", "musica", "reproducir", "parar_musica", "pausar_musica",
-            "seguir_musica", "volumen");
+            "seguir_musica", "volumen", "dar_cola", "quitar_mochila", "montar_lobo", "bajar");
+
+    private static final java.util.Set<String> KEEPS_RIDING = java.util.Set.of("seguir", "esperar", "quedarse", "parar", "cancelar",
+            "bajar", "montar_lobo", "recordar", "olvidar", "recordar_lugar", "olvidar_lugar", "receta", "poner_musica", "musica",
+            "reproducir", "parar_musica", "pausar_musica", "seguir_musica", "volumen", "teletransportarse", "venir", "aparecer");
 
     public static Outcome run(RoccoEntity rocco, @Nullable ServerPlayer player, String verb, String argument)
     {
         if (!(rocco.level() instanceof ServerLevel level))
         {
             return new Outcome(false, "no estoy en el mundo");
+        }
+
+        // Montado solo sigue con lo que no necesita el piso; para lo demas se baja primero.
+        if (rocco.getMotion().kind() == com.cristoree.rocco.entity.RoccoMotion.Kind.RIDE && !KEEPS_RIDING.contains(verb))
+        {
+            rocco.journey().hopOff();
         }
 
         // Una orden nueva corta el mate, el encantamiento o el baile que estuviera haciendo.
@@ -231,6 +242,10 @@ public final class RoccoActions
             case "levantarse", "despertarse" -> wake(rocco);
             case "parar", "cancelar" -> stop(rocco);
             case "tomar_roco_cola", "roco_cola" -> cola(rocco, player, argument);
+            case "dar_cola" -> { if (player != null) { rocco.giveCola(player); } yield SAID; }
+            case "quitar_mochila" -> { if (player != null) { rocco.removeBackpack(player); } yield SAID; }
+            case "montar_lobo" -> rideWolf(rocco);
+            case "bajar" -> getOff(rocco);
             case "equipar" -> equip(rocco, player);
             case "desequipar" -> unequip(rocco);
             case "comer_cofre_ender" -> eatEnderChest(rocco, player, level);
@@ -359,6 +374,28 @@ public final class RoccoActions
             rocco.sayLine("cola_request");
         }
         return rocco.drinkCola(player, true) ? OK : SAID;
+    }
+
+    // "Subite al lobo": a uno tuyo que tenga permiso.
+    private static Outcome rideWolf(RoccoEntity rocco)
+    {
+        if (rocco.isTravelling() || !rocco.journey().askForWolf())
+        {
+            rocco.sayLine(rocco.isTravelling() ? "travel_busy" : "wolf_none");
+            return SAID;
+        }
+        rocco.cancelErrand();
+        rocco.sayLine("wolf_ack");
+        return SAID;
+    }
+
+    private static Outcome getOff(RoccoEntity rocco)
+    {
+        if (!rocco.journey().askDown())
+        {
+            rocco.sayLine("ride_down_none");
+        }
+        return SAID;
     }
 
     // "Ponete la armadura": lo mejor que tenga en el inventario (lo de antes vuelve a la tapa).

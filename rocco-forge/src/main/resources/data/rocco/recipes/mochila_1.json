@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "HSH",
+    "LsL",
+    "LLL"
+  ],
+  "key": {
+    "H": {
+      "tag": "minecraft:leaves"
+    },
+    "S": {
+      "item": "minecraft:string"
+    },
+    "L": {
+      "item": "minecraft:leather"
+    },
+    "s": {
+      "item": "rocco:semillita"
+    }
+  },
+  "result": {
+    "item": "rocco:mochila_1",
+    "count": 1
+  }
+}

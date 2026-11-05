@@ -135,6 +135,7 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.BooleanValue ACCOMPANY_FLIGHT;
     public static final ForgeConfigSpec.BooleanValue ACCOMPANY_WATER;
     public static final ForgeConfigSpec.BooleanValue ACCOMPANY_BOAT;
+    public static final ForgeConfigSpec.BooleanValue ACCOMPANY_HORSE;
 
     // magic
     public static final ForgeConfigSpec.IntValue ENCHANT_COOLDOWN_MINUTES;
@@ -628,6 +629,9 @@ public final class RoccoCommonConfig
         ACCOMPANY_BOAT = b
                 .comment("Cuando vas en bote, te acompaña remando en su propio barquito.")
                 .define("accompanyBoat", true);
+        ACCOMPANY_HORSE = b
+                .comment("Cuando vas a caballo (burro o mula, ensillados), se sube adelante tuyo.")
+                .define("accompanyHorse", true);
         b.pop();
 
         b.comment("El poder que le dio la Madre Naturaleza: encantar tus cosas.").push("magic");

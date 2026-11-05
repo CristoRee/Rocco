@@ -330,7 +330,7 @@ public final class RoccoLife
     {
         if (!this.enderPocket)
         {
-            this.rocco.dropEverything();
+            this.rocco.dropEverything(false);
         }
         this.rocco.setInvisible(true);
         this.rocco.setNoGravity(true);

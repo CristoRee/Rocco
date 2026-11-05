@@ -73,6 +73,8 @@ public class RoccoModel extends GeoModel<RoccoEntity>
             hide("eyes_" + expression.id(), hidden);
             hide("mouth_" + expression.id(), hidden);
             hide("talk_" + expression.id(), hidden);
+            // El contorno fijo del mewing (si no se tapa, aparece en todas las caras).
+            hide("face_" + expression.id(), hidden);
         }
 
         // La animacion de habla intercambia smile y mouth_talk por escala, asi que mouth_talk
@@ -83,6 +85,14 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         boolean speaking = rocco.isTalking() || RoccoEntity.SPEAKING_HOOK.test(rocco) || rocco.getActiveTask().singing();
         hide("mouth_talk", !speaking && !rocco.getActiveTask().consuming());
         hide("plant", !rocco.isPlantVisible());
+        // La mochila que lleva puesta, una sola. No se ve plantado, dormido, en la tumba, en el
+        // barquito ni en el caballo (ahi chocaria con tu pecho).
+        boolean carries = !rocco.isPlantVisible() && !rocco.getRoccoState().isInert() && !rocco.getRoccoPose().isAsleep()
+                && rocco.getMotion().kind() != com.cristoree.rocco.entity.RoccoMotion.Kind.BOAT && !rocco.getMotion().onHorse();
+        for (int tier = 1; tier <= com.cristoree.rocco.item.BackpackItem.MAX_TIER; tier++)
+        {
+            hide("backpack_" + tier, !carries || rocco.backpackTier() != tier);
+        }
         // Las animaciones lo dejan en escala 0, pero si alguna no lo toca asomaria por arriba.
         hide("garden", !rocco.showsGarden());
         hide("lid_garden", !rocco.showsGarden());
@@ -142,7 +152,7 @@ public class RoccoModel extends GeoModel<RoccoEntity>
     private static boolean isPerformance(RoccoTask task)
     {
         return task == RoccoTask.MATE || task == RoccoTask.DANCING || task == RoccoTask.CLAPPING
-                || task == RoccoTask.CELEBRATING || task.musical();
+                || task == RoccoTask.CELEBRATING || task.musical() || task.scripted();
     }
 
     private static final String[] MATE_BONES = {"mate", "termo", "mate_water"};
@@ -152,7 +162,7 @@ public class RoccoModel extends GeoModel<RoccoEntity>
     public static final String[] LOCATORS = {"fx_head", "fx_mate", "fx_spout", "fx_magic_right", "fx_magic_left",
             "fx_wing_right", "fx_wing_left", "fx_tear_right", "fx_tear_left", "fx_snorkel", "fx_ring", "fx_boat",
             "fx_paddle_right", "fx_paddle_left", "fx_garden",
-            "fx_cola", "fx_mic", "fx_belly", "fx_body", "fx_grave", "fx_soil", "item_right"};
+            "fx_cola", "fx_mic", "fx_belly", "fx_body", "fx_grave", "fx_soil", "item_right", "fx_held", "fx_backpack"};
 
     public static String playingAnimation(RoccoEntity rocco)
     {

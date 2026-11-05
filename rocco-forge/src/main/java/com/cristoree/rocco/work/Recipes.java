@@ -87,7 +87,8 @@ public final class Recipes
 
     private static CraftPlanner.Recipe simplify(CraftingRecipe recipe, ServerLevel level)
     {
-        if (recipe.isSpecial())
+        // Las mochilas las fabrica el jugador: la receta pasa lo que llevan adentro a la nueva.
+        if (recipe.isSpecial() || recipe instanceof com.cristoree.rocco.item.BackpackUpgradeRecipe)
         {
             return null;
         }

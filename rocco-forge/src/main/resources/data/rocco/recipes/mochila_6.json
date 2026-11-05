@@ -1,0 +1,31 @@
+{
+  "type": "rocco:backpack_upgrade",
+  "category": "equipment",
+  "pattern": [
+    "EFE",
+    "SBS",
+    "ENE"
+  ],
+  "key": {
+    "E": {
+      "item": "minecraft:echo_shard"
+    },
+    "F": {
+      "item": "rocco:flor_amistad"
+    },
+    "S": {
+      "item": "minecraft:shulker_shell"
+    },
+    "N": {
+      "item": "minecraft:nether_star"
+    },
+    "B": {
+      "item": "rocco:mochila_5"
+    }
+  },
+  "result": {
+    "item": "rocco:mochila_6",
+    "count": 1
+  },
+  "source": "rocco:mochila_5"
+}

@@ -50,13 +50,19 @@ public final class RoccoWork
 
     public static boolean isOpenable(BlockState state)
     {
-        return (state.getBlock() instanceof DoorBlock
-                || state.getBlock() instanceof TrapDoorBlock
-                || state.getBlock() instanceof FenceGateBlock)
-                && state.hasProperty(BlockStateProperties.OPEN);
+        // Las de hierro solo con redstone, como para el jugador.
+        boolean byHand = state.getBlock() instanceof DoorBlock door ? door.type().canOpenByHand()
+                : state.getBlock() instanceof TrapDoorBlock ? state.is(net.minecraft.tags.BlockTags.WOODEN_TRAPDOORS)
+                : state.getBlock() instanceof FenceGateBlock;
+        return byHand && state.hasProperty(BlockStateProperties.OPEN);
     }
 
     public static boolean toggleOpenable(ServerLevel level, BlockPos pos)
+    {
+        return toggleOpenable(level, pos, null);
+    }
+
+    public static boolean toggleOpenable(ServerLevel level, BlockPos pos, @org.jetbrains.annotations.Nullable net.minecraft.world.entity.Entity who)
     {
         BlockState state = level.getBlockState(pos);
         if (!isOpenable(state))
@@ -65,12 +71,23 @@ public final class RoccoWork
         }
 
         boolean nowOpen = !state.getValue(BlockStateProperties.OPEN);
-        level.setBlock(pos, state.setValue(BlockStateProperties.OPEN, nowOpen), Block.UPDATE_ALL);
+        BlockState changed = state.setValue(BlockStateProperties.OPEN, nowOpen);
+        // La puerta de valla se abre para el lado contrario de quien pasa, como con el jugador.
+        if (nowOpen && who != null && state.getBlock() instanceof FenceGateBlock
+                && state.getValue(BlockStateProperties.HORIZONTAL_FACING) == who.getDirection().getOpposite())
+        {
+            changed = changed.setValue(BlockStateProperties.HORIZONTAL_FACING, who.getDirection());
+        }
+        level.setBlock(pos, changed, Block.UPDATE_ALL);
 
-        // Las puertas de madera y las de hierro suenan distinto; este es el generico de madera.
-        level.playSound(null, pos,
-                nowOpen ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.WOODEN_DOOR_CLOSE,
-                SoundSource.BLOCKS, 0.9F, 1.0F);
+        // Cada una con su sonido.
+        net.minecraft.sounds.SoundEvent sound = state.getBlock() instanceof FenceGateBlock
+                ? (nowOpen ? SoundEvents.FENCE_GATE_OPEN : SoundEvents.FENCE_GATE_CLOSE)
+                : state.getBlock() instanceof TrapDoorBlock
+                ? (nowOpen ? SoundEvents.WOODEN_TRAPDOOR_OPEN : SoundEvents.WOODEN_TRAPDOOR_CLOSE)
+                : (nowOpen ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.WOODEN_DOOR_CLOSE);
+        level.playSound(null, pos, sound, SoundSource.BLOCKS, 0.9F, 1.0F);
+        level.gameEvent(who, nowOpen ? net.minecraft.world.level.gameevent.GameEvent.BLOCK_OPEN : net.minecraft.world.level.gameevent.GameEvent.BLOCK_CLOSE, pos);
         return true;
     }
 

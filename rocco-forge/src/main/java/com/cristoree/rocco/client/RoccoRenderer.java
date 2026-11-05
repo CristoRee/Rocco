@@ -142,15 +142,16 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
     // Un item de 16 px queda en unos 5,4 px: del tamaño de su patita.
     private static final float HELD_ITEM_SCALE = 0.34F;
 
-    // Comiendo o tomando una pocion: lo dice el servidor o la animacion que se esta viendo.
+    // Comiendo, tomando una pocion o dando un regalo: lo dice el servidor o la animacion que se esta viendo.
     static boolean isConsuming(RoccoEntity rocco)
     {
-        if (rocco.getActiveTask().consuming())
+        if (rocco.getActiveTask().usesHeld())
         {
             return true;
         }
         String playing = RoccoModel.playingAnimation(rocco);
-        return playing.startsWith("animation.rocco.food_eat") || playing.startsWith("animation.rocco.potion_drink");
+        return playing.startsWith("animation.rocco.food_eat") || playing.startsWith("animation.rocco.potion_drink")
+                || playing.startsWith("animation.rocco.give_");
     }
 
     // En la mano: lo que tenga, salvo un arma con modelo propio (la dibuja RoccoGearLayer) y salvo

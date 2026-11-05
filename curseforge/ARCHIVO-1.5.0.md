@@ -1,6 +1,10 @@
 ## Rocco 1.5.0
 
 **Nuevo**
+- 6 mochilas que agrandan su inventario (de 27 hasta 216 lugares, en páginas), con su receta de mejora.
+- Regalos de Rocco: la Semillita y la Flor de la Amistad.
+- Se sube adelante tuyo en el caballo, y en tu lobo si le das permiso.
+- Roco Cola para vos: refresca y viene con un eructo gigante.
 - Cuidar la casa: se queda mientras explorás, cosecha, esquila, hace criar a los animales hasta un tope, saca los que sobran, junta lo que dejan y guarda todo. La casa sigue cargada aunque estés lejos, y al volver te cuenta qué hizo.
 - Te dice dónde guardó las cosas.
 - Música desde links: Rocco pone la canción, suena desde él y la canta y la baila al ritmo. Archivos de audio (MP3, OGG...), radios por internet, Bandcamp y Twitch. En multijugador todos escuchan lo mismo a la vez.
@@ -24,6 +28,7 @@
 - Ya no es inmortal por defecto.
 
 **Arreglado**
+- Abre y cierra las puertas de valla y las trampillas que le cortan el paso.
 - No se le podía pegar.
 - No podía craftear herramientas (picos, hachas, tijeras...).
 - Una pregunta como "¿dónde guardaste?" lo ponía a guardar todo; ya no hace cosas que no le pediste.
