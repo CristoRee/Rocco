@@ -209,6 +209,17 @@ tasks.named('processResources', ProcessResources).configure {
     filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
     }
+
+    // Minecraft solo usa el castellano de España (es_es) si el juego esta en ese idioma: en
+    // castellano rioplatense, mexicano, chileno... cae al ingles. Los mismos textos se copian
+    // a cada variante (y el portugues de Brasil al de Portugal) al armar el mod.
+    doLast {
+        def lang = new File(destinationDir, 'assets/rocco/lang')
+        ['es_ar', 'es_cl', 'es_ec', 'es_mx', 'es_uy', 'es_ve'].each { code ->
+            new File(lang, code + '.json').bytes = new File(lang, 'es_es.json').bytes
+        }
+        new File(lang, 'pt_pt.json').bytes = new File(lang, 'pt_br.json').bytes
+    }
 }
 
 // Example for how to get properties into the manifest for reading at runtime.

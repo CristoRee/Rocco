@@ -2086,6 +2086,9 @@ public final class OfflineRocco
                     "Otra vez? No soy un kiosco.",
                     "Ya te di. No abuses, que se me acaban."}),
 
+            Map.entry("order_not_yours", new String[]{
+                    "Eso solo me lo puede pedir mi dueño. Pero charlar, charlamos.",
+                    "Las ordenes las da quien me cuida. Vos y yo podemos conversar, eso si."}),
             Map.entry("menu_not_yours", new String[]{
                     "Perdon, mi menu es para quien me cuida. Pero si queres, charlamos."}),
             Map.entry("menu_cant_open", new String[]{

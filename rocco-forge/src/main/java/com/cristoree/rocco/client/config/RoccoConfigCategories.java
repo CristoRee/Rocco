@@ -234,6 +234,7 @@ public final class RoccoConfigCategories
                 group("Escuchar y contestar",
                         opt(common, RoccoCommonConfig.CHAT_READ_PLAYER_CHAT, "Lee el chat"),
                         opt(common, RoccoCommonConfig.CHAT_REQUIRE_NAME_MENTION, "Solo si lo nombrás"),
+                        opt(common, RoccoCommonConfig.OWNER_ONLY, "Órdenes solo del dueño"),
                         opt(common, RoccoCommonConfig.CHAT_HEARING_RADIUS, "Distancia para oírte"),
                         opt(common, RoccoCommonConfig.CHAT_SHOW_IN_CHAT, "Respuestas en el chat"),
                         opt(common, RoccoCommonConfig.CHAT_MAX_RESPONSE_CHARS, "Largo de respuesta")),

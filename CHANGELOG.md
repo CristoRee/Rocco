@@ -35,7 +35,14 @@
 - **Pega más fuerte a piñas:** sin arma pega 2 (antes 1, como el jugador) y ya no espera de más entre golpe y golpe: un zombie le dura unos 7 segundos a piñas, y con espada mucho menos.
 - **Ya no es inmortal por defecto:** con la tumba, morirse ya no es perderlo. Las configs que tenían el valor viejo se actualizan solas.
 
+- **Tres idiomas:** la guía, el menú de Rocco, la configuración y sus ayudas están en español, inglés y portugués. El español regional (Argentina, Uruguay, Chile, México, etc.) ya no cae en inglés.
+- **Órdenes solo del dueño:** opción nueva (**Config > Rocco > Órdenes solo del dueño**) para que en multijugador solo su dueño le dé órdenes y abra su menú.
 ### Arreglado
+- Rocco ya sabe lo que acaba de hacer: lleva un registro de sus últimos actos (guardó, trajo, se frenó) que la IA ve, así no dice que no lo hizo.
+- Ya no se cuela en el chat la línea interna `#recordar`.
+- Cierra también las puertas de valla que ya estaban abiertas, y solo después de haber pasado.
+- Su expresión acompaña a cada frase mientras la dice (por ejemplo mewing al imitar), aunque llegue otro pedido después.
+- Optimización de la animación de huesos (índice en caché) y de la casa y los consumibles, sin perder nada.
 - **No abría las puertas de valla:** ahora las abre cuando quiere pasar y las cierra al pasar. Paseando solo no las abre, para no soltarte los animales.
 - **Trampillas:** cierra la que le corta el paso o la que es un agujero en el piso, abre la que le queda a la altura de la cabeza, y al pasar las deja como estaban. Las puertas y trampillas de hierro ya no las toca (son con redstone).
 - **El contorno del mewing se partía al hablar:** ahora es una parte fija de la cara.

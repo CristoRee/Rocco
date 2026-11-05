@@ -45,6 +45,7 @@ final class RoccoGates
     private static final double REACH = 2.2D;
     // Ya paso: lejos de la puerta y sin nadie adentro.
     private static final double PASSED = 1.6D;
+    private static final double REACHED = 1.5D;
     private static final int GIVE_UP_TICKS = 20 * 8;
 
     private static final class Touched
@@ -52,6 +53,8 @@ final class RoccoGates
         final BlockPos pos;
         final boolean wasOpen;
         int age;
+        // Ya llego hasta ella: recien despues de pasar tiene sentido volver a cerrarla.
+        boolean reached;
 
         Touched(BlockPos pos, boolean wasOpen)
         {
@@ -103,6 +106,11 @@ final class RoccoGates
             {
                 toggle(level, node);
             }
+            else if (this.touched.stream().noneMatch(gate -> gate.pos.equals(node)))
+            {
+                // Ya estaba abierta: pasa y la cierra igual (un corral abierto no sirve de nada).
+                this.touched.add(new Touched(node.immutable(), false));
+            }
         }
         else if (isWoodenTrapdoor(state))
         {
@@ -153,7 +161,12 @@ final class RoccoGates
             }
             double dx = this.rocco.getX() - (gate.pos.getX() + 0.5D);
             double dz = this.rocco.getZ() - (gate.pos.getZ() + 0.5D);
-            boolean away = dx * dx + dz * dz > PASSED * PASSED;
+            double distance = dx * dx + dz * dz;
+            if (distance < REACHED * REACHED)
+            {
+                gate.reached = true;
+            }
+            boolean away = gate.reached && distance > PASSED * PASSED;
             if (!all && !away && gate.age < GIVE_UP_TICKS)
             {
                 return false;

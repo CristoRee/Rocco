@@ -137,10 +137,19 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         return this.width / 2 + getRowWidth() / 2 + 6;
     }
 
-    // Un texto que empieza con "rocco." es una clave de idioma; el resto se muestra tal cual.
+    // El nombre de una opcion: una clave de idioma ("rocco....") o el propio texto en castellano
+    // (ver Tr), que se traduce si hay traduccion.
     static String text(String labelOrKey)
     {
-        return labelOrKey.startsWith("rocco.") ? I18n.get(labelOrKey) : labelOrKey;
+        return I18n.get(labelOrKey);
+    }
+
+    // La ayuda de la opcion: su traduccion ("rocco.tip.<ruta>") si hay, y si no el comentario del .toml.
+    @Nullable
+    private static String tooltipOf(Option option, ForgeConfigSpec.ValueSpec spec)
+    {
+        String key = "rocco.tip." + String.join(".", option.value().getPath());
+        return I18n.exists(key) ? I18n.get(key) : spec.getComment();
     }
 
     @Nullable
@@ -148,7 +157,7 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
     {
         ForgeConfigSpec.ValueSpec spec = option.valueSpec();
         ForgeConfigSpec.ConfigValue<?> value = option.value();
-        Component label = Component.literal(text(option.label()));
+        Component label = com.cristoree.rocco.client.Tr.t(option.label());
         Class<?> type = resolveType(spec);
 
         if (type == Boolean.class)
@@ -212,9 +221,9 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         String specific = ENUM_NAMES.get(constant.getDeclaringClass().getSimpleName() + "." + constant.name());
         if (specific != null)
         {
-            return specific;
+            return I18n.get(specific);
         }
-        return ENUM_NAMES.getOrDefault(constant.name(), constant.name());
+        return I18n.get(ENUM_NAMES.getOrDefault(constant.name(), constant.name()));
     }
 
     public abstract static class Row extends ContainerObjectSelectionList.Entry<Row>
@@ -317,7 +326,7 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         private Component helpText(Component label, Option option, ForgeConfigSpec.ValueSpec spec)
         {
             MutableComponent text = label.copy().withStyle(ChatFormatting.YELLOW);
-            String comment = option.tooltip() != null ? I18n.get(option.tooltip()) : spec.getComment();
+            String comment = option.tooltip() != null ? I18n.get(option.tooltip()) : tooltipOf(option, spec);
             if (comment != null && !comment.isBlank())
             {
                 // Los comentarios del .toml vienen cortados en renglones; aca se acomodan solos.
@@ -326,14 +335,14 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
             ForgeConfigSpec.Range<?> range = spec.getRange();
             if (range != null)
             {
-                text.append(Component.literal("\n").append(Component.translatable("rocco.config.range",
+                text.append(com.cristoree.rocco.client.Tr.t("\n").append(Component.translatable("rocco.config.range",
                         String.valueOf(range.getMin()), String.valueOf(range.getMax()))).withStyle(ChatFormatting.GRAY));
             }
-            text.append(Component.literal("\n").append(Component.translatable("rocco.config.default", describe(spec.getDefault())))
+            text.append(com.cristoree.rocco.client.Tr.t("\n").append(Component.translatable("rocco.config.default", describe(spec.getDefault())))
                     .withStyle(ChatFormatting.GRAY));
             if (spec.needsWorldRestart())
             {
-                text.append(Component.literal("\n").append(Component.translatable("rocco.config.restart")).withStyle(ChatFormatting.GOLD));
+                text.append(com.cristoree.rocco.client.Tr.t("\n").append(Component.translatable("rocco.config.restart")).withStyle(ChatFormatting.GOLD));
             }
             return text;
         }

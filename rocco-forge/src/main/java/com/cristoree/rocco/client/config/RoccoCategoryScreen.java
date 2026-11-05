@@ -16,7 +16,7 @@ public class RoccoCategoryScreen extends Screen
 
     public RoccoCategoryScreen(Screen parent, Category category)
     {
-        super(Component.literal(category.name()));
+        super(com.cristoree.rocco.client.Tr.t(category.name()));
         this.parent = parent;
         this.category = category;
     }
@@ -31,10 +31,10 @@ public class RoccoCategoryScreen extends Screen
         }
 
         this.list = new RoccoOptionList(this.minecraft, this.width, this.height, 40, this.height - 36);
-        this.list.show(this.category.groups(), Component.literal("Estas opciones todavía no están cargadas"));
+        this.list.show(this.category.groups(), com.cristoree.rocco.client.Tr.t("Estas opciones todavía no están cargadas"));
         addRenderableWidget(this.list);
 
-        addRenderableWidget(Button.builder(Component.literal("Volver"), b -> onClose())
+        addRenderableWidget(Button.builder(com.cristoree.rocco.client.Tr.t("Volver"), b -> onClose())
                 .bounds(this.width / 2 - 100, this.height - 28, 200, 20)
                 .build());
     }

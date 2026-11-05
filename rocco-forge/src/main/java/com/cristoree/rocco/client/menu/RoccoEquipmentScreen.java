@@ -49,7 +49,7 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
             this.perms[i] = addRenderableWidget(Button.builder(Component.empty(),
                             b -> this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, id))
                     .bounds(this.leftPos + 98, this.topPos + 18 + i * 19, 72, 17)
-                    .tooltip(Tooltip.create(Component.literal(PERM_TIPS[i] + " Lo que le pidas por chat lo hace igual.")))
+                    .tooltip(Tooltip.create(com.cristoree.rocco.client.Tr.t(PERM_TIPS[i]).append(" ").append(com.cristoree.rocco.client.Tr.t("Lo que le pidas por chat lo hace igual."))))
                     .build());
         }
         // Que se vean con su texto desde el primer cuadro.
@@ -64,7 +64,7 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
         for (int i = 0; i < this.perms.length; i++)
         {
             boolean on = (allowed & (1 << i)) != 0;
-            this.perms[i].setMessage(Component.literal((on ? "✔ " : "✘ ") + PERM_LABELS[i])
+            this.perms[i].setMessage(Component.literal(on ? "✔ " : "✘ ").append(com.cristoree.rocco.client.Tr.t(PERM_LABELS[i]))
                     .withStyle(on ? ChatFormatting.GREEN : ChatFormatting.GRAY));
         }
     }

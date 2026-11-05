@@ -24,8 +24,8 @@ public final class RoccoNetwork
     // se avisan al conectar en vez de fallar a mitad de partida. 2: se agrego OpenSetup.
     // 3: se agrego VoiceLines (las frases grabadas). 4: el menu de Rocco (OpenMenu y MenuAction).
     // 5: CallRocco (traerlo desde la config o con su tecla). 6: la musica desde links.
-    // 7: el eructo de la Roco Cola. 8: la guia de Rocco.
-    private static final String PROTOCOL = "8";
+    // 7: el eructo de la Roco Cola. 8: la guia de Rocco. 9: la cara que va con cada frase.
+    private static final String PROTOCOL = "9";
     public static final int CHUNK_BYTES = 30_000;
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -35,7 +35,9 @@ public final class RoccoNetwork
             NetworkRegistry.acceptMissingOr(PROTOCOL), PROTOCOL::equals);
 
     // Un pedazo de la voz de Rocco: PCM de 16 bits mono, a 'sampleRate'.
-    public record VoiceChunk(int stream, int entityId, int sampleRate, int index, int count, byte[] data)
+    // face: la cara de lo que dice (ordinal de RoccoExpression, -1 si no tiene): el cliente la muestra
+    // mientras suena esa frase, aunque despues haya llegado otra respuesta con otra cara.
+    public record VoiceChunk(int stream, int entityId, int sampleRate, int index, int count, byte[] data, int face)
     {
         static void encode(VoiceChunk msg, FriendlyByteBuf buf)
         {
@@ -45,12 +47,13 @@ public final class RoccoNetwork
             buf.writeVarInt(msg.index);
             buf.writeVarInt(msg.count);
             buf.writeByteArray(msg.data);
+            buf.writeVarInt(msg.face + 1);
         }
 
         static VoiceChunk decode(FriendlyByteBuf buf)
         {
             return new VoiceChunk(buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(),
-                    buf.readVarInt(), buf.readByteArray(CHUNK_BYTES + 64));
+                    buf.readVarInt(), buf.readByteArray(CHUNK_BYTES + 64), buf.readVarInt() - 1);
         }
     }
 
@@ -73,17 +76,20 @@ public final class RoccoNetwork
 
     // Frases grabadas que Rocco dice en voz alta, en orden: el audio ya esta en el mod de cada
     // jugador (assets/rocco/voice_lines/<codigo>.ogg), asi que solo viajan los codigos.
-    public record VoiceLines(int entityId, java.util.List<String> ids)
+    public record VoiceLines(int entityId, java.util.List<String> ids, int face)
     {
         static void encode(VoiceLines msg, FriendlyByteBuf buf)
         {
             buf.writeVarInt(msg.entityId);
             buf.writeCollection(msg.ids, (out, id) -> out.writeUtf(id, 96));
+            buf.writeVarInt(msg.face + 1);
         }
 
         static VoiceLines decode(FriendlyByteBuf buf)
         {
-            return new VoiceLines(buf.readVarInt(), buf.readList(in -> in.readUtf(96)));
+            int entity = buf.readVarInt();
+            java.util.List<String> ids = buf.readList(in -> in.readUtf(96));
+            return new VoiceLines(entity, ids, buf.readVarInt() - 1);
         }
     }
 
@@ -448,7 +454,7 @@ public final class RoccoNetwork
     private static void onVoiceLines(VoiceLines msg, Supplier<NetworkEvent.Context> context)
     {
         context.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                () -> () -> com.cristoree.rocco.client.voice.VoicePlayback.playLines(msg.entityId(), msg.ids())));
+                () -> () -> com.cristoree.rocco.client.voice.VoicePlayback.playLines(msg.entityId(), msg.ids(), msg.face())));
         context.get().setPacketHandled(true);
     }
 

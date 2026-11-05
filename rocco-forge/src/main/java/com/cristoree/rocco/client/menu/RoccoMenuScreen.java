@@ -134,9 +134,9 @@ public class RoccoMenuScreen extends Screen
         // Pelea: su equipo y a quien puede atacar (tres casillas que se guardan en este Rocco).
         int fightTop = this.gridTop + 5 * ROW + 4 * GAP + 6 + LABEL;
         int quarter = (this.panelWidth - 2 * PAD - 3 * GAP) / 4;
-        MenuButton gear = new MenuButton(this.left + PAD, fightTop, quarter, Component.literal("Equipo"),
+        MenuButton gear = new MenuButton(this.left + PAD, fightTop, quarter, com.cristoree.rocco.client.Tr.t("Equipo"),
                 new ItemStack(Items.IRON_CHESTPLATE), b -> send("equipo"));
-        gear.setTooltip(Tooltip.create(Component.literal(travelling ? away : "Su armadura, su arma y su escudo. Arrastrá las cosas desde tu inventario.")));
+        gear.setTooltip(Tooltip.create(com.cristoree.rocco.client.Tr.t(travelling ? away : "Su armadura, su arma y su escudo. Arrastrá las cosas desde tu inventario.")));
         gear.active = !travelling;
         addRenderableWidget(gear);
         target(this.left + PAD + quarter + GAP, fightTop, quarter, "Hostiles", Items.ZOMBIE_HEAD,
@@ -149,9 +149,9 @@ public class RoccoMenuScreen extends Screen
         // Si esta en medio de algo, al lado de lo que esta haciendo va el boton para cortarlo.
         if (has(RoccoMenu.BUSY))
         {
-            Button cancel = Button.builder(Component.literal("Cancelar"), b -> send("parar"))
+            Button cancel = Button.builder(com.cristoree.rocco.client.Tr.t("Cancelar"), b -> send("parar"))
                     .bounds(this.left + this.panelWidth - PAD - 64, this.top + 22, 64, 16)
-                    .tooltip(Tooltip.create(Component.literal("Deja lo que está haciendo.")))
+                    .tooltip(Tooltip.create(com.cristoree.rocco.client.Tr.t("Deja lo que está haciendo.")))
                     .build();
             addRenderableWidget(cancel);
         }
@@ -166,11 +166,11 @@ public class RoccoMenuScreen extends Screen
 
         int footer = this.top + this.panelHeight - PAD - 14 - ROW;
         int third = (this.panelWidth - 2 * PAD - 2 * GAP) / 3;
-        addRenderableWidget(new MenuButton(this.left + PAD, footer, third, Component.literal("Personalidad"),
+        addRenderableWidget(new MenuButton(this.left + PAD, footer, third, com.cristoree.rocco.client.Tr.t("Personalidad"),
                 new ItemStack(Items.POPPY), b -> this.minecraft.setScreen(new RoccoPersonalityScreen(this))));
-        addRenderableWidget(new MenuButton(this.left + PAD + third + GAP, footer, third, Component.literal("Configuración"),
+        addRenderableWidget(new MenuButton(this.left + PAD + third + GAP, footer, third, com.cristoree.rocco.client.Tr.t("Configuración"),
                 new ItemStack(Items.COMPARATOR), b -> this.minecraft.setScreen(new RoccoConfigScreen(this))));
-        addRenderableWidget(Button.builder(Component.literal("Cerrar"), b -> onClose())
+        addRenderableWidget(Button.builder(com.cristoree.rocco.client.Tr.t("Cerrar"), b -> onClose())
                 .bounds(this.left + PAD + 2 * (third + GAP), footer, third, ROW)
                 .build());
     }
@@ -181,7 +181,7 @@ public class RoccoMenuScreen extends Screen
         for (int i = 0; i < entries.size(); i++)
         {
             Entry entry = entries.get(i);
-            Button button = new MenuButton(x, this.gridTop + i * (ROW + GAP), this.columnWidth, Component.literal(entry.label()),
+            Button button = new MenuButton(x, this.gridTop + i * (ROW + GAP), this.columnWidth, com.cristoree.rocco.client.Tr.t(entry.label()),
                     new ItemStack(entry.icon()), b ->
             {
                 if (entry.open() != null)
@@ -193,7 +193,7 @@ public class RoccoMenuScreen extends Screen
                     send(entry.action());
                 }
             });
-            button.setTooltip(Tooltip.create(Component.literal(entry.tip())));
+            button.setTooltip(Tooltip.create(com.cristoree.rocco.client.Tr.t(entry.tip())));
             button.active = entry.enabled();
             addRenderableWidget(button);
         }
@@ -204,14 +204,14 @@ public class RoccoMenuScreen extends Screen
     {
         boolean on = (this.targets & bit) != 0;
         MenuButton button = new MenuButton(x, y, width,
-                Component.literal((on ? "✔ " : "✘ ") + label).withStyle(on ? ChatFormatting.GREEN : ChatFormatting.GRAY),
+                Component.literal(on ? "✔ " : "✘ ").append(com.cristoree.rocco.client.Tr.t(label)).withStyle(on ? ChatFormatting.GREEN : ChatFormatting.GRAY),
                 new ItemStack(icon), b ->
         {
             this.targets ^= bit;
             RoccoNetwork.sendMenuAction(new RoccoNetwork.MenuAction(this.state.entityId(), "objetivos", String.valueOf(this.targets)));
             rebuildWidgets();
         });
-        button.setTooltip(Tooltip.create(Component.literal("Puede atacar a: " + tip + (on ? " (sí)" : " (no)"))));
+        button.setTooltip(Tooltip.create(com.cristoree.rocco.client.Tr.t("Puede atacar a: %s %s", com.cristoree.rocco.client.Tr.t(tip), com.cristoree.rocco.client.Tr.t(on ? "(sí)" : "(no)"))));
         addRenderableWidget(button);
     }
 
@@ -238,22 +238,22 @@ public class RoccoMenuScreen extends Screen
         int textLeft = this.left + PAD + 40;
         int right = this.left + this.panelWidth - PAD;
         graphics.drawString(this.font, this.title.copy().withStyle(ChatFormatting.BOLD), textLeft, this.top + 10, 0xFFFFFF);
-        Component mode = Component.literal(this.state.mode()).withStyle(ChatFormatting.AQUA);
+        Component mode = com.cristoree.rocco.client.Tr.t(this.state.mode()).withStyle(ChatFormatting.AQUA);
         graphics.drawString(this.font, mode, right - 20 - this.font.width(mode), this.top + 10, 0xFFFFFF);
 
         graphics.drawString(this.font, Component.literal("● ").withStyle(ChatFormatting.GREEN)
-                .append(Component.literal(this.state.status()).withStyle(ChatFormatting.WHITE)), textLeft, this.top + 26, 0xFFFFFF);
+                .append(Component.literal(com.cristoree.rocco.client.Tr.server(this.state.status())).withStyle(ChatFormatting.WHITE)), textLeft, this.top + 26, 0xFFFFFF);
 
         // La amistad, con una barrita hasta la etapa siguiente, y la magia.
         int bondY = this.top + 40;
-        Component bond = Component.literal(this.state.bond()).withStyle(ChatFormatting.GOLD);
+        Component bond = Component.literal(com.cristoree.rocco.client.Tr.server(this.state.bond())).withStyle(ChatFormatting.GOLD);
         graphics.drawString(this.font, bond, textLeft, bondY, 0xFFFFFF);
         int barLeft = textLeft + this.font.width(bond) + 6;
         int barWidth = 48;
         graphics.fill(barLeft, bondY + 2, barLeft + barWidth, bondY + 6, 0xFF2A2F35);
         graphics.fill(barLeft, bondY + 2, barLeft + Math.round(barWidth * this.state.bondProgress()), bondY + 6, 0xFFE0B040);
-        Component magic = Component.literal("Magia: ").withStyle(ChatFormatting.GRAY)
-                .append(Component.literal(this.state.magic()).withStyle(
+        Component magic = com.cristoree.rocco.client.Tr.t("Magia: ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(com.cristoree.rocco.client.Tr.server(this.state.magic())).withStyle(
                         this.state.magic().equals("lista") ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.DARK_GRAY));
         graphics.drawString(this.font, magic, right - this.font.width(magic), bondY, 0xFFFFFF);
 
@@ -264,7 +264,7 @@ public class RoccoMenuScreen extends Screen
                     .withStyle(ChatFormatting.GREEN);
             if (has(RoccoMenu.ENDER_POCKET))
             {
-                life = life.copy().append(Component.literal("  ✦ cosas a salvo").withStyle(ChatFormatting.LIGHT_PURPLE));
+                life = life.copy().append(com.cristoree.rocco.client.Tr.t("  ✦ cosas a salvo").withStyle(ChatFormatting.LIGHT_PURPLE));
             }
             int afterTitle = textLeft + this.font.width(this.title.copy().withStyle(ChatFormatting.BOLD)) + 8;
             graphics.drawString(this.font, life, afterTitle, this.top + 10, 0xFFFFFF);
@@ -275,13 +275,13 @@ public class RoccoMenuScreen extends Screen
         String[] sections = {"Movimiento", "Tareas", "Rato libre"};
         for (int i = 0; i < sections.length; i++)
         {
-            graphics.drawString(this.font, Component.literal(sections[i]).withStyle(ChatFormatting.YELLOW),
+            graphics.drawString(this.font, com.cristoree.rocco.client.Tr.t(sections[i]).withStyle(ChatFormatting.YELLOW),
                     this.left + PAD + i * (this.columnWidth + GAP) + 1, this.gridTop - LABEL + 1, 0xFFFFFF);
         }
         int fightLabel = this.gridTop + 5 * ROW + 4 * GAP + 6;
-        graphics.drawString(this.font, Component.literal("Pelea").withStyle(ChatFormatting.YELLOW),
+        graphics.drawString(this.font, com.cristoree.rocco.client.Tr.t("Pelea").withStyle(ChatFormatting.YELLOW),
                 this.left + PAD + 1, fightLabel + 1, 0xFFFFFF);
-        Component canAttack = Component.literal("Puede atacar a:").withStyle(ChatFormatting.GRAY);
+        Component canAttack = com.cristoree.rocco.client.Tr.t("Puede atacar a:").withStyle(ChatFormatting.GRAY);
         int quarter = (this.panelWidth - 2 * PAD - 3 * GAP) / 4;
         graphics.drawString(this.font, canAttack, this.left + PAD + quarter + GAP + 1, fightLabel + 1, 0xFFFFFF);
 
@@ -295,10 +295,10 @@ public class RoccoMenuScreen extends Screen
 
     private static Component talkHint()
     {
-        String text = RoccoConfig.sttReady()
-                ? "Para hablarle: escribí en el chat o mantené " + RoccoKeys.TALK.getTranslatedKeyMessage().getString() + "."
-                : "Para hablarle: escribí en el chat.";
-        return Component.literal(text).withStyle(ChatFormatting.DARK_GRAY);
+        Component text = RoccoConfig.sttReady()
+                ? com.cristoree.rocco.client.Tr.t("Para hablarle: escribí en el chat o mantené %s.", RoccoKeys.TALK.getTranslatedKeyMessage())
+                : com.cristoree.rocco.client.Tr.t("Para hablarle: escribí en el chat.");
+        return text.copy().withStyle(ChatFormatting.DARK_GRAY);
     }
 
     static void panel(GuiGraphics graphics, int left, int top, int width, int height)

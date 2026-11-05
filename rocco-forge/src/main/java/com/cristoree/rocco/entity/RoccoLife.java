@@ -223,6 +223,11 @@ public final class RoccoLife
             return;
         }
         float ratio = this.rocco.getHealth() / this.rocco.getMaxHealth();
+        // Con la vida bien no necesita nada: no se recorre su inventario cada segundo para nada.
+        if (ratio >= 0.6F && !this.rocco.isOnFire())
+        {
+            return;
+        }
         long now = this.rocco.level().getGameTime();
         java.util.List<ItemStack> carried = com.cristoree.rocco.work.Inv.contents(this.rocco.inventory());
         boolean fighting = recentlyHurt(REGEN_DELAY_TICKS) || this.rocco.combatStance() != RoccoCombat.STANCE_NONE;

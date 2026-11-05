@@ -55,6 +55,7 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.IntValue CHAT_MAX_RESPONSE_CHARS;
     public static final ForgeConfigSpec.DoubleValue CHAT_HEARING_RADIUS;
     public static final ForgeConfigSpec.BooleanValue CHAT_REQUIRE_NAME_MENTION;
+    public static final ForgeConfigSpec.BooleanValue OWNER_ONLY;
     public static final ForgeConfigSpec.BooleanValue CHAT_SHOW_IN_CHAT;
     public static final ForgeConfigSpec.BooleanValue CHAT_READ_PLAYER_CHAT;
 
@@ -347,6 +348,11 @@ public final class RoccoCommonConfig
         CHAT_READ_PLAYER_CHAT = b
                 .comment("Rocco lee lo que escribes en el chat del juego.")
                 .define("readPlayerChat", true);
+        OWNER_ONLY = b
+                .comment("Solo su dueño le da ordenes de trabajo (guardar, dar, mochila, pelear...) y le abre el",
+                         "inventario. Los demas jugadores cerca pueden charlar con el, pero no mandarlo ni",
+                         "llevarse sus cosas. Apagado, cualquier jugador cerca le da ordenes.")
+                .define("ownerOnly", true);
         CHAT_REQUIRE_NAME_MENTION = b
                 .comment("Responde solo si lo nombras. Si es false, contesta todo lo que escuche.")
                 .define("requireNameMention", false);

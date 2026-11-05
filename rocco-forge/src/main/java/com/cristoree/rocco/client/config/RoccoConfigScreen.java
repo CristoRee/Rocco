@@ -62,8 +62,8 @@ public class RoccoConfigScreen extends Screen
         this.categoryButtons.clear();
         this.showingResults = false;
 
-        this.search = new EditBox(this.font, this.width / 2 - 110, SEARCH_TOP, 220, 18, Component.literal("Buscar"));
-        this.search.setHint(Component.literal("Buscar una opción... (clave, voz, seguir...)").withStyle(ChatFormatting.DARK_GRAY));
+        this.search = new EditBox(this.font, this.width / 2 - 110, SEARCH_TOP, 220, 18, com.cristoree.rocco.client.Tr.t("Buscar"));
+        this.search.setHint(com.cristoree.rocco.client.Tr.t("Buscar una opción... (clave, voz, seguir...)").withStyle(ChatFormatting.DARK_GRAY));
         this.search.setValue(this.lastQuery);
         this.search.setResponder(this::onSearch);
         addRenderableWidget(this.search);
@@ -83,7 +83,7 @@ public class RoccoConfigScreen extends Screen
             boolean available = category.groups().stream()
                     .flatMap(group -> group.options().stream())
                     .anyMatch(Option::loaded);
-            Entry entry = new Entry(Component.literal(category.name()), Component.literal(category.description()),
+            Entry entry = new Entry(com.cristoree.rocco.client.Tr.t(category.name()), com.cristoree.rocco.client.Tr.t(category.description()),
                     category.icon(), () -> this.minecraft.setScreen(new RoccoCategoryScreen(this, category)), available,
                     category.ready());
             if (category.isConnection())
@@ -99,8 +99,8 @@ public class RoccoConfigScreen extends Screen
                         () -> this.minecraft.setScreen(new RoccoPersonalityScreen(this)), RoccoCommonConfig.SPEC.isLoaded(), null));
             }
         }
-        settings.add(new Entry(Component.literal("Teclas"),
-                Component.literal("La tecla para hablarle por micrófono (V por defecto) y las demás teclas del juego."),
+        settings.add(new Entry(com.cristoree.rocco.client.Tr.t("Teclas"),
+                com.cristoree.rocco.client.Tr.t("La tecla para hablarle por micrófono (V por defecto) y las demás teclas del juego."),
                 () -> new ItemStack(Items.LEVER),
                 () -> this.minecraft.setScreen(new KeyBindsScreen(this, this.minecraft.options)), true, null));
         settings.add(new Entry(Component.translatable("rocco.setup.button"), Component.translatable("rocco.setup.button.tip"),
@@ -126,7 +126,7 @@ public class RoccoConfigScreen extends Screen
         placeGrid(settings, left, this.settingsTop, columns);
         this.sectionLeft = left;
 
-        addRenderableWidget(Button.builder(Component.literal("Listo"), b -> onClose())
+        addRenderableWidget(Button.builder(com.cristoree.rocco.client.Tr.t("Listo"), b -> onClose())
                 .bounds(this.width / 2 - 100, this.height - 28, 200, 20)
                 .build());
 
@@ -150,8 +150,8 @@ public class RoccoConfigScreen extends Screen
                     : new IconButton(x, y, entry.name(), entry.icon(), b -> entry.open().run());
             button.setTooltip(Tooltip.create(entry.ready() == null ? entry.tip() : entry.tip().copy()
                     .append("\n\n").append(entry.ready().get()
-                            ? Component.literal("Listo para usar.").withStyle(ChatFormatting.GREEN)
-                            : Component.literal("Todavía sin configurar.").withStyle(ChatFormatting.GOLD))));
+                            ? com.cristoree.rocco.client.Tr.t("Listo para usar.").withStyle(ChatFormatting.GREEN)
+                            : com.cristoree.rocco.client.Tr.t("Todavía sin configurar.").withStyle(ChatFormatting.GOLD))));
             button.active = entry.active();
             this.categoryButtons.add(addRenderableWidget(button));
         }
@@ -168,7 +168,7 @@ public class RoccoConfigScreen extends Screen
         if (searching)
         {
             List<Group> found = RoccoConfigCategories.search(query);
-            this.results.show(found, Component.literal("Ninguna opción coincide con \"" + query.trim() + "\""));
+            this.results.show(found, com.cristoree.rocco.client.Tr.t("Ninguna opción coincide con \"%s\"", query.trim()));
             if (!this.showingResults)
             {
                 addRenderableWidget(this.results);
@@ -199,9 +199,9 @@ public class RoccoConfigScreen extends Screen
 
         if (!this.showingResults)
         {
-            graphics.drawString(this.font, Component.literal("Conectar a Rocco").withStyle(ChatFormatting.YELLOW),
+            graphics.drawString(this.font, com.cristoree.rocco.client.Tr.t("Conectar a Rocco").withStyle(ChatFormatting.YELLOW),
                     this.sectionLeft, this.connectionsTop - SECTION_LABEL + 1, 0xFFFFFF);
-            graphics.drawString(this.font, Component.literal("Ajustes").withStyle(ChatFormatting.GRAY),
+            graphics.drawString(this.font, com.cristoree.rocco.client.Tr.t("Ajustes").withStyle(ChatFormatting.GRAY),
                     this.sectionLeft, this.settingsTop - SECTION_LABEL + 1, 0xFFFFFF);
         }
     }
@@ -210,9 +210,9 @@ public class RoccoConfigScreen extends Screen
     {
         if (!RoccoCommonConfig.SPEC.isLoaded())
         {
-            return Component.literal("La configuración todavía no está cargada").withStyle(ChatFormatting.RED);
+            return com.cristoree.rocco.client.Tr.t("La configuración todavía no está cargada").withStyle(ChatFormatting.RED);
         }
-        return Component.literal("Elegí un tema o buscá una opción. Los cambios se guardan al salir.")
+        return com.cristoree.rocco.client.Tr.t("Elegí un tema o buscá una opción. Los cambios se guardan al salir.")
                 .withStyle(ChatFormatting.GRAY);
     }
 

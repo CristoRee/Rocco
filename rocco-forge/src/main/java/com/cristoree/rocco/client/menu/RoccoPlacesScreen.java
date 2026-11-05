@@ -34,7 +34,7 @@ public class RoccoPlacesScreen extends Screen
 
     RoccoPlacesScreen(Screen parent, int entityId, List<String> places)
     {
-        super(Component.literal("Lugares"));
+        super(com.cristoree.rocco.client.Tr.t("Lugares"));
         this.parent = parent;
         this.entityId = entityId;
         this.places = new ArrayList<>(places);
@@ -60,13 +60,13 @@ public class RoccoPlacesScreen extends Screen
         {
             String place = this.places.get(i);
             int y = rowsTop + (i - from) * (ROW + GAP);
-            addRenderableWidget(Button.builder(Component.literal("Olvidar"), b -> forget(place))
+            addRenderableWidget(Button.builder(com.cristoree.rocco.client.Tr.t("Olvidar"), b -> forget(place))
                     .bounds(right - 54, y, 54, ROW)
-                    .tooltip(Tooltip.create(Component.literal("Se olvida de \"" + place + "\".")))
+                    .tooltip(Tooltip.create(com.cristoree.rocco.client.Tr.t("Se olvida de \"%s\".", place)))
                     .build());
-            addRenderableWidget(Button.builder(Component.literal("Llevame"), b -> send("ir_a", place))
+            addRenderableWidget(Button.builder(com.cristoree.rocco.client.Tr.t("Llevame"), b -> send("ir_a", place))
                     .bounds(right - 54 - GAP - 64, y, 64, ROW)
-                    .tooltip(Tooltip.create(Component.literal("Te guía hasta \"" + place + "\".")))
+                    .tooltip(Tooltip.create(com.cristoree.rocco.client.Tr.t("Te guía hasta \"%s\".", place)))
                     .build());
         }
 
@@ -83,19 +83,19 @@ public class RoccoPlacesScreen extends Screen
 
         int saveY = pagerY + 12 + GAP;
         this.name = new EditBox(this.font, this.left + PAD + 1, saveY + 1, WIDTH - 2 * PAD - 92 - GAP - 2, ROW - 2,
-                Component.literal("Nombre del lugar"));
+                com.cristoree.rocco.client.Tr.t("Nombre del lugar"));
         this.name.setMaxLength(30);
-        this.name.setHint(Component.literal("Nombre (casa, mina...)").withStyle(ChatFormatting.DARK_GRAY));
+        this.name.setHint(com.cristoree.rocco.client.Tr.t("Nombre (casa, mina...)").withStyle(ChatFormatting.DARK_GRAY));
         this.name.setValue(this.typed);
         this.name.setResponder(text -> this.typed = text);
         addRenderableWidget(this.name);
-        Button save = addRenderableWidget(Button.builder(Component.literal("Guardar acá"), b -> save())
+        Button save = addRenderableWidget(Button.builder(com.cristoree.rocco.client.Tr.t("Guardar acá"), b -> save())
                 .bounds(right - 92, saveY, 92, ROW)
-                .tooltip(Tooltip.create(Component.literal("Recuerda el lugar donde estás parado con ese nombre.")))
+                .tooltip(Tooltip.create(com.cristoree.rocco.client.Tr.t("Recuerda el lugar donde estás parado con ese nombre.")))
                 .build());
         save.active = this.places.size() < 32;
 
-        addRenderableWidget(Button.builder(Component.literal("Volver"), b -> onClose())
+        addRenderableWidget(Button.builder(com.cristoree.rocco.client.Tr.t("Volver"), b -> onClose())
                 .bounds(this.left + WIDTH / 2 - 50, saveY + ROW + GAP, 100, ROW)
                 .build());
     }
@@ -140,9 +140,9 @@ public class RoccoPlacesScreen extends Screen
         int rowsTop = this.top + 30;
         if (this.places.isEmpty())
         {
-            graphics.drawCenteredString(this.font, Component.literal("Todavía no recuerda ningún lugar.").withStyle(ChatFormatting.GRAY),
+            graphics.drawCenteredString(this.font, com.cristoree.rocco.client.Tr.t("Todavía no recuerda ningún lugar.").withStyle(ChatFormatting.GRAY),
                     this.left + WIDTH / 2, rowsTop + 8, 0xFFFFFF);
-            graphics.drawCenteredString(this.font, Component.literal("Escribí un nombre abajo y guardá donde estás.")
+            graphics.drawCenteredString(this.font, com.cristoree.rocco.client.Tr.t("Escribí un nombre abajo y guardá donde estás.")
                     .withStyle(ChatFormatting.DARK_GRAY), this.left + WIDTH / 2, rowsTop + 20, 0xFFFFFF);
         }
         int from = this.page * PER_PAGE;

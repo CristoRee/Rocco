@@ -240,6 +240,20 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // mueve con el audio de verdad) y el ritmo de la musica que esta tocando (0 si no se sabe).
     public static java.util.function.Predicate<RoccoEntity> SPEAKING_HOOK = rocco -> false;
     public static java.util.function.ToDoubleFunction<RoccoEntity> BEAT_HOOK = rocco -> 0.0D;
+    // La cara de la frase que esta sonando (null = la del servidor).
+    public static java.util.function.Function<RoccoEntity, RoccoExpression> VOICE_FACE_HOOK = rocco -> null;
+
+    // La cara que se ve: mientras suena una frase, la de esa frase; si no, la del servidor. Asi una
+    // imitacion se dice con su cara de mewing aunque ya haya llegado otra respuesta mas alegre.
+    public RoccoExpression shownExpression()
+    {
+        if (!this.level().isClientSide || getRoccoState() != RoccoState.ACTIVE)
+        {
+            return getExpression();
+        }
+        RoccoExpression spoken = VOICE_FACE_HOOK.apply(this);
+        return spoken != null ? spoken : getExpression();
+    }
 
     // Lo que esta sonando desde Rocco (solo en el servidor; ver RoccoMusic).
     @Nullable
@@ -1281,6 +1295,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
     }
 
+    // En multijugador solo su dueño lo manda y le abre el inventario (ownerOnly). Sin dueño, cualquiera.
+    public boolean mayCommand(@Nullable Player player)
+    {
+        return player == null || this.ownerId == null || this.ownerId.equals(player.getUUID())
+                || !RoccoCommonConfig.OWNER_ONLY.get() || player.hasPermissions(2);
+    }
+
     public boolean wolfAllowed(UUID wolf)
     {
         return this.allowedWolves.contains(wolf);
@@ -1577,8 +1598,15 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             if (status != Errand.Status.RUNNING && this.errand == running)
             {
                 this.errand = null;
+                noteErrandEnd(running, status);
             }
         }
+    }
+
+    // El encargo termino: queda anotado para que la IA sepa que paso.
+    private void noteErrandEnd(Errand errand, Errand.Status status)
+    {
+        brain().noteDeed("you finished: " + errand.describe() + " (" + (status == Errand.Status.DONE ? "done" : "could not complete") + ")");
     }
 
     public void cancelErrand()
@@ -1587,6 +1615,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             Errand old = this.errand;
             this.errand = null;
+            brain().noteDeed("you stopped: " + old.describe());
             old.cancelled();
         }
         this.jobs.clear();
@@ -2517,6 +2546,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (status != Errand.Status.RUNNING && this.errand == running)
         {
             this.errand = null;
+            noteErrandEnd(running, status);
             if (this.task == RoccoTask.NONE && this.jobs.isEmpty())
             {
                 restoreWeapon();
@@ -3157,6 +3187,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                     return InteractionResult.CONSUME;
                 }
                 // Volando, nadando o en el barquito no abre la tapa (se le mojaria todo).
+                if (player instanceof ServerPlayer serverPlayer && !mayCommand(player))
+                {
+                    sayLine("menu_not_yours");
+                    return InteractionResult.CONSUME;
+                }
                 if (player instanceof ServerPlayer serverPlayer && !isWorking() && !isTravelling())
                 {
                     openLid(serverPlayer);
@@ -3853,6 +3888,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private void updateHomeTickets()
     {
         if (!(level() instanceof ServerLevel serverLevel))
+        {
+            return;
+        }
+        // Lo comun: no cuida ninguna casa y no tiene nada cargado.
+        if (this.homeChunks.isEmpty() && !(this.errand instanceof com.cristoree.rocco.work.CaretakerErrand))
         {
             return;
         }
@@ -5132,7 +5172,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                         ? state.setAndContinue(TALK) : PlayState.STOP));
 
         controllers.add(new AnimationController<>(this, "blink", 0, state ->
-                getRoccoState().isInert() || getExpression().eyesClosed() || getActiveTask().consuming()
+                getRoccoState().isInert() || shownExpression().eyesClosed() || getActiveTask().consuming()
                         ? PlayState.STOP : state.setAndContinue(BLINK)));
     }
 

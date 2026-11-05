@@ -39,13 +39,14 @@ public final class RoccoVoice
     // nombre, la frase sale con esa voz; si no, con la de Rocco.
     public static void speak(RoccoEntity rocco, String text, @org.jetbrains.annotations.Nullable String impression)
     {
-        speak(rocco, text, impression, "es");
+        speak(rocco, text, impression, "es", null);
     }
 
     // language: el idioma de la imitacion ("es" o "pt"), para elegir la voz que lo habla.
     public static void speak(RoccoEntity rocco, String text, @org.jetbrains.annotations.Nullable String impression,
-                             String language)
+                             String language, @org.jetbrains.annotations.Nullable com.cristoree.rocco.entity.RoccoExpression face)
     {
+        int faceId = face == null ? -1 : face.ordinal();
         if (!RoccoCommonConfig.ENABLED.get() || !RoccoCommonConfig.VOICE_ENABLED.get()
                 || !(rocco.level() instanceof ServerLevel level))
         {
@@ -73,7 +74,7 @@ public final class RoccoVoice
         {
             if (recorded != null)
             {
-                sendLines(level, rocco, recorded);
+                sendLines(level, rocco, recorded, faceId);
             }
             return;
         }
@@ -118,14 +119,14 @@ public final class RoccoVoice
                     // Que no se quede mudo: si la frase esta grabada, suena esa.
                     if (recordedFinal != null && level.getEntity(entityId) instanceof RoccoEntity speaker && speaker.isAlive())
                     {
-                        sendLines(level, speaker, recordedFinal);
+                        sendLines(level, speaker, recordedFinal, faceId);
                     }
                     problem(level, result.error(), recordedFinal != null);
                     return;
                 }
                 if (level.getEntity(entityId) instanceof RoccoEntity speaker && speaker.isAlive())
                 {
-                    send(level, speaker, result.pcm());
+                    send(level, speaker, result.pcm(), faceId);
                 }
             });
         });
@@ -197,10 +198,10 @@ public final class RoccoVoice
                 RoccoVoice.class.getResource("/assets/" + RoccoMod.MODID + "/voice_lines/" + key + ".ogg") != null);
     }
 
-    private static void sendLines(ServerLevel level, RoccoEntity rocco, java.util.List<String> ids)
+    private static void sendLines(ServerLevel level, RoccoEntity rocco, java.util.List<String> ids, int face)
     {
         double radius = RoccoCommonConfig.CHAT_HEARING_RADIUS.get() + 8.0D;
-        RoccoNetwork.VoiceLines packet = new RoccoNetwork.VoiceLines(rocco.getId(), ids);
+        RoccoNetwork.VoiceLines packet = new RoccoNetwork.VoiceLines(rocco.getId(), ids, face);
         for (ServerPlayer player : level.players())
         {
             if (player.distanceToSqr(rocco) <= radius * radius)
@@ -226,7 +227,7 @@ public final class RoccoVoice
         return clean;
     }
 
-    private static void send(ServerLevel level, RoccoEntity rocco, Wav.Pcm pcm)
+    private static void send(ServerLevel level, RoccoEntity rocco, Wav.Pcm pcm, int face)
     {
         int stream = STREAMS.incrementAndGet();
         byte[] data = pcm.data();
@@ -247,7 +248,7 @@ public final class RoccoVoice
                 int from = index * RoccoNetwork.CHUNK_BYTES;
                 int to = Math.min(data.length, from + RoccoNetwork.CHUNK_BYTES);
                 RoccoNetwork.sendVoice(player, new RoccoNetwork.VoiceChunk(stream, rocco.getId(), pcm.sampleRate(),
-                        index, count, Arrays.copyOfRange(data, from, to)));
+                        index, count, Arrays.copyOfRange(data, from, to), face));
             }
         }
     }

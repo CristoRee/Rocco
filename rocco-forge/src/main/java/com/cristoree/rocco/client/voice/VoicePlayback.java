@@ -29,14 +29,27 @@ import java.util.concurrent.CompletableFuture;
 // (asi respeta ese control de volumen). Las frases van en fila: nunca se pisan.
 public final class VoicePlayback
 {
-    private record Pending(int entityId, int sampleRate, int count, Map<Integer, byte[]> parts, long started) {}
-    private record Clip(int entityId, int sampleRate, byte[] pcm) {}
+    private record Pending(int entityId, int sampleRate, int count, Map<Integer, byte[]> parts, long started, int face) {}
+    private record Clip(int entityId, int sampleRate, byte[] pcm, int face) {}
 
     private static final Map<Integer, Pending> PENDING = new HashMap<>();
     private static final Deque<Clip> QUEUE = new ArrayDeque<>();
     private static VoiceSound playing;
 
     // Su voz esta sonando ahora (para mover la boca con el audio de verdad y bajar la musica).
+    // La cara de la frase que esta sonando (null si no suena ninguna o no trae): se muestra mientras
+    // dura, aunque el servidor ya haya pasado a otra cara por una respuesta mas nueva.
+    @org.jetbrains.annotations.Nullable
+    public static com.cristoree.rocco.entity.RoccoExpression spokenFace(int entityId)
+    {
+        VoiceSound current = playing;
+        if (current == null || current.face < 0 || !isSpeaking(entityId))
+        {
+            return null;
+        }
+        return com.cristoree.rocco.entity.RoccoExpression.byId(current.face);
+    }
+
     public static boolean isSpeaking(int entityId)
     {
         VoiceSound current = playing;
@@ -47,7 +60,7 @@ public final class VoicePlayback
     public static void receive(RoccoNetwork.VoiceChunk chunk)
     {
         Pending pending = PENDING.computeIfAbsent(chunk.stream(), id ->
-                new Pending(chunk.entityId(), chunk.sampleRate(), chunk.count(), new HashMap<>(), System.currentTimeMillis()));
+                new Pending(chunk.entityId(), chunk.sampleRate(), chunk.count(), new HashMap<>(), System.currentTimeMillis(), chunk.face()));
         pending.parts().put(chunk.index(), chunk.data());
 
         if (pending.parts().size() >= pending.count())
@@ -63,7 +76,7 @@ public final class VoicePlayback
                 }
                 joined.writeBytes(part);
             }
-            QUEUE.add(new Clip(pending.entityId(), pending.sampleRate(), joined.toByteArray()));
+            QUEUE.add(new Clip(pending.entityId(), pending.sampleRate(), joined.toByteArray(), pending.face()));
         }
 
         // Pedazos que nunca terminaron de llegar no quedan colgados.
@@ -101,13 +114,13 @@ public final class VoicePlayback
             return;
         }
 
-        playing = new VoiceSound(rocco, next.pcm(), next.sampleRate());
+        playing = new VoiceSound(rocco, next.pcm(), next.sampleRate(), next.face());
         minecraft.getSoundManager().play(playing);
     }
 
     // Frases grabadas: se leen del mod (assets/rocco/voice_lines/<codigo>.ogg) y van a la misma fila
     // que la voz generada, asi suenan en orden y desde Rocco. Una que no este, se saltea.
-    public static void playLines(int entityId, java.util.List<String> ids)
+    public static void playLines(int entityId, java.util.List<String> ids, int face)
     {
         for (String id : ids)
         {
@@ -125,7 +138,7 @@ public final class VoicePlayback
                 ByteBuffer all = ogg.readAll();
                 byte[] pcm = new byte[all.remaining()];
                 all.get(pcm);
-                QUEUE.add(new Clip(entityId, (int) format.getSampleRate(), format.getChannels() > 1 ? toMono(pcm) : pcm));
+                QUEUE.add(new Clip(entityId, (int) format.getSampleRate(), format.getChannels() > 1 ? toMono(pcm) : pcm, face));
             }
             catch (java.io.IOException | RuntimeException e)
             {
@@ -188,11 +201,13 @@ public final class VoicePlayback
         private final RoccoEntity rocco;
         private final byte[] pcm;
         private final int sampleRate;
+        final int face;
 
-        VoiceSound(RoccoEntity rocco, byte[] pcm, int sampleRate)
+        VoiceSound(RoccoEntity rocco, byte[] pcm, int sampleRate, int face)
         {
             super(ModSounds.VOICE.get(), SoundSource.VOICE, RandomSource.create());
             this.rocco = rocco;
+            this.face = face;
             this.pcm = pcm;
             this.sampleRate = sampleRate;
             this.volume = RoccoClientConfig.VOICE_VOLUME.get().floatValue();

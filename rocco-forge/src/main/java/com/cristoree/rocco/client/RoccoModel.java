@@ -9,6 +9,8 @@ import com.cristoree.rocco.entity.RoccoTask;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import software.bernie.geckolib.cache.object.BakedGeoModel;
+import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.model.GeoModel;
 
@@ -58,23 +60,27 @@ public class RoccoModel extends GeoModel<RoccoEntity>
     public void setCustomAnimations(RoccoEntity rocco, long instanceId, AnimationState<RoccoEntity> animationState)
     {
         super.setCustomAnimations(rocco, instanceId, animationState);
+        // Buscar un hueso por su nombre recorre todo el modelo: con un indice, cada cuadro de cada
+        // Rocco cuesta unas pocas consultas en vez de miles de visitas.
+        index(getBakedModel(getModelResource(rocco)));
 
         // Si el modelo todavia no trae la cara pedida (pasa al exportar de Blockbench a mitad de
         // camino), se usa happy: sin esto se esconderian todas y Rocco quedaria sin cara.
-        String current = rocco.getExpression().id();
-        if (getBone("eyes_" + current).isEmpty())
+        RoccoExpression current = rocco.shownExpression();
+        if (bone(EYES[current.ordinal()]).isEmpty())
         {
-            current = RoccoExpression.HAPPY.id();
+            current = RoccoExpression.HAPPY;
         }
 
         for (RoccoExpression expression : RoccoExpression.all())
         {
-            boolean hidden = !expression.id().equals(current);
-            hide("eyes_" + expression.id(), hidden);
-            hide("mouth_" + expression.id(), hidden);
-            hide("talk_" + expression.id(), hidden);
+            boolean hidden = expression != current;
+            int i = expression.ordinal();
+            hide(EYES[i], hidden);
+            hide(MOUTH[i], hidden);
+            hide(TALK[i], hidden);
             // El contorno fijo del mewing (si no se tapa, aparece en todas las caras).
-            hide("face_" + expression.id(), hidden);
+            hide(FACE[i], hidden);
         }
 
         // La animacion de habla intercambia smile y mouth_talk por escala, asi que mouth_talk
@@ -91,7 +97,7 @@ public class RoccoModel extends GeoModel<RoccoEntity>
                 && rocco.getMotion().kind() != com.cristoree.rocco.entity.RoccoMotion.Kind.BOAT && !rocco.getMotion().onHorse();
         for (int tier = 1; tier <= com.cristoree.rocco.item.BackpackItem.MAX_TIER; tier++)
         {
-            hide("backpack_" + tier, !carries || rocco.backpackTier() != tier);
+            hide(BACKPACKS[tier - 1], !carries || rocco.backpackTier() != tier);
         }
         // Las animaciones lo dejan en escala 0, pero si alguna no lo toca asomaria por arriba.
         hide("garden", !rocco.showsGarden());
@@ -132,13 +138,13 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         // usan los aplausos y el baile para sus particulas.
         for (String bone : MAGIC_BONES)
         {
-            getBone(bone).ifPresent(sphere -> sphere.setHidden(!magic));
+            bone(bone).ifPresent(sphere -> sphere.setHidden(!magic));
         }
 
         // Los localizadores de particulas tienen que saber donde quedan en el mundo.
         for (String locator : LOCATORS)
         {
-            getBone(locator).ifPresent(bone -> bone.setTrackingMatrices(true));
+            bone(locator).ifPresent(bone -> bone.setTrackingMatrices(true));
         }
 
         // Tomando mate, bailando o festejando la cabeza la mueve solo la animacion: si se le
@@ -153,6 +159,55 @@ public class RoccoModel extends GeoModel<RoccoEntity>
     {
         return task == RoccoTask.MATE || task == RoccoTask.DANCING || task == RoccoTask.CLAPPING
                 || task == RoccoTask.CELEBRATING || task.musical() || task.scripted();
+    }
+
+    // Los nombres de los huesos de las caras, armados una sola vez.
+    private static final String[] EYES = names("eyes_");
+    private static final String[] MOUTH = names("mouth_");
+    private static final String[] TALK = names("talk_");
+    private static final String[] FACE = names("face_");
+    private static final String[] BACKPACKS = {"backpack_1", "backpack_2", "backpack_3", "backpack_4", "backpack_5", "backpack_6"};
+
+    private static String[] names(String prefix)
+    {
+        RoccoExpression[] all = RoccoExpression.all();
+        String[] out = new String[all.length];
+        for (RoccoExpression expression : all)
+        {
+            out[expression.ordinal()] = prefix + expression.id();
+        }
+        return out;
+    }
+
+    private BakedGeoModel indexed;
+    private final java.util.Map<String, GeoBone> bones = new java.util.HashMap<>();
+
+    private void index(BakedGeoModel model)
+    {
+        if (model == this.indexed)
+        {
+            return;
+        }
+        this.indexed = model;
+        this.bones.clear();
+        for (GeoBone top : model.topLevelBones())
+        {
+            collect(top);
+        }
+    }
+
+    private void collect(GeoBone bone)
+    {
+        this.bones.put(bone.getName(), bone);
+        for (GeoBone child : bone.getChildBones())
+        {
+            collect(child);
+        }
+    }
+
+    private java.util.Optional<GeoBone> bone(String name)
+    {
+        return java.util.Optional.ofNullable(this.bones.get(name));
     }
 
     private static final String[] MATE_BONES = {"mate", "termo", "mate_water"};
@@ -202,7 +257,7 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         float delta = Mth.wrapDegrees(wanted - rocco.getYRot());
         float yaw = Mth.clamp(delta, -MAX_HEAD_YAW, MAX_HEAD_YAW) * Mth.DEG_TO_RAD;
 
-        getBone("head").ifPresent(head -> head.setRotY(head.getRotY() - yaw));
+        bone("head").ifPresent(head -> head.setRotY(head.getRotY() - yaw));
     }
 
     // GeckoLib tiene dos banderas distintas: setHidden tapa SOLO los cubos del propio hueso y
@@ -210,7 +265,7 @@ public class RoccoModel extends GeoModel<RoccoEntity>
     // tiene cubos propios, solo 12 hijos) seguia dibujandose entero.
     private void hide(String boneName, boolean hidden)
     {
-        getBone(boneName).ifPresent(bone ->
+        bone(boneName).ifPresent(bone ->
         {
             bone.setHidden(hidden);
             bone.setChildrenHidden(hidden);

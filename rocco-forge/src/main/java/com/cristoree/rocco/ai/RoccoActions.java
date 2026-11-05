@@ -173,6 +173,12 @@ public final class RoccoActions
         {
             return new Outcome(false, "no estoy en el mundo");
         }
+        // Charlar puede cualquiera; mandarlo (y llevarse sus cosas) solo su dueño.
+        if (!rocco.mayCommand(player))
+        {
+            rocco.sayLine("order_not_yours");
+            return SAID;
+        }
 
         // Montado solo sigue con lo que no necesita el piso; para lo demas se baja primero.
         if (rocco.getMotion().kind() == com.cristoree.rocco.entity.RoccoMotion.Kind.RIDE && !KEEPS_RIDING.contains(verb))

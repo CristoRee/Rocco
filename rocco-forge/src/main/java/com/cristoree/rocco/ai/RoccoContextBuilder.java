@@ -85,6 +85,11 @@ public final class RoccoContextBuilder
         // con esto la IA contesta bien de una sin tener que fallar primero.
         Errand errand = rocco.currentErrand();
         facts.put("What you are doing", errand == null ? "nothing in particular" : errand.describe());
+        String deeds = rocco.brain().recentDeeds();
+        if (!deeds.isEmpty())
+        {
+            facts.put("What you did and said recently (oldest first; this is the real record, trust it)", deeds);
+        }
         facts.put("Your inventory", inventoryOf(rocco));
         facts.put("Your backpack", rocco.backpackTier() == 0
                 ? "none (" + rocco.inventory().getContainerSize() + " slots in your lid; the player can craft you one once they have the seed you give them when you become friends)"

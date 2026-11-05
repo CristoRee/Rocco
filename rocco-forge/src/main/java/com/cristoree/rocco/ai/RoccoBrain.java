@@ -45,8 +45,11 @@ public class RoccoBrain
     private static final long STUCK_REQUEST_MS = 120_000L;
 
     // Lineas de memoria: van aparte de la #accion y puede haber varias en una respuesta.
+    // Va en su linea, pero las IAs tambien la pegan al final de una frase ("... fuegos artificiales.
+    // #recordar: no lleva cama"): se acepta en cualquier lado y llega hasta el fin de la linea o
+    // hasta la proxima etiqueta.
     static final Pattern MEMORY_LINE = Pattern.compile(
-            "(?im)^\\s*[*`]*#(recordar_siempre|recordar|olvidar)\\s*:\\s*(.+?)\\s*[*`]*\\s*$");
+            "(?im)[*`]*#(recordar_siempre|recordar|olvidar)\\s*:\\s*([^\\n#]+?)\\s*[*`]*\\s*(?=#|$)");
     // El jugador pide una imitacion: la guia de estilo completa va en el prompt.
     // Las ordenes de moverse o quedarse: si el jugador pidio una clara, manda esa.
     private static final java.util.Set<String> MOVEMENT_VERBS =
@@ -137,6 +140,11 @@ public class RoccoBrain
     private long lastHeardTick = -100000L;
     // Mientras esperaba a la IA llego una orden y la resolvio solo: esa respuesta ya no va.
     private boolean answeredMeanwhile;
+    // Lo ultimo que hizo y dijo por su cuenta, para que la IA sepa lo que paso aunque la charla no lo diga.
+    private record Deed(long tick, String text) {}
+    private final java.util.ArrayDeque<Deed> deeds = new java.util.ArrayDeque<>();
+    private static final int MAX_DEEDS = 14;
+    private static final long DEED_MEMORY_TICKS = 20L * 60L * 15L;
 
     public RoccoBrain(RoccoEntity rocco)
     {
@@ -162,6 +170,48 @@ public class RoccoBrain
     public String lastPlayerMessage()
     {
         return this.lastHeard;
+    }
+
+    // Anota algo que paso (un encargo que termino, algo que dijo): va al contexto de la IA, asi no
+    // contradice lo que acaba de hacer.
+    public void noteDeed(String text)
+    {
+        if (text == null || text.isBlank())
+        {
+            return;
+        }
+        String clean = text.replaceAll("\\s+", " ").trim();
+        Deed last = this.deeds.peekLast();
+        if (last != null && last.text().equals(clean))
+        {
+            return;
+        }
+        this.deeds.addLast(new Deed(gameTime(), clean.length() > 220 ? clean.substring(0, 217) + "..." : clean));
+        while (this.deeds.size() > MAX_DEEDS)
+        {
+            this.deeds.removeFirst();
+        }
+    }
+
+    // "[2 min ago] guardando cosas en un cofre: done", del mas viejo al mas nuevo. Vacio si no hubo nada.
+    public String recentDeeds()
+    {
+        long now = gameTime();
+        StringBuilder out = new StringBuilder();
+        for (Deed deed : this.deeds)
+        {
+            long age = now - deed.tick();
+            if (age > DEED_MEMORY_TICKS)
+            {
+                continue;
+            }
+            if (out.length() > 0)
+            {
+                out.append("; ");
+            }
+            out.append('[').append(age < 20L * 60L ? Math.max(1, age / 20L) + " s ago" : age / 1200L + " min ago").append("] ").append(deed.text());
+        }
+        return out.toString();
     }
 
     // Le estan hablando: pensando una respuesta para el jugador, o le hablaron hace poco. Mientras
@@ -333,6 +383,8 @@ public class RoccoBrain
         try
         {
             RoccoActions.Outcome outcome = RoccoActions.run(this.rocco, player, verb, argument == null ? "" : argument);
+            noteDeed("you started the order \"" + (verb + " " + (argument == null ? "" : argument)).trim() + "\""
+                    + (outcome != null && !outcome.ok() && outcome.note() != null ? " but could not: " + outcome.note() : ""));
             if (outcome != null && !outcome.ok() && outcome.note() != null)
             {
                 this.rocco.setExpression(RoccoExpression.SAD);
@@ -954,6 +1006,7 @@ public class RoccoBrain
         {
             return;
         }
+        noteDeed("you said: " + message);
 
         if (face != null)
         {
@@ -987,7 +1040,7 @@ public class RoccoBrain
         }
 
         broadcast(Component.literal(message), null, false);
-        com.cristoree.rocco.voice.RoccoVoice.speak(this.rocco, message, null);
+        com.cristoree.rocco.voice.RoccoVoice.speak(this.rocco, message, null, "es", spokenFace());
     }
 
     // "<Rocco> texto", o "<Rocco (como Vegeta)> texto" durante una imitacion.
@@ -1025,19 +1078,28 @@ public class RoccoBrain
         speak(chat, voice, impression, "es");
     }
 
+    // La cara de lo que esta diciendo ahora (la que acaba de elegir): viaja con el audio.
+    @Nullable
+    private RoccoExpression spokenFace()
+    {
+        RoccoExpression face = this.rocco.getExpression();
+        return face.selectableByAi() ? face : null;
+    }
+
     private void speak(String chat, String voice, @Nullable String impression, String language)
     {
         // La boca se mueve un rato proporcional a lo que dijo.
         this.rocco.talkFor(Math.min(200, 20 + chat.length()));
         broadcast(Component.literal(chat), impression, false);
         // Y en voz alta, si la voz esta configurada.
-        com.cristoree.rocco.voice.RoccoVoice.speak(this.rocco, voice, impression, language);
+        com.cristoree.rocco.voice.RoccoVoice.speak(this.rocco, voice, impression, language, spokenFace());
     }
 
     // Una sola linea, sin espacios dobles ni etiquetas sueltas: el chat no muestra saltos de linea.
     private String clean(String answer)
     {
-        String out = answer.replaceAll("(?i)(?:@|\\[)(happy|bored|serious|scared|sad|angry|smug|psycho|dizzy|mewing|cheer|wow)]?(?=\\W|$)", " ")
+        String out = answer.replaceAll("(?i)[*`]*#(?:recordar_siempre|recordar|olvidar)\\s*:[^\\n#]*", " ")
+                .replaceAll("(?i)(?:@|\\[)(happy|bored|serious|scared|sad|angry|smug|psycho|dizzy|mewing|cheer|wow)]?(?=\\W|$)", " ")
                 .replaceAll("\\[[a-zA-Z ]{2,24}]", " ")
                 .replaceAll("\\s+", " ").trim();
 

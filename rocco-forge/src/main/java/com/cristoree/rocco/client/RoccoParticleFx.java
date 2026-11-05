@@ -30,6 +30,7 @@ public final class RoccoParticleFx
         RoccoEntity.PARTICLE_HOOK = RoccoParticleFx::spawn;
         // Y el audio: la boca con su voz de verdad, y el ritmo de su musica para cantar a tiempo.
         RoccoEntity.SPEAKING_HOOK = rocco -> com.cristoree.rocco.client.voice.VoicePlayback.isSpeaking(rocco.getId());
+        RoccoEntity.VOICE_FACE_HOOK = rocco -> com.cristoree.rocco.client.voice.VoicePlayback.spokenFace(rocco.getId());
         RoccoEntity.BEAT_HOOK = rocco -> com.cristoree.rocco.client.music.RoccoMusicClient.bpm(rocco.getId());
     }
 
