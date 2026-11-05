@@ -24,8 +24,8 @@ public final class RoccoNetwork
     // se avisan al conectar en vez de fallar a mitad de partida. 2: se agrego OpenSetup.
     // 3: se agrego VoiceLines (las frases grabadas). 4: el menu de Rocco (OpenMenu y MenuAction).
     // 5: CallRocco (traerlo desde la config o con su tecla). 6: la musica desde links.
-    // 7: el eructo de la Roco Cola.
-    private static final String PROTOCOL = "7";
+    // 7: el eructo de la Roco Cola. 8: la guia de Rocco.
+    private static final String PROTOCOL = "8";
     public static final int CHUNK_BYTES = 30_000;
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -138,6 +138,33 @@ public final class RoccoNetwork
         {
             return new CallRocco();
         }
+    }
+
+    // La guia de Rocco: al nacer (birth, una sola vez) o porque la pidio con /rocco tutorial.
+    public record OpenTutorial(int entityId, boolean birth)
+    {
+        static void encode(OpenTutorial msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeBoolean(msg.birth);
+        }
+
+        static OpenTutorial decode(FriendlyByteBuf buf)
+        {
+            return new OpenTutorial(buf.readVarInt(), buf.readBoolean());
+        }
+    }
+
+    public static void sendTutorial(ServerPlayer player, int entityId, boolean birth)
+    {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new OpenTutorial(entityId, birth));
+    }
+
+    private static void handleTutorial(OpenTutorial msg, Supplier<NetworkEvent.Context> context)
+    {
+        context.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.tutorial.RoccoTutorialClient.open(msg.entityId(), msg.birth())));
+        context.get().setPacketHandled(true);
     }
 
     // El eructo de un jugador: el viento y las hojas los dibuja cada cliente (RoccoBurpFx).
@@ -291,6 +318,8 @@ public final class RoccoNetwork
                 RoccoNetwork::onMusicPlay, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(10, MusicStop.class, MusicStop::encode, MusicStop::decode,
                 RoccoNetwork::onMusicStop, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(13, OpenTutorial.class, OpenTutorial::encode, OpenTutorial::decode, RoccoNetwork::handleTutorial,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(12, BurpFx.class, BurpFx::encode, BurpFx::decode, RoccoNetwork::handleBurp,
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(11, MusicVolume.class, MusicVolume::encode, MusicVolume::decode,

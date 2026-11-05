@@ -29,6 +29,7 @@ public final class RoccoClientConfig
     // setup
     public static final ForgeConfigSpec.BooleanValue SETUP_COMPLETED;
     public static final ForgeConfigSpec.IntValue SETUP_VERSION;
+    public static final ForgeConfigSpec.BooleanValue TUTORIAL_SEEN;
 
     // Sube cuando una actualizacion trae algo que hay que configurar: la pantalla de bienvenida
     // vuelve a aparecer una vez, con lo nuevo.
@@ -99,6 +100,10 @@ public final class RoccoClientConfig
                 .comment("Ya se vio la pantalla de bienvenida. En false vuelve a aparecer en el menu principal.",
                          "Se abre cuando quieras con /rocco setup o desde Mods > Rocco > Config.")
                 .define("setupCompleted", false);
+        TUTORIAL_SEEN = b
+                .comment("Ya se vio la guia de Rocco, que aparece sola la primera vez que nace uno.",
+                         "Se abre cuando quieras con /rocco tutorial o con el boton ? de su menu.")
+                .define("tutorialSeen", false);
         SETUP_VERSION = b
                 .comment("Uso interno: hasta que version de la bienvenida se vio.")
                 .defineInRange("setupVersion", 0, 0, 1000);

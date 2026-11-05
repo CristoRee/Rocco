@@ -3,6 +3,7 @@
 ## 1.5.0
 
 ### Nuevo
+- **Guía rápida:** la primera vez que nace tu Rocco aparece una guía de 7 páginas con lo más importante, con Rocco moviéndose al lado. Se vuelve a ver con `/rocco tutorial`, con el botón **?** de su menú o con una tecla en **Controles > Rocco**.
 - **Mochilas:** 6 mochilas que Rocco lleva puestas y le agrandan el inventario. Arranca con 3 filas (27 lugares) y la mochila N le suma N filas: 36, 54, 81, 117, 162 y 216 lugares, en páginas de hasta 6x9 con botones arriba para pasar de una a otra. Clic derecho con la mochila para ponérsela, "Quitar mochila" en su menú para sacársela. Lo que va en esos lugares viaja adentro de la mochila, y mejorarla en la mesa de crafteo lo conserva. Cada una se ve en su espalda.
 - **Regalos de Rocco:** la **Semillita**, cuando se hacen amigos (con ella se fabrica la primera mochila), y la **Flor de la Amistad**, dos días de juego juntos después de matar al Ender Dragon, al Wither y al Warden (con ella se fabrica la última). Con su animación y sus frases.
 - **A caballo:** si vas en caballo, burro o mula ensillados, se sube adelante tuyo, con animaciones para quieto, al paso, al galope, saltando, subir y bajar.

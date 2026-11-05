@@ -111,7 +111,7 @@ Pasale un link a Rocco y lo pone: suena desde él (camina con la música, como u
 - **Qué links andan:** archivos de audio (MP3, OGG, M4A, FLAC, WAV), radios por internet, Bandcamp y canales de Twitch que estén en vivo. Los de YouTube, Spotify, SoundCloud y otras apps de videos o música no: esos sitios no dejan sacar el audio, y Rocco te pide otro link.
 - **Por chat:** "poné esto https://...", "pausá la música", "seguí con la música", "pará la música", "subí/bajá el volumen".
 - **En multijugador** todos los que están cerca escuchan lo mismo al mismo tiempo, y el que llega tarde entra en el punto justo. Cada uno la escucha desde su juego.
-- **El volumen** es el de **Discos** (Opciones > Música y sonidos), más el de **Config > Charla > Música**. Mientras Rocco habla, la música baja un poco.
+- **El volumen** es el de **Discos** (Opciones > Música y sonidos), más el de **Config > Vida y rutina > Música**. Mientras Rocco habla, la música baja un poco.
 
 ### Roco Cola
 
@@ -167,6 +167,7 @@ Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. Las �
 | `/rocco personalidad chill \| sin_filtro \| personalizado` | Cambia el modo. |
 | `/rocco personalidad reset` | Escribe la personalidad actual en tu archivo, para editarla. |
 | `/rocco setup` | Abre la pantalla de bienvenida. |
+| `/rocco tutorial` | Abre la guía rápida de Rocco. |
 
 ## Personalidad
 
@@ -182,6 +183,10 @@ El dialecto (latino neutro, rioplatense, España o automático) y el apodo con e
 
 También imita voces de personajes y famosos si se lo pedís ("hablá como Vegeta"). Con Fish Audio configurado busca sola una voz pública de ese personaje en Fish Audio (se puede apagar), o usa la que vos le pongas en **Config > Voz > Imitaciones**. El mod no trae voces de personas reales: las voces públicas las sube la comunidad de Fish Audio, bajo sus términos.
 
+## Guía rápida
+
+La primera vez que nace un Rocco tuyo aparece una guía de 7 páginas con lo más importante, con Rocco moviéndose al lado. Se vuelve a ver con `/rocco tutorial`, con el botón **?** de su menú o con una tecla (**Controles > Rocco**, sin asignar de fábrica).
+
 ## Bienvenida
 
 La primera vez que abrís el juego aparece una pantalla para dejar a Rocco listo: la clave de IA (con un botón para probarla), la voz, el micrófono, la tecla para hablarle y la personalidad. Se puede volver a abrir con `/rocco setup` o desde la config.
@@ -195,7 +200,7 @@ Sin claves, Rocco no se conecta a ningún lado. Solo si vos ponés una clave, el
 | IA (Groq, Gemini, OpenRouter, Ollama o un proveedor propio) | Cuando le hablás y no es una orden simple | Lo que le dijiste, la charla reciente, su personalidad y un resumen de lo que pasa en el juego (vida, inventario, cofres cerca, hora). |
 | Fish Audio | Cuando habla en voz alta, o busca la voz de un personaje para imitarlo | El texto que va a decir, o el nombre del personaje. |
 | Deepgram | Mientras mantenés la tecla del micrófono (o con detección de voz) | El audio de tu micrófono. |
-| El sitio del link de una canción | Cuando vos u otro jugador cerca le pasa un link a Rocco | Tu juego abre ese link para escucharlo, como un navegador: ese sitio ve tu conexión. Se apaga en **Config > Charla > Música > Escuchar su música**. |
+| El sitio del link de una canción | Cuando vos u otro jugador cerca le pasa un link a Rocco | Tu juego abre ese link para escucharlo, como un navegador: ese sitio ve tu conexión. Se apaga en **Config > Vida y rutina > Música > Escuchar su música**. |
 
 Las claves quedan solo en tu archivo de configuración (o en variables de entorno, ver los comentarios de la config). El mod no junta datos ni manda nada a CristoRee ni a ningún otro lado.
 

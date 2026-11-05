@@ -156,6 +156,14 @@ public class RoccoMenuScreen extends Screen
             addRenderableWidget(cancel);
         }
 
+        // La guia, en la esquina.
+        net.minecraft.world.entity.Entity shown = this.minecraft.level == null ? null : this.minecraft.level.getEntity(this.state.entityId());
+        addRenderableWidget(Button.builder(Component.literal("?"), b -> this.minecraft.setScreen(new com.cristoree.rocco.client.tutorial.RoccoTutorialScreen(
+                        shown instanceof net.minecraft.world.entity.LivingEntity living ? living : null, this)))
+                .bounds(this.left + this.panelWidth - PAD - 16, this.top + 4, 16, 16)
+                .tooltip(Tooltip.create(Component.translatable("rocco.tutorial.title")))
+                .build());
+
         int footer = this.top + this.panelHeight - PAD - 14 - ROW;
         int third = (this.panelWidth - 2 * PAD - 2 * GAP) / 3;
         addRenderableWidget(new MenuButton(this.left + PAD, footer, third, Component.literal("Personalidad"),
@@ -231,7 +239,7 @@ public class RoccoMenuScreen extends Screen
         int right = this.left + this.panelWidth - PAD;
         graphics.drawString(this.font, this.title.copy().withStyle(ChatFormatting.BOLD), textLeft, this.top + 10, 0xFFFFFF);
         Component mode = Component.literal(this.state.mode()).withStyle(ChatFormatting.AQUA);
-        graphics.drawString(this.font, mode, right - this.font.width(mode), this.top + 10, 0xFFFFFF);
+        graphics.drawString(this.font, mode, right - 20 - this.font.width(mode), this.top + 10, 0xFFFFFF);
 
         graphics.drawString(this.font, Component.literal("● ").withStyle(ChatFormatting.GREEN)
                 .append(Component.literal(this.state.status()).withStyle(ChatFormatting.WHITE)), textLeft, this.top + 26, 0xFFFFFF);

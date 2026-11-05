@@ -76,7 +76,8 @@ public final class RoccoCommand
                         {
                             return resetPersonality(context.getSource());
                         })))
-                .then(Commands.literal("setup").executes(context -> openSetup(context.getSource())));
+                .then(Commands.literal("setup").executes(context -> openSetup(context.getSource())))
+                .then(Commands.literal("tutorial").executes(context -> openTutorial(context.getSource())));
 
         event.getDispatcher().register(root);
     }
@@ -274,6 +275,18 @@ public final class RoccoCommand
             return 0;
         }
         com.cristoree.rocco.voice.RoccoNetwork.openSetup(player);
+        return 1;
+    }
+
+    private static int openTutorial(CommandSourceStack source)
+    {
+        if (!(source.getEntity() instanceof ServerPlayer player))
+        {
+            source.sendFailure(Component.literal("Este comando lo tiene que usar un jugador."));
+            return 0;
+        }
+        RoccoEntity rocco = RoccoCompanionTracker.find(player);
+        com.cristoree.rocco.voice.RoccoNetwork.sendTutorial(player, rocco == null ? -1 : rocco.getId(), false);
         return 1;
     }
 

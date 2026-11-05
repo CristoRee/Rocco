@@ -50,7 +50,7 @@ Sin claves, Rocco **no se conecta a ningún lado** (salvo al link de una canció
 - **IA** (el proveedor que elijas): lo que le decís, la charla reciente y un resumen de lo que pasa en el juego.
 - **Fish Audio**: el texto que va a decir en voz alta, o el nombre de un personaje para buscar su voz pública.
 - **Deepgram**: el audio de tu micrófono, solo mientras mantenés la tecla (o con detección de voz).
-- **El sitio del link de una canción**: cuando vos u otro jugador cerca le pasa un link, tu juego lo abre para escucharlo, como un navegador. Se apaga en **Config > Charla > Música**.
+- **El sitio del link de una canción**: cuando vos u otro jugador cerca le pasa un link, tu juego lo abre para escucharlo, como un navegador. Se apaga en **Config > Vida y rutina > Música**.
 
 Las claves quedan solo en tu configuración. El mod no junta datos ni manda nada a ningún otro lado. No trae voces de personas reales.
 

@@ -3248,6 +3248,16 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                     talkFor(80);
                     greet(nearest);
                 }
+                // Al dueño le aparece la guia (una sola vez, la primera vez que le nace uno).
+                ServerPlayer guided = trueOwner();
+                if (guided == null && nearest instanceof ServerPlayer closest)
+                {
+                    guided = closest;
+                }
+                if (guided != null)
+                {
+                    com.cristoree.rocco.voice.RoccoNetwork.sendTutorial(guided, getId(), true);
+                }
             }
         }
         // Su musica: se corta si termina la cancion, si se muere o si se entierra.
