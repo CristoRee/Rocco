@@ -41,8 +41,14 @@ public final class ModItems
             () -> new RoccoGiftItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant(), true,
                     "tooltip.rocco.flor_amistad", "tooltip.rocco.flor_amistad_2"));
 
+    public static final RegistryObject<Item> ROCO_COLA_EMPTY = ITEMS.register("roco_cola_empty",
+            () -> new RoccoGiftItem(new Item.Properties().stacksTo(16), false, "tooltip.rocco.roco_cola_empty"));
+    public static final RegistryObject<Item> ROCO_COLA_HALF = ITEMS.register("roco_cola_half",
+            () -> new RocoColaItem(new Item.Properties().stacksTo(16), ROCO_COLA_EMPTY,
+                    "tooltip.rocco.roco_cola_flavor", "tooltip.rocco.roco_cola_half"));
     public static final RegistryObject<Item> ROCO_COLA = ITEMS.register("roco_cola",
-            () -> new RocoColaItem(new Item.Properties().stacksTo(16)));
+            () -> new RocoColaItem(new Item.Properties().stacksTo(16), ROCO_COLA_HALF,
+                    "tooltip.rocco.roco_cola_flavor", "tooltip.rocco.roco_cola"));
 
     public static final DeferredRegister<RecipeSerializer<?>> RECIPES =
             DeferredRegister.create(ForgeRegistries.RECIPE_SERIALIZERS, RoccoMod.MODID);

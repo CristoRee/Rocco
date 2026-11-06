@@ -162,11 +162,10 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.CUSTOM_MODEL, "Modelo"))),
                 com.cristoree.rocco.config.RoccoConfig::aiConfigured));
 
-        list.add(new Category("Voz", "La voz de Rocco: sus frases grabadas, Fish Audio para todo lo demas, y como suena en tus parlantes.",
+        list.add(new Category("Voz", "La voz de Rocco: tu clave y tu voz de Fish Audio, y como suena en tus parlantes.",
                 () -> new ItemStack(Items.NOTE_BLOCK), List.of(
                 group("Fish Audio",
                         opt(common, RoccoCommonConfig.VOICE_ENABLED, "Voz activada"),
-                        opt(common, RoccoCommonConfig.VOICE_RECORDED_LINES, "Frases grabadas"),
                         opt(common, RoccoCommonConfig.FISH_API_KEY, "Clave"),
                         opt(common, RoccoCommonConfig.FISH_VOICE_ID, "ID de la voz"),
                         opt(common, RoccoCommonConfig.FISH_MODEL, "Modelo")),

@@ -134,16 +134,18 @@ public class RoccoMenuScreen extends Screen
         // Pelea: su equipo y a quien puede atacar (tres casillas que se guardan en este Rocco).
         int fightTop = this.gridTop + 5 * ROW + 4 * GAP + 6 + LABEL;
         int quarter = (this.panelWidth - 2 * PAD - 3 * GAP) / 4;
-        MenuButton gear = new MenuButton(this.left + PAD, fightTop, quarter, com.cristoree.rocco.client.Tr.t("Equipo"),
+        int gearWidth = quarter - 15;
+        int targetWidth = quarter + 5;
+        MenuButton gear = new MenuButton(this.left + PAD, fightTop, gearWidth, com.cristoree.rocco.client.Tr.t("Equipo"),
                 new ItemStack(Items.IRON_CHESTPLATE), b -> send("equipo"));
         gear.setTooltip(Tooltip.create(com.cristoree.rocco.client.Tr.t(travelling ? away : "Su armadura, su arma y su escudo. Arrastrá las cosas desde tu inventario.")));
         gear.active = !travelling;
         addRenderableWidget(gear);
-        target(this.left + PAD + quarter + GAP, fightTop, quarter, "Hostiles", Items.ZOMBIE_HEAD,
+        target(this.left + PAD + gearWidth + GAP, fightTop, targetWidth, "Hostiles", Items.ZOMBIE_HEAD,
                 com.cristoree.rocco.entity.RoccoCombat.HOSTILE, "Zombis, esqueletos, arañas y demás monstruos.");
-        target(this.left + PAD + 2 * (quarter + GAP), fightTop, quarter, "Pacíficos", Items.WHEAT,
+        target(this.left + PAD + gearWidth + GAP + targetWidth + GAP, fightTop, targetWidth, "Pacíficos", Items.WHEAT,
                 com.cristoree.rocco.entity.RoccoCombat.PEACEFUL, "Animales, aldeanos, gólems y peces (también tus mascotas).");
-        target(this.left + PAD + 3 * (quarter + GAP), fightTop, quarter, "Jugadores", Items.PLAYER_HEAD,
+        target(this.left + PAD + gearWidth + 3 * GAP + 2 * targetWidth, fightTop, targetWidth, "Jugadores", Items.PLAYER_HEAD,
                 com.cristoree.rocco.entity.RoccoCombat.PLAYERS, "Otros jugadores. A vos nunca te ataca.");
 
         // Si esta en medio de algo, al lado de lo que esta haciendo va el boton para cortarlo.
@@ -283,7 +285,7 @@ public class RoccoMenuScreen extends Screen
                 this.left + PAD + 1, fightLabel + 1, 0xFFFFFF);
         Component canAttack = com.cristoree.rocco.client.Tr.t("Puede atacar a:").withStyle(ChatFormatting.GRAY);
         int quarter = (this.panelWidth - 2 * PAD - 3 * GAP) / 4;
-        graphics.drawString(this.font, canAttack, this.left + PAD + quarter + GAP + 1, fightLabel + 1, 0xFFFFFF);
+        graphics.drawString(this.font, canAttack, this.left + PAD + quarter - 15 + GAP + 1, fightLabel + 1, 0xFFFFFF);
 
         int footerLine = this.top + this.panelHeight - PAD - 14 - ROW - 6;
         graphics.fill(this.left + PAD, footerLine, right, footerLine + 1, LINE);
@@ -329,13 +331,13 @@ public class RoccoMenuScreen extends Screen
         public void renderString(GuiGraphics graphics, Font font, int color)
         {
             graphics.renderItem(this.icon, getX() + 3, getY() + 2);
-            int room = getWidth() - 26;
+            int room = getWidth() - 23;
             String text = getMessage().getString();
             if (font.width(text) > room)
             {
                 text = font.plainSubstrByWidth(text, room - font.width("...")) + "...";
             }
-            graphics.drawString(font, text, getX() + 22, getY() + (getHeight() - 8) / 2, color);
+            graphics.drawString(font, text, getX() + 20, getY() + (getHeight() - 8) / 2, color);
         }
     }
 }

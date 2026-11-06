@@ -20,6 +20,7 @@ public final class PlantErrand extends Errand
     // Donde estaba al recibir la orden: despues de ir al cofre por semillas, vuelve a sembrar ahi.
     private final BlockPos center;
     private boolean fetched;
+    private boolean tillTried;
     private boolean queued;
     private int planted;
     private int missed;
@@ -47,6 +48,17 @@ public final class PlantErrand extends Errand
         List<BlockPos> spots = Crops.freeSpots(this.level, this.center, this.plant, RADIUS, this.count);
         if (spots.isEmpty())
         {
+            // Sin tierra arada pero con azada: la prepara el y despues siembra.
+            if (this.plant.soil() == Crops.Soil.FARMLAND && Tools.findHoe(this.rocco.inventory()) >= 0)
+            {
+                if (this.tillTried)
+                {
+                    return Status.FAILED;
+                }
+                this.tillTried = true;
+                delegate(new TillErrand(this.rocco, requester(), this.count));
+                return Status.RUNNING;
+            }
             say(switch (this.plant.soil())
             {
                 case FARMLAND -> "plant_no_farmland";

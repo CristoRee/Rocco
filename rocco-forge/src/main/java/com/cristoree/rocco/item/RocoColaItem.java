@@ -22,17 +22,24 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.function.Supplier;
 
-// La Roco Cola que te da Rocco. Se toma como una pocion, refresca (rapidez y prisa, 20 segundos) y
-// a los 2,5 segundos sale el eructo gigante (RoccoBurp).
+// La Roco Cola que te da Rocco. Tiene 2 tragos: llena -> a la mitad -> botella vacia, cada estado es un
+// item propio (sin NBT, asi se apilan). Se toma como una pocion, refresca (rapidez y prisa, 20 segundos)
+// y a los 2,5 segundos sale el eructo gigante (RoccoBurp).
 public final class RocoColaItem extends Item
 {
     private static final int USE_TICKS = 32;
     private static final int REFRESHED_TICKS = 20 * 20;
 
-    public RocoColaItem(Properties properties)
+    private final Supplier<Item> next;
+    private final String[] tips;
+
+    public RocoColaItem(Properties properties, Supplier<Item> next, String... tips)
     {
         super(properties);
+        this.next = next;
+        this.tips = tips;
     }
 
     @Override
@@ -64,17 +71,31 @@ public final class RocoColaItem extends Item
             player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, REFRESHED_TICKS, 0));
             RoccoBurp.drank(player);
         }
-        if (!(drinker instanceof Player player) || !player.getAbilities().instabuild)
-        {
-            stack.shrink(1);
-        }
         drinker.gameEvent(GameEvent.DRINK);
+        if (drinker instanceof Player player && player.getAbilities().instabuild)
+        {
+            return stack;
+        }
+        ItemStack after = new ItemStack(this.next.get());
+        stack.shrink(1);
+        if (stack.isEmpty())
+        {
+            return after;
+        }
+        // Tenia varias: las otras siguen llenas y la que tomo queda al lado.
+        if (drinker instanceof Player player && !player.getInventory().add(after))
+        {
+            player.drop(after, false);
+        }
         return stack;
     }
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag)
     {
-        tooltip.add(Component.translatable("tooltip.rocco.roco_cola").withStyle(ChatFormatting.GRAY));
+        for (String tip : this.tips)
+        {
+            tooltip.add(Component.translatable(tip).withStyle(ChatFormatting.GRAY));
+        }
     }
 }

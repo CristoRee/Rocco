@@ -96,6 +96,8 @@ public class RoccoMod
             else if (event.getTabKey() == CreativeModeTabs.FOOD_AND_DRINKS)
             {
                 event.accept(ModItems.ROCO_COLA);
+                event.accept(ModItems.ROCO_COLA_HALF);
+                event.accept(ModItems.ROCO_COLA_EMPTY);
             }
         }
     }

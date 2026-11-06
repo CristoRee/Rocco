@@ -215,6 +215,14 @@ tasks.named('processResources', ProcessResources).configure {
     // a cada variante (y el portugues de Brasil al de Portugal) al armar el mod.
     doLast {
         def lang = new File(destinationDir, 'assets/rocco/lang')
+        // Lo que le falta a un idioma, Minecraft lo saca de en_us: un texto sin su linea en castellano
+        // se veria en ingles. Las ayudas de la config (rocco.tip) salen de los comentarios del config.
+        def english = new groovy.json.JsonSlurper().parse(new File(lang, 'en_us.json'), 'UTF-8') as Map
+        def spanish = new groovy.json.JsonSlurper().parse(new File(lang, 'es_es.json'), 'UTF-8') as Map
+        def missing = english.keySet().findAll { !spanish.containsKey(it) && !it.startsWith('rocco.tip.') }
+        if (!missing.isEmpty()) {
+            throw new GradleException('Textos sin castellano en es_es.json: ' + missing.take(10))
+        }
         ['es_ar', 'es_cl', 'es_ec', 'es_mx', 'es_uy', 'es_ve'].each { code ->
             new File(lang, code + '.json').bytes = new File(lang, 'es_es.json').bytes
         }

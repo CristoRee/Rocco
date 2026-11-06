@@ -24,7 +24,7 @@ public final class OfflineRocco
     // ---------- ordenes ----------
 
     private static final Pattern NOT_FOLLOW = Pattern.compile("\\b(no me sigas|deja de seguirme|dejame solo|no vengas)\\b");
-    private static final Pattern STOP = Pattern.compile("\\b(basta|stop|cancela|para de|deja de|para ya)\\b|^\\s*para\\s*$");
+    private static final Pattern STOP = Pattern.compile("\\b(basta|stop|cancela|para de|deja de|para ya)\\b|^\\s*(para|parar|frena|frenar)\\s*$");
     // Sin "aca" ni "vamos": "que haces aca?" o "vamos a plantar" no son una orden de seguir.
     private static final Pattern FOLLOW = Pattern.compile("\\b(seguime|segui|sigueme|veni|veni aca|ven aqui|ven aca|ven conmigo|follow|follow me|come here)\\b");
     private static final Pattern PLANT = Pattern.compile("\\b(planta|plantar|plantame|plant|sembra|sembrar|siembra)\\w*");

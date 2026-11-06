@@ -2134,7 +2134,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             return;
         }
         boolean food = this.task == RoccoTask.FOOD_EAT || this.task == RoccoTask.FOOD_EAT_BAD;
-        if (food && (t == 10 || t == 18 || t == 26))
+        if (food && !this.currentJob.shown().isEmpty() && (t == 10 || t == 18 || t == 26))
         {
             net.minecraft.world.phys.Vec3 look = net.minecraft.world.phys.Vec3.directionFromRotation(0.0F, this.yBodyRot);
             serverLevel.sendParticles(new net.minecraft.core.particles.ItemParticleOption(

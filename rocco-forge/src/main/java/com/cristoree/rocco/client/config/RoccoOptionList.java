@@ -149,7 +149,7 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
     private static String tooltipOf(Option option, ForgeConfigSpec.ValueSpec spec)
     {
         String key = "rocco.tip." + String.join(".", option.value().getPath());
-        return I18n.exists(key) ? I18n.get(key) : spec.getComment();
+        return !com.cristoree.rocco.client.Tr.spanish() && I18n.exists(key) ? I18n.get(key) : spec.getComment();
     }
 
     @Nullable

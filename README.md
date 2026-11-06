@@ -117,7 +117,7 @@ Pasale un link a Rocco y lo pone: suena desde él (camina con la música, como u
 
 Su gaseosa favorita. Pedile "tomate una Roco Cola" (si le decís "coca", te corrige) y se toma una entera, con tapita voladora, tres tragos y un "¡aaah!". Muy de vez en cuando se toma una solo.
 
-Decile **"dame una Roco Cola"** y te da una a vos (una cada 5 minutos). Refresca (rapidez y prisa, 20 segundos) y a los 2,5 segundos sale un **eructo gigante**: un ventarrón con hojas que empuja a los mobs que tenés adelante, sin hacerles daño. Rocco tiene algo para decir al respecto.
+Decile **"dame una Roco Cola"** y te da una a vos (una cada 5 minutos). Tiene 2 tragos: llena, a la mitad y botella vacía. Cada trago refresca (rapidez y prisa, 20 segundos) y a los 2,5 segundos sale un **eructo gigante**: un ventarrón con hojas que empuja a los mobs que tenés adelante, sin hacerles daño. Rocco tiene algo para decir al respecto.
 
 ### Regalos y sorpresas
 
@@ -147,7 +147,7 @@ Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. Las �
 
 ## Voz y micrófono (opcional)
 
-- **Voz:** con tu clave de Fish Audio y el ID de la voz en **Config > Voz**, Rocco dice todo en voz alta con esa voz (lo que inventa la IA y también sus frases de siempre). Sin Fish Audio, las frases de siempre que tengan su audio grabado en el mod suenan igual, sin clave; y si Fish Audio falla (sin crédito o sin conexión), mientras tanto usa esas. La voz sale de la boca de Rocco y respeta el volumen "Voz/Habla" del juego.
+- **Voz:** con tu clave de Fish Audio y el ID de la voz en **Config > Voz**, Rocco dice todo en voz alta con esa voz (lo que inventa la IA y también sus frases de siempre). Sin Fish Audio, Rocco habla por escrito en el chat (sus sonidos y animaciones siguen igual). En un servidor, la clave y la voz son las del que lo hospeda. La voz sale de la boca de Rocco y respeta el volumen "Voz/Habla" del juego.
 - **Micrófono (Deepgram):** activalo en **Config > Micrófono** y poné tu clave. La tecla para hablar se cambia en **Config > Teclas** (por defecto, la V). Se puede usar manteniendo la tecla o en modo de detección de voz.
 
 ## Configuración

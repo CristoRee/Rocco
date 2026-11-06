@@ -20,6 +20,12 @@ import java.util.Locale;
 @Mod.EventBusSubscriber(modid = RoccoMod.MODID)
 public final class RoccoChatHandler
 {
+    private static final int REPLY_DELAY_TICKS = 2;
+
+    private record Heard(java.util.UUID player, String message, int dueTick) {}
+
+    private static final java.util.Queue<Heard> HEARD = new java.util.concurrent.ConcurrentLinkedQueue<>();
+
     @SubscribeEvent
     public static void onChat(ServerChatEvent event)
     {
@@ -35,6 +41,45 @@ public final class RoccoChatHandler
             return;
         }
 
+        // Forge dispara este evento en un hilo de fondo, y ahi no se puede tocar el mundo: los cofres
+        // se ven como si no existieran y puede romper cualquier cosa. Se atiende en el hilo del
+        // servidor, un par de ticks despues, asi la respuesta sale despues del mensaje del jugador.
+        HEARD.add(new Heard(player.getUUID(), message, player.server.getTickCount() + REPLY_DELAY_TICKS));
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(net.minecraftforge.event.TickEvent.ServerTickEvent event)
+    {
+        if (event.phase != net.minecraftforge.event.TickEvent.Phase.END)
+        {
+            return;
+        }
+        net.minecraft.server.MinecraftServer server = event.getServer();
+        Heard next;
+        while ((next = HEARD.peek()) != null && next.dueTick() <= server.getTickCount())
+        {
+            HEARD.poll();
+            // Si mientras tanto se fue o reaparecio, vale el jugador de ahora.
+            ServerPlayer player = server.getPlayerList().getPlayer(next.player());
+            if (player == null)
+            {
+                continue;
+            }
+            try
+            {
+                hear(player, next.message());
+            }
+            catch (RuntimeException e)
+            {
+                // Una frase rara no tiene que tirar el servidor.
+                RoccoMod.LOGGER.error("[Rocco] Error atendiendo lo que dijo {}", player.getGameProfile().getName(), e);
+            }
+        }
+    }
+
+    // Lo que dijo un jugador en el chat, ya en el hilo del servidor.
+    private static void hear(ServerPlayer player, String message)
+    {
         String name = RoccoCommonConfig.COMPANION_NAME.get().toLowerCase(Locale.ROOT);
         boolean named = message.toLowerCase(Locale.ROOT).contains(name);
 
@@ -154,16 +199,20 @@ public final class RoccoChatHandler
                 .getEntitiesOfClass(RoccoEntity.class, area,
                         rocco -> rocco.isAlive() && rocco.getRoccoState() == RoccoState.ACTIVE);
 
+        // Tu Rocco te escucha aunque el de otro jugador este mas cerca. Sin el tuyo, el mas cercano.
         RoccoEntity closest = null;
         double best = Double.MAX_VALUE;
+        boolean foundMine = false;
 
         for (RoccoEntity candidate : found)
         {
+            boolean mine = player.getUUID().equals(candidate.getOwnerId());
             double distance = candidate.distanceToSqr(player);
-            if (distance < best)
+            if ((mine && !foundMine) || (mine == foundMine && distance < best))
             {
                 best = distance;
                 closest = candidate;
+                foundMine = mine;
             }
         }
 

@@ -28,17 +28,23 @@
 - **Caras nuevas:** asombro, cantando y el "¡qué fresco!" de la Roco Cola. La IA puede usar la de asombro.
 
 ### Cambiado
+- **Roco Cola nueva:** ahora es igual a la botella de Rocco, en 3D, con su etiqueta. Tiene 2 tragos (llena, a la mitad y vacía) y cada trago refresca y trae su eructo. En el inventario se ve su ícono; en la mano, en el piso y en un marco, la botella.
+- **Voz:** el mod no trae frases grabadas. Sin clave de Fish Audio, Rocco habla por escrito. En un servidor, la clave y la voz son las del que lo hospeda.
 - **El inventario arranca con 27 lugares** (antes 36): ahora crece con las mochilas. Un Rocco con más cosas deja a sus pies lo que ya no le entra.
 - **"Cuidar la huerta" del menú ahora es "Cuidar la casa"** (huerta y animales). La huerta sola se sigue pidiendo por chat.
 - **La caja de Rocco ya no le sobra medio bloque:** ahora mide un bloque de alto (antes 1,3), así encaja con el modelo y pasa por huecos de un bloque. Enterrado, la caja es chiquita y a ras del montículo.
 - **Atado no se teletransporta:** con una rienda atada a un poste no aparece solo al lado tuyo ni vuela, nada o rema con vos. Para traerlo igual, `/rocco llamar` lo desata y lo trae. Se puede apagar en **Config > Movimiento > Teletransporte**.
 - **Pega más fuerte a piñas:** sin arma pega 2 (antes 1, como el jugador) y ya no espera de más entre golpe y golpe: un zombie le dura unos 7 segundos a piñas, y con espada mucho menos.
 - **Ya no es inmortal por defecto:** con la tumba, morirse ya no es perderlo. Las configs que tenían el valor viejo se actualizan solas.
-
 - **Tres idiomas:** la guía, el menú de Rocco, la configuración y sus ayudas están en español, inglés y portugués. El español regional (Argentina, Uruguay, Chile, México, etc.) ya no cae en inglés.
 - **Órdenes solo del dueño:** opción nueva (**Config > Rocco > Órdenes solo del dueño**) para que en multijugador solo su dueño le dé órdenes y abra su menú.
+
 ### Arreglado
-- Rocco ya sabe lo que acaba de hacer: lleva un registro de sus últimos actos (guardó, trajo, se frenó) que la IA ve, así no dice que no lo hizo.
+- **Las órdenes por chat se ejecutaban fuera del hilo del servidor:** al pedirle algo por chat, Rocco podía decir que no veía ningún cofre con el cofre al lado, y podían aparecer errores al azar. Ahora guarda, trae y trabaja igual por chat que desde el menú, y su respuesta sale después de tu mensaje.
+- **Multijugador:** tu Rocco te escucha aunque el de otro jugador esté más cerca.
+- **El menú y la configuración salían en inglés con el juego en español:** ahora se ven en español en todas sus variantes.
+- Con azada en la tapa, "plantá" ara primero en vez de pedirte una azada. "Parar" solo también lo frena.
+- Rocco ya sabe lo que acaba lo que acaba de hacer: lleva un registro de sus últimos actos (guardó, trajo, se frenó) que la IA ve, así no dice que no lo hizo.
 - Ya no se cuela en el chat la línea interna `#recordar`.
 - Cierra también las puertas de valla que ya estaban abiertas, y solo después de haber pasado.
 - Su expresión acompaña a cada frase mientras la dice (por ejemplo mewing al imitar), aunque llegue otro pedido después.
