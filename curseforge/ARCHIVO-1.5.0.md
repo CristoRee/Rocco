@@ -2,7 +2,7 @@
 
 **Nuevo**
 - Guía rápida cuando nace Rocco (se vuelve a ver con `/rocco tutorial`).
-- 6 mochilas que agrandan su inventario (de 27 hasta 216 lugares, en páginas), con su receta de mejora. También se abren con clic derecho en tu mano, y podés elegir cómo se ven en Rocco sin cambiar su capacidad.
+- 6 mochilas que agrandan su inventario (de 27 hasta 216 lugares, en páginas), con su receta de mejora. También se abren con clic derecho en tu mano, y cada una que se ponga queda como apariencia para elegir, sin cambiar la capacidad de la que lleve.
 - Regalos de Rocco: la Semillita y la Flor de la Amistad.
 - Se sube adelante tuyo en el caballo, y en tu lobo si le das permiso.
 - Roco Cola para vos: refresca y viene con un eructo gigante.

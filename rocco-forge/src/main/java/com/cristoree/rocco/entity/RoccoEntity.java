@@ -115,13 +115,16 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Volando, en el agua o en el barquito: que animacion de viaje tiene que verse.
     private static final EntityDataAccessor<Integer> DATA_MOTION =
             SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
-    // Que mochila lleva puesta (0 a 6): el modelo muestra esa.
     // Como se ve la mochila (0: la real; 1 a 6: esa, sea cual sea la que lleve). Solo apariencia.
     private static final EntityDataAccessor<Integer> DATA_BACKPACK_LOOK =
+            SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
+    // Las apariencias que ya puede elegir, un bit por mochila: la pantalla las muestra con esto.
+    private static final EntityDataAccessor<Integer> DATA_BACKPACK_LOOKS =
             SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
     // Esta bailando porque se lo pidieron: en cada juego suena su cancioncita.
     private static final EntityDataAccessor<Boolean> DATA_DANCE_SONG =
             SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.BOOLEAN);
+    // Que mochila lleva puesta (0 a 6): el modelo muestra esa.
     private static final EntityDataAccessor<Integer> DATA_BACKPACK =
             SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
     // Pensando la respuesta de la IA (solo despues de un ratito, para que no parpadee).
@@ -552,6 +555,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.entityData.define(DATA_MOTION, RoccoMotion.NONE.ordinal());
         this.entityData.define(DATA_BACKPACK, 0);
         this.entityData.define(DATA_BACKPACK_LOOK, 0);
+        this.entityData.define(DATA_BACKPACK_LOOKS, 0);
         this.entityData.define(DATA_DANCE_SONG, false);
         this.entityData.define(DATA_THINKING, false);
         this.entityData.define(DATA_GARDEN_LID, false);
@@ -1174,10 +1178,39 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         return this.entityData.get(DATA_BACKPACK_LOOK);
     }
 
+    // Se puede elegir una apariencia solo si ya se puso esa mochila alguna vez en este mundo. La
+    // real (0) siempre.
+    public boolean backpackLookUnlocked(int look)
+    {
+        return look == 0 || (look > 0 && look <= com.cristoree.rocco.item.BackpackItem.MAX_TIER
+                && (this.entityData.get(DATA_BACKPACK_LOOKS) & lookBit(look)) != 0);
+    }
+
+    private static int lookBit(int tier)
+    {
+        return tier > 0 ? 1 << (tier - 1) : 0;
+    }
+
+    private void unlockBackpackLooks(int looks)
+    {
+        this.entityData.set(DATA_BACKPACK_LOOKS, this.entityData.get(DATA_BACKPACK_LOOKS) | looks);
+        syncBackpackLooks();
+    }
+
+    // Lo desbloqueado es de su dueño en este mundo: lo guarda ahi y se trae lo que ya estuviera.
+    private void syncBackpackLooks()
+    {
+        if (this.ownerId != null && level() instanceof ServerLevel serverLevel)
+        {
+            this.entityData.set(DATA_BACKPACK_LOOKS, RoccoBackpackLooks.merge(serverLevel.getServer(), this.ownerId,
+                    this.entityData.get(DATA_BACKPACK_LOOKS)));
+        }
+    }
+
     public void setBackpackLook(int look)
     {
         int clean = net.minecraft.util.Mth.clamp(look, 0, com.cristoree.rocco.item.BackpackItem.MAX_TIER);
-        if (clean == backpackLook())
+        if (clean == backpackLook() || !backpackLookUnlocked(clean))
         {
             return;
         }
@@ -1275,6 +1308,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.backpack = worn;
         this.entityData.set(DATA_BACKPACK, tier);
         this.inventory.resize(com.cristoree.rocco.item.BackpackItem.slotsFor(tier));
+        unlockBackpackLooks(lookBit(tier));
         CompoundTag tag = worn.getTag();
         if (tag == null || !tag.contains("Items"))
         {
@@ -1409,9 +1443,19 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         Entity vehicle = getVehicle();
         if (vehicle instanceof net.minecraft.world.entity.animal.horse.AbstractHorse horse)
         {
+            // Al saltar el caballo se para de manos: su lomo gira alrededor de las ancas y el asiento
+            // gira con el, en el mismo punto que lo dibuja el juego. Si no, el lomo le pasa por adentro.
+            // Ademas se corre un poco hacia el cuello, porque el jugador se va para atras y lo aplastaria.
+            float stand = horse.getStandAnim(1.0F);
+            double rear = Math.toRadians(stand * HORSE_REAR_DEGREES);
+            double cos = Math.cos(rear);
+            double sin = Math.sin(rear);
+            double along = HORSE_SEAT_FROM_HIP_FORWARD + HORSE_SEAT_SLIDE * stand;
+            double forward = HORSE_HIP_FORWARD + along * cos - HORSE_SEAT_FROM_HIP_UP * sin;
+            double up = HORSE_HIP_UP + along * sin + HORSE_SEAT_FROM_HIP_UP * cos;
             // Las medidas son para un caballo adulto: el burro y la mula son mas chicos.
             double size = horse.getPassengersRidingOffset() / HORSE_SEAT_HEIGHT;
-            seatOn(horse, 0.406D * size, 1.375D * size);
+            seatOn(horse, forward * size, up * size);
         }
         else if (vehicle instanceof net.minecraft.world.entity.animal.Wolf wolf)
         {
@@ -1420,6 +1464,21 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     }
 
     private static final double HORSE_SEAT_HEIGHT = 1.6D * 0.75D;
+    // El asiento es 0.406 adelante y 1.375 arriba del caballo. El lomo gira alrededor de las ancas:
+    // el punto (0, 11, 5) del modelo del juego, que se dibuja a escala 1.1.
+    private static final double HORSE_HIP_FORWARD = -5.0D / 16.0D * 1.1D;
+    private static final double HORSE_HIP_UP = 13.0D / 16.0D * 1.1D;
+    private static final double HORSE_SEAT_FROM_HIP_FORWARD = 0.406D - HORSE_HIP_FORWARD;
+    private static final double HORSE_SEAT_FROM_HIP_UP = 1.375D - HORSE_HIP_UP;
+    private static final float HORSE_REAR_DEGREES = 45.0F;
+    private static final double HORSE_SEAT_SLIDE = 0.15D;
+
+    // Cuanto esta parado de manos el caballo que monta: de 0 a 1 (0 si no monta ninguno).
+    public float horseStand(float partialTick)
+    {
+        return getVehicle() instanceof net.minecraft.world.entity.animal.horse.AbstractHorse horse
+                ? horse.getStandAnim(partialTick) : 0.0F;
+    }
 
     private void seatOn(LivingEntity vehicle, double forward, double up)
     {
@@ -1509,6 +1568,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     public void setOwnerId(@Nullable UUID ownerId)
     {
         this.ownerId = ownerId;
+        syncBackpackLooks();
     }
 
     @Nullable
@@ -4277,6 +4337,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             tag.put("Backpack", this.backpack.save(new CompoundTag()));
         }
         tag.putInt("BackpackLook", backpackLook());
+        tag.putInt("BackpackLooks", this.entityData.get(DATA_BACKPACK_LOOKS));
         tag.putLong("NextColaGift", this.nextColaGift);
         if (!this.allowedWolves.isEmpty())
         {
@@ -4377,6 +4438,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             this.entityData.set(DATA_BACKPACK, tier);
             this.inventory.resize(com.cristoree.rocco.item.BackpackItem.slotsFor(tier));
         }
+        // La que tiene puesta cuenta aunque el guardado sea de antes de que existiera el desbloqueo.
+        this.entityData.set(DATA_BACKPACK_LOOKS, tag.getInt("BackpackLooks") | lookBit(backpackTier()));
         if (tag.contains("Inventory"))
         {
             this.inventory.fromTag(tag.getList("Inventory", 10));
@@ -4460,6 +4523,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (tag.hasUUID("Owner"))
         {
             this.ownerId = tag.getUUID("Owner");
+        }
+        syncBackpackLooks();
+        if (!backpackLookUnlocked(backpackLook()))
+        {
+            this.entityData.set(DATA_BACKPACK_LOOK, 0);
         }
 
         if (tag.contains("DeathDim"))

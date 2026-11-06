@@ -320,6 +320,25 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
             poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-pitch));
             poseStack.translate(0.0F, -center, 0.0F);
         }
+        // En el caballo parado de manos se echa para atras: poco, abrazado al cuello, porque si no su
+        // cabeza queda adentro de la del jugador. Para el que lo monta en primera persona se acuesta
+        // sobre el lomo: si no, le taparia toda la vista durante el salto.
+        float stand = animatable.horseStand(partialTick);
+        if (stand > 0.0F)
+        {
+            float lean = riderLooksOverHim(animatable) ? HORSE_LEAN_FOR_RIDER : HORSE_LEAN;
+            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(stand * lean));
+        }
+    }
+
+    private static final float HORSE_LEAN = 10.0F;
+    private static final float HORSE_LEAN_FOR_RIDER = 50.0F;
+
+    private static boolean riderLooksOverHim(RoccoEntity rocco)
+    {
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft.player != null && minecraft.getCameraEntity() == minecraft.player
+                && minecraft.options.getCameraType().isFirstPerson() && minecraft.player.getVehicle() == rocco.getVehicle();
     }
 
     @Override

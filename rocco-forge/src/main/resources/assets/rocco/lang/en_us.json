@@ -831,5 +831,7 @@
   "rocco.setup.personality.custom": "Custom: you set it up in the options.",
   "rocco.menu.equipment.short": "Gear",
   "rocco.setup.download": "Download",
-  "Solo cambia cómo se ve, no su capacidad.": "Only changes the look, not its capacity."
+  "Solo cambia cómo se ve, no su capacidad.": "Only changes the look, not its capacity.",
+  "Se desbloquean al ponerse cada mochila.": "They unlock as he wears each backpack.",
+  "Bloqueada: se desbloquea la primera vez que Rocco se ponga esta mochila.": "Locked: it unlocks the first time Rocco wears this backpack."
 }

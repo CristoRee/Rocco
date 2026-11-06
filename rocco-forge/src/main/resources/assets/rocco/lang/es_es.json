@@ -681,5 +681,7 @@
   "rocco.setup.personality.custom": "Personalizada: la armaste en la configuración.",
   "rocco.menu.equipment.short": "Equipo",
   "rocco.setup.download": "Descargar",
-  "Solo cambia cómo se ve, no su capacidad.": "Solo cambia cómo se ve, no su capacidad."
+  "Solo cambia cómo se ve, no su capacidad.": "Solo cambia cómo se ve, no su capacidad.",
+  "Se desbloquean al ponerse cada mochila.": "Se desbloquean al ponerse cada mochila.",
+  "Bloqueada: se desbloquea la primera vez que Rocco se ponga esta mochila.": "Bloqueada: se desbloquea la primera vez que Rocco se ponga esta mochila."
 }

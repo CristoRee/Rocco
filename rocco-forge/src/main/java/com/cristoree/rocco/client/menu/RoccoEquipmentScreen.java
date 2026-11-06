@@ -89,7 +89,7 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
         {
             textWidth = Math.max(textWidth, this.font.width(lookStack(tier).getHoverName()));
         }
-        this.lookWidth = Math.max(textWidth + 16 + 12 + 2 * LOOK_PAD, this.font.width(Tr.t("Apariencia de la mochila")) + 2 * LOOK_PAD + 2);
+        this.lookWidth = Math.max(textWidth + 19 + 12 + 2 * LOOK_PAD,this.font.width(Tr.t("Apariencia de la mochila")) + 2 * LOOK_PAD + 2);
         this.lookHeight = LOOK_TOP + (BackpackItem.MAX_TIER + 1) * LOOK_ROW + LOOK_FOOT;
         if (this.lookOpen && this.leftPos + this.imageWidth + 3 + this.lookWidth + 2 > this.width)
         {
@@ -129,6 +129,13 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
         return row >= 0 && row <= BackpackItem.MAX_TIER ? row : -1;
     }
 
+    // Rocco todavia no se puso esa mochila en este mundo.
+    private boolean lookLocked(int look)
+    {
+        RoccoEntity rocco = this.menu.rocco();
+        return rocco != null && !rocco.backpackLookUnlocked(look);
+    }
+
     private void pickLook(int look)
     {
         RoccoEntity rocco = this.menu.rocco();
@@ -144,7 +151,7 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
         if (insideLook(mouseX, mouseY))
         {
             int row = lookRowAt(mouseX, mouseY);
-            if (row >= 0 && button == 0)
+            if (row >= 0 && button == 0 && !lookLocked(row))
             {
                 pickLook(row);
             }
@@ -199,6 +206,7 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
         int hover = lookRowAt(mouseX, mouseY);
         int x = this.lookX;
         int y = this.lookY;
+        boolean anyUnlocked = false;
 
         // Por encima de los objetos de la ventana, por si en una pantalla angosta queda encimado.
         graphics.pose().pushPose();
@@ -210,11 +218,13 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
         {
             int rowY = y + LOOK_TOP + row * LOOK_ROW;
             boolean selected = row == look;
+            boolean locked = lookLocked(row);
+            anyUnlocked |= row > 0 && !locked;
             if (selected)
             {
                 graphics.fill(x + 3, rowY, x + this.lookWidth - 3, rowY + LOOK_ROW, 0xFF9FB48A);
             }
-            else if (row == hover)
+            else if (row == hover && !locked)
             {
                 graphics.fill(x + 3, rowY, x + this.lookWidth - 3, rowY + LOOK_ROW, 0xFFB4B4B4);
             }
@@ -222,17 +232,31 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
             if (!icon.isEmpty())
             {
                 graphics.renderItem(icon, x + LOOK_PAD, rowY + 1);
+                if (locked)
+                {
+                    // Apagado, por encima del objeto.
+                    graphics.pose().pushPose();
+                    graphics.pose().translate(0.0F, 0.0F, 200.0F);
+                    graphics.fill(x + LOOK_PAD, rowY + 1, x + LOOK_PAD + 16, rowY + 17, 0xAAC6C6C6);
+                    graphics.pose().popPose();
+                }
             }
             Component name = row > 0 ? lookStack(row).getHoverName() : Tr.t("Su mochila real");
-            graphics.drawString(this.font, name, x + LOOK_PAD + 19, rowY + 5, selected ? 0x1E3A12 : 0x404040, false);
+            int color = selected ? 0x1E3A12 : locked ? 0x6E6E6E : 0x404040;
+            graphics.drawString(this.font, name, x + LOOK_PAD + 19, rowY + 5, color, false);
             if (selected)
             {
                 graphics.drawString(this.font, "✔", x + this.lookWidth - LOOK_PAD - 7, rowY + 5, 0x1E3A12, false);
             }
+            else if (locked)
+            {
+                drawLock(graphics, x + this.lookWidth - LOOK_PAD - 7, rowY + 5);
+            }
         }
 
         // Lo unico que hay que saber, en dos renglones.
-        Component note = Tr.t(real > 0 ? "Solo cambia cómo se ve, no su capacidad."
+        Component note = Tr.t(!anyUnlocked ? "Se desbloquean al ponerse cada mochila."
+                : real > 0 ? "Solo cambia cómo se ve, no su capacidad."
                 : "Se va a ver cuando se ponga una mochila.");
         List<FormattedCharSequence> lines = this.font.split(note, this.lookWidth - 2 * LOOK_PAD);
         int noteY = y + this.lookHeight - LOOK_FOOT + 3;
@@ -240,7 +264,24 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
         {
             graphics.drawString(this.font, lines.get(i), x + LOOK_PAD, noteY + i * 10, 0x555555, false);
         }
+        // Por encima del panel, que ya esta bastante arriba.
+        if (hover >= 0 && lookLocked(hover))
+        {
+            graphics.renderTooltip(this.font, this.font.split(
+                    Tr.t("Bloqueada: se desbloquea la primera vez que Rocco se ponga esta mochila."), 170), mouseX, mouseY);
+        }
         graphics.pose().popPose();
+    }
+
+    // Un candadito dibujado a mano, de 7 por 8: el del tipo de letra del juego no esta en todos los idiomas.
+    private static void drawLock(GuiGraphics graphics, int x, int y)
+    {
+        int color = 0xFF6E6E6E;
+        graphics.fill(x + 2, y, x + 5, y + 1, color);
+        graphics.fill(x + 1, y + 1, x + 2, y + 3, color);
+        graphics.fill(x + 5, y + 1, x + 6, y + 3, color);
+        graphics.fill(x, y + 3, x + 7, y + 8, color);
+        graphics.fill(x + 3, y + 5, x + 4, y + 7, PANEL);
     }
 
     private static void drawPanel(GuiGraphics graphics, int x, int y, int width, int height)
