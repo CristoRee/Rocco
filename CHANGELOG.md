@@ -3,6 +3,9 @@
 ## 1.5.0
 
 ### Nuevo
+- **Abrir la mochila en la mano:** clic derecho con la mochila en la mano y guardás o sacás cosas. Tiene los mismos lugares que le suma a Rocco, y si te morís se te cae con lo que lleva. Si se destruye en el piso, lo de adentro queda ahí.
+- **Apariencia de la mochila:** en **Equipo**, un botón nuevo deja elegir cómo se ve la mochila en Rocco. Es solo apariencia: la capacidad sigue siendo la de la real y al sacársela te da la real. Queda guardada hasta que la cambies o la anules.
+- **Cancioncitas para bailar:** cuando le pedís que baile, por chat o desde el menú, suena una de 3 melodías al azar, al ritmo del baile. No suenan si baila por un tocadiscos o con su música puesta. Se apagan en **Configuración > Música**.
 - **Guía rápida:** la primera vez que nace tu Rocco aparece una guía de 7 páginas con lo más importante, con Rocco moviéndose al lado. Se vuelve a ver con `/rocco tutorial`, con el botón **?** de su menú o con una tecla en **Controles > Rocco**.
 - **Mochilas:** 6 mochilas que Rocco lleva puestas y le agrandan el inventario. Arranca con 3 filas (27 lugares) y la mochila N le suma N filas: 36, 54, 81, 117, 162 y 216 lugares, en páginas de hasta 6x9 con botones arriba para pasar de una a otra. Clic derecho con la mochila para ponérsela, "Quitar mochila" en su menú para sacársela. Lo que va en esos lugares viaja adentro de la mochila, y mejorarla en la mesa de crafteo lo conserva. Cada una se ve en su espalda.
 - **Regalos de Rocco:** la **Semillita**, cuando se hacen amigos (con ella se fabrica la primera mochila), y la **Flor de la Amistad**, dos días de juego juntos después de matar al Ender Dragon, al Wither y al Warden (con ella se fabrica la última). Con su animación y sus frases.
@@ -28,6 +31,8 @@
 - **Caras nuevas:** asombro, cantando y el "¡qué fresco!" de la Roco Cola. La IA puede usar la de asombro.
 
 ### Cambiado
+- **Bienvenida nueva:** una sola pantalla, sin barra para bajar, con lo esencial: la clave de IA, la voz y la personalidad. El micrófono pasó a **Más opciones**, con su botón de prueba.
+- Si Rocco se muere para siempre (`/kill`, el vacío o el modo sin tumba), su mochila vuelve a su dueño si está conectado.
 - **Roco Cola nueva:** ahora es igual a la botella de Rocco, en 3D, con su etiqueta. Tiene 2 tragos (llena, a la mitad y vacía) y cada trago refresca y trae su eructo. En el inventario se ve su ícono; en la mano, en el piso y en un marco, la botella.
 - **Voz:** el mod no trae frases grabadas. Sin clave de Fish Audio, Rocco habla por escrito. En un servidor, la clave y la voz son las del que lo hospeda.
 - **El inventario arranca con 27 lugares** (antes 36): ahora crece con las mochilas. Un Rocco con más cosas deja a sus pies lo que ya no le entra.

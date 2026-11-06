@@ -310,6 +310,7 @@ public final class RoccoConfigCategories
                         opt(client, RoccoClientConfig.MUSIC_VOLUME, "Volumen de su música"),
                         opt(common, RoccoCommonConfig.MUSIC_SING, "Canta y baila con su música"),
                         opt(client, RoccoClientConfig.MUSIC_BEAT_SYNC, "Al ritmo de la canción"),
+                        opt(client, RoccoClientConfig.DANCE_SONG, "Cancioncita al bailar"),
                         opt(common, RoccoCommonConfig.MUSIC_DANCE_JUKEBOX, "Baila con el tocadiscos")),
                 group("Regalos",
                         opt(common, RoccoCommonConfig.RETURN_GIFTS_ENABLED, "Regalos al volver"),

@@ -91,13 +91,13 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         boolean speaking = rocco.isTalking() || RoccoEntity.SPEAKING_HOOK.test(rocco) || rocco.getActiveTask().singing();
         hide("mouth_talk", !speaking && !rocco.getActiveTask().consuming());
         hide("plant", !rocco.isPlantVisible());
-        // La mochila que lleva puesta, una sola. No se ve plantado, dormido, en la tumba, en el
+        // La mochila que lleva puesta (o la apariencia elegida), una sola. No se ve plantado, dormido, en la tumba, en el
         // barquito ni en el caballo (ahi chocaria con tu pecho).
         boolean carries = !rocco.isPlantVisible() && !rocco.getRoccoState().isInert() && !rocco.getRoccoPose().isAsleep()
                 && rocco.getMotion().kind() != com.cristoree.rocco.entity.RoccoMotion.Kind.BOAT && !rocco.getMotion().onHorse();
         for (int tier = 1; tier <= com.cristoree.rocco.item.BackpackItem.MAX_TIER; tier++)
         {
-            hide(BACKPACKS[tier - 1], !carries || rocco.backpackTier() != tier);
+            hide(BACKPACKS[tier - 1], !carries || rocco.shownBackpack() != tier);
         }
         // Las animaciones lo dejan en escala 0, pero si alguna no lo toca asomaria por arriba.
         hide("garden", !rocco.showsGarden());

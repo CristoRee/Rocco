@@ -100,6 +100,8 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> BACKPACK_CLOSE = register("backpack_close");
     public static final RegistryObject<SoundEvent> GIFT_SEED = register("gift_seed");
     public static final RegistryObject<SoundEvent> GIFT_FLOWER = register("gift_flower");
+    // Las cancioncitas del baile pedido: un evento con tres, el juego elige una cada vez.
+    public static final RegistryObject<SoundEvent> DANCE_MUSIC = register("dance_music");
 
     public static void register(IEventBus modEventBus)
     {

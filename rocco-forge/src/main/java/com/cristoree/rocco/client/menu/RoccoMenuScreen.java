@@ -122,7 +122,7 @@ public class RoccoMenuScreen extends Screen
 
         column(2, List.of(
                 new Entry("Cebame un mate", Items.FLOWER_POT, travelling ? away : "Ceba y te pasa el mate. Lo tomás y se lo devolvés con clic derecho.", "cebar_mate", !travelling, null),
-                new Entry("Bailá", Items.JUKEBOX, travelling ? away : "Se pone a bailar tarareando.", "bailar", !travelling, null),
+                new Entry("Bailá", Items.JUKEBOX, travelling ? away : "Se pone a bailar con una de sus cancioncitas.", "bailar", !travelling, null),
                 has(RoccoMenu.QUIET)
                         ? order("Charlá más", Items.BELL, "Vuelve a comentar cosas por su cuenta, y más seguido.", "charlar")
                         : order("Callate un rato", Items.BELL, "No habla por su cuenta por un buen rato. Si le hablás, contesta igual.", "callar"),

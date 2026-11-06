@@ -37,7 +37,7 @@ Se le habla por el chat (o por micrófono). Algunos ejemplos:
 | "encantame este pico" / "...con eficiencia 5" | Una vez por día: al azar como una mesa de encantamientos, o solo el encantamiento que pidas. |
 | "tomate un mate" | Ceba y se toma unos mates. También lo hace solo cuando estás tranquilo en tu casa. |
 | "pasame un mate" | Te ceba uno y te lo ofrece: clic derecho para agarrarlo, lo tomás en tres sorbos y se lo devolvés con clic derecho para que te cebe otro. Si no lo agarrás, se lo toma él. |
-| "bailá", "aplaudí", "festejá" | Baila (dos bailes nuevos en bucle, de 8 segundos cada vuelta), aplaude o salta con confeti. Solo, festeja tus logros y baila cuando estás tranquilo. Si suena un disco en un tocadiscos cerca, va y baila hasta que se termina. |
+| "bailá", "aplaudí", "festejá" | Baila (dos bailes nuevos en bucle, de 8 segundos cada vuelta) con una de sus 3 cancioncitas (no suenan si hay un disco o su música puesta), aplaude o salta con confeti. Solo, festeja tus logros y baila cuando estás tranquilo. Si suena un disco en un tocadiscos cerca, va y baila hasta que se termina. |
 | "poné esto: https://..." | Pone la música de un link y la canta y la baila al ritmo de la canción. Ver **Música** abajo. |
 | "esta es mi casa" / "llevame a casa" | Recuerda lugares y te guía hasta ellos. |
 | "dame una Roco Cola" | Te da una bien helada. Tomala y mirá lo que pasa. Ver **Roco Cola** abajo. |
@@ -61,7 +61,9 @@ Clic derecho sobre Rocco abre su tapa: un inventario de 27 lugares, que crece co
 
 - **10 corazones:** se cura solo medio corazón cada 1,5 segundos (a oscuras, más lento) y sus corazones se ven sobre su cabeza mientras le falte vida.
 - **Come y toma pociones:** la comida le da saciedad y se cura más rápido un rato. En el menú de **Equipo** elegís si come solo cuando está lastimado, si toma pociones y si se come manzanas doradas en apuros. Por chat lo hace cuando se lo pidas, y también le podés dar de comer en la mano (clic derecho con la comida o la poción). Come a mordiscos y toma la poción con su animación, y pone cara de asco si es algo feo.
-- **Si se muere:** hace su caída, suelta lo que llevaba y a los 15 segundos reaparece **enterradito** cerca tuyo. Hacé clic derecho en el montículo y sale de un salto. Si no lo desenterrás, a los 5 minutos la tumba se muda a tu punto de reaparición. Se puede elegir que muera para siempre o que sea inmortal (**Config > Vida y rutina**).
+- **Abrirla en tu mano:** clic derecho con la mochila en la mano. Sus lugares son los mismos que le va a sumar a Rocco. Si te morís, se te cae con lo que lleva, como cualquier cosa de tu inventario.
+- **Si Rocco se muere:** no pierde la mochila que tiene puesta. Lo que llevaba en el inventario cae al piso, salvo con el poder del cofre de ender.
+- **Elegir cómo se ve:** en **Equipo**, el botón con el ícono de la mochila abre **Apariencia de la mochila**. Elegí una y se ve esa, con cualquier mochila que le pongas, pero la capacidad sigue siendo la de la real y al sacársela te da la real. Tocá la elegida de nuevo o **Su mochila real** para anularla.
 - **Traerlo siempre:** **Mods > Rocco > Config > Traer a Rocco**, una tecla en **Controles > Rocco** (sin asignar de fábrica) o `/rocco llamar`.
 - **El poder del cofre de ender:** dale un cofre de ender (o ponelo cerca para que se lo coma) y desde ahí no pierde sus cosas al morir.
 
@@ -189,7 +191,7 @@ La primera vez que nace un Rocco tuyo aparece una guía de 7 páginas con lo má
 
 ## Bienvenida
 
-La primera vez que abrís el juego aparece una pantalla para dejar a Rocco listo: la clave de IA (con un botón para probarla), la voz, el micrófono, la tecla para hablarle y la personalidad. Se puede volver a abrir con `/rocco setup` o desde la config.
+La primera vez que abrís el juego aparece una sola pantalla con lo esencial: la clave de IA (con un botón para probarla), la voz y la personalidad. Todo es opcional: Rocco funciona igual sin nada de eso. **Más opciones** lleva a toda la configuración, donde también están el micrófono y su botón de prueba. Se vuelve a abrir con `/rocco setup` o desde la config.
 
 ## Privacidad y servicios externos
 

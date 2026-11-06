@@ -21,6 +21,7 @@ public final class RoccoClientConfig
     public static final ForgeConfigSpec.BooleanValue MUSIC_LISTEN;
     public static final ForgeConfigSpec.DoubleValue MUSIC_VOLUME;
     public static final ForgeConfigSpec.BooleanValue MUSIC_BEAT_SYNC;
+    public static final ForgeConfigSpec.BooleanValue DANCE_SONG;
 
     // input
     public static final ForgeConfigSpec.ConfigValue<String> MIC_DEVICE;
@@ -84,6 +85,9 @@ public final class RoccoClientConfig
         MUSIC_BEAT_SYNC = b
                 .comment("Rocco canta y baila al ritmo de la cancion (calcula el ritmo mientras suena).")
                 .define("musicBeatSync", true);
+        DANCE_SONG = b
+                .comment("Cuando le pedis que baile, suena una cancioncita (el volumen es el de \"Discos\").")
+                .define("danceSong", true);
         b.pop();
 
         b.comment("Microfono. La tecla para hablarle se cambia en Opciones > Controles.").push("input");

@@ -19,11 +19,11 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, entien
 - **Si se muere, vuelve:** a los 15 segundos reaparece enterradito cerca tuyo. Con un cofre de ender gana el poder de no perder nunca sus cosas.
 - **Come y se cura:** se cura solo con el tiempo, más rápido después de comer, y si lo dejás toma pociones y se come manzanas doradas en apuros.
 - **Pone música:** pasale un link y suena desde él mientras la canta y la baila al ritmo. Y si suena un tocadiscos cerca, va a bailar.
-- **Mochilas:** 6 mochilas que se fabrican en orden y le agrandan el inventario hasta 216 lugares. La primera empieza con un regalo suyo cuando se hacen amigos; la última, con otro que solo llega después de las grandes aventuras.
+- **Mochilas:** 6 mochilas que se fabrican en orden y le agrandan el inventario hasta 216 lugares. La primera empieza con un regalo suyo cuando se hacen amigos; la última, con otro que solo llega después de las grandes aventuras. También se abren con clic derecho en tu mano, y podés elegir cómo se ven en Rocco.
 - **A caballo:** se sube adelante tuyo. Y en tu lobo, si le das permiso.
 - **Roco Cola:** su gaseosa favorita (y no le digas Coca Cola). Te convida una, y lo que viene después empuja a los mobs.
 - **Regalos:** si te vas un rato, cuando volvés te dejó cosas que juntó. Y de vez en cuando te regala alguna rareza.
-- **Voz y micrófono (opcional):** habla en voz alta con Fish Audio, imita voces de personajes y te escucha con Deepgram.
+- **Voz y micrófono (opcional):** habla en voz alta con Fish Audio, imita voces de personajes y te escucha con Deepgram. Sin clave de Fish Audio habla por escrito. En un servidor, la clave y la voz son las de quien lo hospeda.
 
 ## 📦 Requisitos
 

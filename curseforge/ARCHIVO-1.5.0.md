@@ -2,14 +2,14 @@
 
 **Nuevo**
 - Guía rápida cuando nace Rocco (se vuelve a ver con `/rocco tutorial`).
-- 6 mochilas que agrandan su inventario (de 27 hasta 216 lugares, en páginas), con su receta de mejora.
+- 6 mochilas que agrandan su inventario (de 27 hasta 216 lugares, en páginas), con su receta de mejora. También se abren con clic derecho en tu mano, y podés elegir cómo se ven en Rocco sin cambiar su capacidad.
 - Regalos de Rocco: la Semillita y la Flor de la Amistad.
 - Se sube adelante tuyo en el caballo, y en tu lobo si le das permiso.
 - Roco Cola para vos: refresca y viene con un eructo gigante.
 - Cuidar la casa: se queda mientras explorás, cosecha, esquila, hace criar a los animales hasta un tope, saca los que sobran, junta lo que dejan y guarda todo. La casa sigue cargada aunque estés lejos, y al volver te cuenta qué hizo.
 - Te dice dónde guardó las cosas.
 - Música desde links: Rocco pone la canción, suena desde él y la canta y la baila al ritmo. Archivos de audio (MP3, OGG...), radios por internet, Bandcamp y Twitch. En multijugador todos escuchan lo mismo a la vez.
-- Dos bailes nuevos en bucle, y baila cuando suena un tocadiscos cerca.
+- Dos bailes nuevos en bucle, con 3 cancioncitas cuando se lo pedís, y baila cuando suena un tocadiscos cerca.
 - Snorkel nuevo.
 - Armaduras con un estilo para cada material (coronita de oro, cuerno de unicornio de diamante, orejitas y colita de gato de netherite, pluma de hierro, moño de cota de malla, margarita de cuero que se tiñe, caparazón de tortuga).
 - Armas 3D: espada y hacha de cada material, tridente, arco, ballesta y escudo.

@@ -115,12 +115,24 @@ public class RoccoEquipmentMenu extends AbstractContainerMenu
         return this.consume.get();
     }
 
+    // Los botones de apariencia de la mochila: este numero mas la apariencia (0 es la real).
+    public static final int LOOK_BUTTON = 10;
+
     // Los botones de la derecha (0 comer solo, 1 pociones, 2 manzanas doradas): prenden o apagan
     // lo que puede usar solo. Lo que le pidas por chat lo hace igual.
     @Override
     public boolean clickMenuButton(Player player, int id)
     {
-        if (this.rocco == null || id < 0 || id > 2 || !stillValid(player))
+        if (this.rocco == null || !stillValid(player))
+        {
+            return false;
+        }
+        if (id >= LOOK_BUTTON && id <= LOOK_BUTTON + com.cristoree.rocco.item.BackpackItem.MAX_TIER)
+        {
+            this.rocco.setBackpackLook(id - LOOK_BUTTON);
+            return true;
+        }
+        if (id < 0 || id > 2)
         {
             return false;
         }

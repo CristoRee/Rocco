@@ -70,6 +70,17 @@ public class RoccoInventoryScreen extends AbstractContainerScreen<RoccoInventory
     {
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
+        // La mochila abierta queda oscurecida: no se puede mover mientras este abierta.
+        net.minecraft.world.inventory.Slot held = this.menu.heldSlot();
+        if (held != null)
+        {
+            graphics.pose().pushPose();
+            graphics.pose().translate(0.0F, 0.0F, 300.0F);
+            int slotX = this.leftPos + held.x;
+            int slotY = this.topPos + held.y;
+            graphics.fill(slotX, slotY, slotX + 16, slotY + 16, 0x80000000);
+            graphics.pose().popPose();
+        }
         renderTooltip(graphics, mouseX, mouseY);
     }
 

@@ -32,6 +32,7 @@ public final class RoccoParticleFx
         RoccoEntity.SPEAKING_HOOK = rocco -> com.cristoree.rocco.client.voice.VoicePlayback.isSpeaking(rocco.getId());
         RoccoEntity.VOICE_FACE_HOOK = rocco -> com.cristoree.rocco.client.voice.VoicePlayback.spokenFace(rocco.getId());
         RoccoEntity.BEAT_HOOK = rocco -> com.cristoree.rocco.client.music.RoccoMusicClient.bpm(rocco.getId());
+        RoccoEntity.DANCE_SONG_HOOK = com.cristoree.rocco.client.music.RoccoDanceMusic::start;
     }
 
     static void rememberLocator(RoccoEntity rocco, String name, Vec3 position)

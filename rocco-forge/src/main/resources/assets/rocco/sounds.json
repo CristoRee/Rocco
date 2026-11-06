@@ -427,5 +427,13 @@
         "attenuation_distance": 48
       }
     ]
+  },
+  "dance_music": {
+    "subtitle": "subtitles.rocco.dance_music",
+    "sounds": [
+      { "name": "rocco:dance_music_1", "stream": true },
+      { "name": "rocco:dance_music_2", "stream": true },
+      { "name": "rocco:dance_music_3", "stream": true }
+    ]
   }
 }

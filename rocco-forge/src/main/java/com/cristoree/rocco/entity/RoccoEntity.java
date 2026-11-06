@@ -116,6 +116,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     private static final EntityDataAccessor<Integer> DATA_MOTION =
             SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
     // Que mochila lleva puesta (0 a 6): el modelo muestra esa.
+    // Como se ve la mochila (0: la real; 1 a 6: esa, sea cual sea la que lleve). Solo apariencia.
+    private static final EntityDataAccessor<Integer> DATA_BACKPACK_LOOK =
+            SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
+    // Esta bailando porque se lo pidieron: en cada juego suena su cancioncita.
+    private static final EntityDataAccessor<Boolean> DATA_DANCE_SONG =
+            SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> DATA_BACKPACK =
             SynchedEntityData.defineId(RoccoEntity.class, EntityDataSerializers.INT);
     // Pensando la respuesta de la IA (solo despues de un ratito, para que no parpadee).
@@ -239,6 +245,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Lo mismo para el audio, que solo existe en el cliente: si su voz esta sonando (la boca se
     // mueve con el audio de verdad) y el ritmo de la musica que esta tocando (0 si no se sabe).
     public static java.util.function.Predicate<RoccoEntity> SPEAKING_HOOK = rocco -> false;
+    // El lado del cliente pone la cancion del baile (el servidor no toca sonidos en bucle).
+    public static java.util.function.Consumer<RoccoEntity> DANCE_SONG_HOOK = rocco -> { };
     public static java.util.function.ToDoubleFunction<RoccoEntity> BEAT_HOOK = rocco -> 0.0D;
     // La cara de la frase que esta sonando (null = la del servidor).
     public static java.util.function.Function<RoccoEntity, RoccoExpression> VOICE_FACE_HOOK = rocco -> null;
@@ -543,6 +551,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.entityData.define(DATA_BOBBER_BITE, false);
         this.entityData.define(DATA_MOTION, RoccoMotion.NONE.ordinal());
         this.entityData.define(DATA_BACKPACK, 0);
+        this.entityData.define(DATA_BACKPACK_LOOK, 0);
+        this.entityData.define(DATA_DANCE_SONG, false);
         this.entityData.define(DATA_THINKING, false);
         this.entityData.define(DATA_GARDEN_LID, false);
         this.entityData.define(DATA_MATE_STEP, 0);
@@ -795,7 +805,41 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         this.danceFacing = null;
         this.musicLoops = 0;
+        this.danceSongWanted = true;
         perform(com.cristoree.rocco.music.RoccoMusic.randomDance(this.random, false), toward);
+    }
+
+    // ---------- la cancioncita del baile ----------
+
+    // Hasta donde se escucha un disco lo bastante como para que se pise con la cancion.
+    private static final double SONG_CLASH_RADIUS = 32.0D;
+    private boolean danceSongWanted;
+
+    public boolean danceSongOn()
+    {
+        return this.entityData.get(DATA_DANCE_SONG);
+    }
+
+    // Suena solo si no hay otra musica: ni un disco cerca ni la que puso con un link.
+    private boolean otherMusicPlaying()
+    {
+        return (this.music != null && !this.music.paused())
+                || (level() instanceof ServerLevel serverLevel
+                && com.cristoree.rocco.music.RoccoMusic.playingJukebox(serverLevel, blockPosition(), SONG_CLASH_RADIUS) != null);
+    }
+
+    // Termina con el baile pedido, y se apaga sola si mientras tanto ponen un disco.
+    private void tickDanceSong()
+    {
+        if (!danceSongOn())
+        {
+            return;
+        }
+        boolean dancing = this.task == RoccoTask.DANCE_FIESTA || this.task == RoccoTask.DANCE_MENEITO;
+        if (!dancing || (this.tickCount % 20 == 0 && otherMusicPlaying()))
+        {
+            this.entityData.set(DATA_DANCE_SONG, false);
+        }
     }
 
     private boolean ownMusicPlaying()
@@ -868,6 +912,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
     private void startMusicLoop(RoccoTask kind, BlockPos target, double reach)
     {
+        this.danceSongWanted = false;
         this.autoRestTicks = 0;
         queueJob(Job.custom(kind, target, ItemStack.EMPTY, level -> { }, null).reaching(reach));
         this.lastDanceTick = level().getGameTime();
@@ -1121,6 +1166,34 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     public ItemStack backpack()
     {
         return this.backpack;
+    }
+
+    // La apariencia elegida: 0 es la real. Queda guardada aunque cambie de mochila o se la saque.
+    public int backpackLook()
+    {
+        return this.entityData.get(DATA_BACKPACK_LOOK);
+    }
+
+    public void setBackpackLook(int look)
+    {
+        int clean = net.minecraft.util.Mth.clamp(look, 0, com.cristoree.rocco.item.BackpackItem.MAX_TIER);
+        if (clean == backpackLook())
+        {
+            return;
+        }
+        this.entityData.set(DATA_BACKPACK_LOOK, clean);
+        if (backpackTier() > 0)
+        {
+            playRoccoSound(ModSounds.BACKPACK_OPEN.get(), 0.6F);
+        }
+    }
+
+    // La que se dibuja. Sin mochila puesta no se ve ninguna, sea cual sea la apariencia elegida.
+    public int shownBackpack()
+    {
+        int real = backpackTier();
+        int look = backpackLook();
+        return real == 0 || look == 0 ? real : look;
     }
 
     // Se la pone: la vieja vuelve al jugador con lo que lleva adentro, y lo de la nueva pasa a sus
@@ -1871,6 +1944,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 this.faceBeforeSwallow = calmFace();
                 setExpression(job.task().singing() ? RoccoExpression.SING
                         : job.task() == RoccoTask.DANCE_MENEITO ? RoccoExpression.SMUG : RoccoExpression.HAPPY);
+                // Se lo pidieron: arranca su cancion en el mismo tick que el baile, los dos a 120 bpm.
+                if (this.danceSongWanted && !job.task().singing())
+                {
+                    this.danceSongWanted = false;
+                    this.entityData.set(DATA_DANCE_SONG, !otherMusicPlaying());
+                }
                 // Bailando para un disco: mirando al tocadiscos.
                 if (this.danceFacing != null)
                 {
@@ -2852,7 +2931,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             }
             case DANCE_FIESTA, DANCE_MENEITO ->
             {
-                if (Math.floorMod(tick, 160) == 8 && !musicNearby())
+                if (Math.floorMod(tick, 160) == 8 && !musicNearby() && !danceSongOn())
                 {
                     playRoccoSound(ModSounds.HUM.get(), 0.5F);
                 }
@@ -3034,7 +3113,11 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             playRoccoSound(ModSounds.BACKPACK_OPEN.get(), 0.7F);
         }
-        net.minecraftforge.network.NetworkHooks.openScreen(player, this, buf -> buf.writeVarInt(this.inventory.getContainerSize()));
+        net.minecraftforge.network.NetworkHooks.openScreen(player, this, buf ->
+        {
+            buf.writeVarInt(this.inventory.getContainerSize());
+            buf.writeVarInt(-1);
+        });
     }
 
     // Desde el menu: le abre la tapa si puede (no en medio de un trabajo ni mientras viaja).
@@ -3378,6 +3461,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 this.gates.tick(gateLevel);
             }
             tickMusic();
+            tickDanceSong();
             tickGifts();
             tickCompanionship();
             if (this.tickCount % 20 == 0)
@@ -4192,6 +4276,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             tag.put("Backpack", this.backpack.save(new CompoundTag()));
         }
+        tag.putInt("BackpackLook", backpackLook());
         tag.putLong("NextColaGift", this.nextColaGift);
         if (!this.allowedWolves.isEmpty())
         {
@@ -4282,6 +4367,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         setExpression(RoccoExpression.byId(tag.getInt("RoccoExpression")));
         this.awakenTicks = tag.getInt("AwakenTicks");
 
+        this.entityData.set(DATA_BACKPACK_LOOK, net.minecraft.util.Mth.clamp(tag.getInt("BackpackLook"), 0,
+                com.cristoree.rocco.item.BackpackItem.MAX_TIER));
         // La mochila primero: dice cuantos lugares tiene.
         if (tag.contains("Backpack"))
         {
@@ -4951,8 +5038,9 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.deathTime = 0;
     }
 
-    // Todo lo que lleva, al piso: el inventario, la armadura, el arma y el escudo. La mochila no se
-    // pierde: la tiene puesta (vacia) hasta en la tumba, y solo muriendo para siempre queda en el piso.
+    // Todo lo que lleva, al piso: el inventario (tambien lo que va en los lugares de la mochila), la
+    // armadura, el arma y el escudo. La mochila no: la sigue teniendo puesta, vacia, y vuelve con el.
+    // Solo si se muere para siempre se la lleva su dueño, o queda en el piso si no esta conectado.
     void dropEverything(boolean forGood)
     {
         for (int slot = 0; slot < this.inventory.getContainerSize(); slot++)
@@ -4966,7 +5054,15 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         this.inventory.clearContent();
         if (forGood && !this.backpack.isEmpty())
         {
-            spawnAtLocation(this.backpack);
+            ServerPlayer owner = trueOwnerAnywhere();
+            if (owner == null)
+            {
+                spawnAtLocation(this.backpack);
+            }
+            else if (!owner.getInventory().add(this.backpack))
+            {
+                owner.drop(this.backpack, false);
+            }
             this.backpack = ItemStack.EMPTY;
             this.entityData.set(DATA_BACKPACK, 0);
             this.inventory.resize(com.cristoree.rocco.item.BackpackItem.BASE_SLOTS);
@@ -5011,6 +5107,10 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (DATA_STATE.equals(key))
         {
             refreshDimensions();
+        }
+        else if (DATA_DANCE_SONG.equals(key) && level().isClientSide && danceSongOn())
+        {
+            DANCE_SONG_HOOK.accept(this);
         }
     }
 
