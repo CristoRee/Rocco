@@ -100,6 +100,27 @@ public final class RoccoTravel
     private int bubbleTicks;
     @Nullable
     private Vec3 landing;
+    // El lugar de la orilla adonde se esta trepando, y cuanto hace.
+    @Nullable
+    private Vec3 shore;
+    private int shoreTicks;
+    private int shoreWait;
+    // Adonde lo mandaba la navegacion hace un momento: un camino a una orilla alta termina en el agua.
+    @Nullable
+    private Vec3 navGoal;
+    private int navGoalTicks;
+
+    // Hasta donde busca orilla, cuanto puede trepar (un bloque arriba del agua) y a que velocidad.
+    private static final int SHORE_REACH = 4;
+    private static final double SHORE_MAX_CLIMB = 1.55D;
+    private static final double SHORE_SPEED = 0.16D;
+    private static final double SHORE_RISE_SPEED = 0.25D;
+    private static final double SHORE_RISE_NEAR = 1.3D;
+    private static final int SHORE_TICKS = 80;
+    private static final int SHORE_RETRY_TICKS = 10;
+    private static final int SHORE_FAILED_WAIT = 60;
+    private static final int SHORE_GOAL_MEMORY = 40;
+    private static final int WATERFALL_REACH = 3;
 
     RoccoTravel(RoccoEntity rocco)
     {
@@ -163,11 +184,18 @@ public final class RoccoTravel
         this.landing = null;
         this.ownerLast = null;
         this.boatLast = null;
+        this.shore = null;
+        this.navGoal = null;
     }
 
     private void set(RoccoMotion next)
     {
         this.rocco.setMotion(next);
+        if (next.kind() != RoccoMotion.Kind.SURFACE)
+        {
+            this.shore = null;
+            this.navGoal = null;
+        }
         this.ticks = 0;
         this.calmTicks = 0;
         this.outOfWaterTicks = 0;
@@ -654,7 +682,9 @@ public final class RoccoTravel
     {
         if (motion == RoccoMotion.FLOAT_END)
         {
-            // Se sacude el agua como un perrito, quieto en el lugar.
+            // Se sacude el agua como un perrito, quieto en el lugar. Si salio en el aire, primero cae.
+            this.rocco.getNavigation().stop();
+            this.rocco.setDeltaMovement(0.0D, this.rocco.onGround() ? 0.0D : -0.08D, 0.0D);
             if (this.ticks >= motion.ticks() + RoccoEntity.ANIM_LAG)
             {
                 set(RoccoMotion.NONE);
@@ -662,7 +692,14 @@ public final class RoccoTravel
             return;
         }
 
+        if (this.shore != null)
+        {
+            climbOut(motion);
+            return;
+        }
+
         buoy();
+        stepOutOfWaterfall(owner);
 
         // Salio del agua (o hace pie): se desinfla el patito.
         double depth = waterDepth();
@@ -704,6 +741,11 @@ public final class RoccoTravel
             }
         }
 
+        if (startLeavingWater(owner))
+        {
+            return;
+        }
+
         swimAlongside(owner);
 
         // Nada estilo perrito cuando avanza, y flota tranquilo cuando no.
@@ -712,6 +754,202 @@ public final class RoccoTravel
         {
             set(wanted);
         }
+    }
+
+    // ---------- saliendo del agua ----------
+
+    // El flotador lo sostiene sin que pise el fondo, y sin pisar el juego no le deja subir ni un
+    // escalon: nadaba hasta la orilla y se quedaba empujando. Si tiene adonde ir en tierra, elige un
+    // lugar de la orilla y se trepa de un saltito.
+    private boolean startLeavingWater(@Nullable ServerPlayer owner)
+    {
+        if (this.shoreWait > 0)
+        {
+            this.shoreWait--;
+            return false;
+        }
+        if (this.ticks % 5 != 0)
+        {
+            return false;
+        }
+        Vec3 goal = landGoal(owner);
+        if (goal == null)
+        {
+            return false;
+        }
+        this.shore = findShore(goal);
+        if (this.shore == null)
+        {
+            this.shoreWait = SHORE_RETRY_TICKS;
+            return false;
+        }
+        this.shoreTicks = 0;
+        this.swimmingAlongside = false;
+        return true;
+    }
+
+    // Adonde quiere ir en tierra: lo que le mande la navegacion (un encargo, seguirte) o, si no hay
+    // camino hasta ahi porque la orilla es alta, vos, si saliste del agua. Null si no tiene por que salir.
+    @Nullable
+    private Vec3 landGoal(@Nullable ServerPlayer owner)
+    {
+        BlockPos target = this.rocco.getNavigation().isDone() ? null : this.rocco.getNavigation().getTargetPos();
+        if (target != null && this.rocco.level().getFluidState(target).isEmpty())
+        {
+            this.navGoal = Vec3.atBottomCenterOf(target);
+            this.navGoalTicks = SHORE_GOAL_MEMORY;
+        }
+        if (this.navGoal != null && this.navGoalTicks > 0)
+        {
+            this.navGoalTicks -= 5;
+            return this.navGoal;
+        }
+        this.navGoal = null;
+        boolean ownerOnLand = accompanies(owner) && !owner.isInWater() && !(owner.getVehicle() instanceof Boat)
+                && this.rocco.distanceToSqr(owner) < SURFACE_RANGE * SURFACE_RANGE;
+        return ownerOnLand ? owner.position() : null;
+    }
+
+    // El mejor lugar de la orilla al alcance: firme, seguro, mas cerca de donde quiere ir que el
+    // agua donde esta, y al que se puede llegar subiendo derecho sin chocar con nada.
+    @Nullable
+    private Vec3 findShore(Vec3 goal)
+    {
+        BlockPos base = this.rocco.blockPosition();
+        Vec3 here = this.rocco.position();
+        double goalNow = here.distanceToSqr(goal);
+        Vec3 best = null;
+        double bestScore = Double.MAX_VALUE;
+        for (int dx = -SHORE_REACH; dx <= SHORE_REACH; dx++)
+        {
+            for (int dz = -SHORE_REACH; dz <= SHORE_REACH; dz++)
+            {
+                for (int dy = 1; dy >= -1; dy--)
+                {
+                    Vec3 spot = shoreSpot(base.offset(dx, dy, dz), here);
+                    if (spot == null || spot.distanceToSqr(goal) >= goalNow - 0.25D)
+                    {
+                        continue;
+                    }
+                    double flatX = spot.x - here.x;
+                    double flatZ = spot.z - here.z;
+                    double score = flatX * flatX + flatZ * flatZ + spot.distanceTo(goal) * 0.3D;
+                    if (score < bestScore && clearWayTo(spot))
+                    {
+                        bestScore = score;
+                        best = spot;
+                    }
+                    break;
+                }
+            }
+        }
+        return best;
+    }
+
+    // Donde quedarian sus pies parado arriba de ese bloque, si se puede.
+    @Nullable
+    private Vec3 shoreSpot(BlockPos ground, Vec3 here)
+    {
+        net.minecraft.world.level.Level level = this.rocco.level();
+        net.minecraft.world.level.block.state.BlockState state = level.getBlockState(ground);
+        net.minecraft.world.phys.shapes.VoxelShape shape = state.getCollisionShape(level, ground);
+        if (shape.isEmpty() || !state.getFluidState().isEmpty() || state.is(net.minecraft.world.level.block.Blocks.LILY_PAD)
+                || harmful(state))
+        {
+            return null;
+        }
+        double top = shape.max(net.minecraft.core.Direction.Axis.Y);
+        Vec3 spot = new Vec3(ground.getX() + 0.5D, ground.getY() + top, ground.getZ() + 0.5D);
+        double climb = spot.y - here.y;
+        // Una valla mide mas de un bloque: arriba de eso no se para.
+        if (top > 1.0D || climb > SHORE_MAX_CLIMB || climb < -0.6D)
+        {
+            return null;
+        }
+        AABB box = this.rocco.getDimensions(this.rocco.getPose()).makeBoundingBox(spot);
+        return level.noCollision(this.rocco, box) && !level.containsAnyLiquid(box)
+                && level.getBlockStates(box).noneMatch(RoccoTravel::harmful) ? spot : null;
+    }
+
+    private static boolean harmful(net.minecraft.world.level.block.state.BlockState state)
+    {
+        return state.is(net.minecraft.tags.BlockTags.FIRE) || state.is(net.minecraft.tags.BlockTags.CAMPFIRES)
+                || state.is(net.minecraft.world.level.block.Blocks.MAGMA_BLOCK)
+                || state.is(net.minecraft.world.level.block.Blocks.CACTUS)
+                || state.is(net.minecraft.world.level.block.Blocks.SWEET_BERRY_BUSH);
+    }
+
+    // Sube en el lugar hasta la altura de la orilla y de ahi va derecho: nada le tiene que estorbar.
+    private boolean clearWayTo(Vec3 spot)
+    {
+        Vec3 here = this.rocco.position();
+        double y = spot.y + 0.01D;
+        int steps = Math.max(1, (int) Math.ceil(Math.sqrt(Math.pow(spot.x - here.x, 2.0D) + Math.pow(spot.z - here.z, 2.0D)) * 2.0D));
+        for (int i = 0; i <= steps; i++)
+        {
+            double along = (double) i / steps;
+            if (!fits(new Vec3(Mth.lerp(along, here.x, spot.x), y, Mth.lerp(along, here.z, spot.z))))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Nada hasta el borde y ahi se trepa. El patito se desinfla recien arriba.
+    private void climbOut(RoccoMotion motion)
+    {
+        Vec3 here = this.rocco.position();
+        Vec3 spot = this.shore;
+        if ((this.rocco.onGround() && !this.rocco.isInWater() && here.y >= spot.y - 0.1D) || ++this.shoreTicks > SHORE_TICKS)
+        {
+            boolean gaveUp = this.shoreTicks > SHORE_TICKS;
+            this.shore = null;
+            this.shoreWait = gaveUp ? SHORE_FAILED_WAIT : 0;
+            if (!gaveUp)
+            {
+                this.rocco.setDeltaMovement(Vec3.ZERO);
+                set(RoccoMotion.FLOAT_END);
+            }
+            return;
+        }
+        if (motion != RoccoMotion.FLOAT_SWIM)
+        {
+            set(RoccoMotion.FLOAT_SWIM);
+        }
+        // El camino que traia pasa por el agua: si lo siguiera, al llegar arriba se volveria a meter.
+        this.rocco.getNavigation().stop();
+
+        double dx = spot.x - here.x;
+        double dz = spot.z - here.z;
+        double flat = Math.sqrt(dx * dx + dz * dz);
+        double speed = flat > 0.01D ? Math.min(SHORE_SPEED, flat) / flat : 0.0D;
+        double vertical;
+        if (here.y >= spot.y + 0.02D)
+        {
+            vertical = -0.1D;
+        }
+        else if (flat < SHORE_RISE_NEAR || this.rocco.horizontalCollision)
+        {
+            vertical = Math.min(SHORE_RISE_SPEED, spot.y + 0.05D - here.y);
+        }
+        else
+        {
+            vertical = buoyancy();
+        }
+        this.rocco.setDeltaMovement(dx * speed, vertical, dz * speed);
+        this.rocco.resetFallDistance();
+        if (flat > 0.1D)
+        {
+            float wanted = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90.0F;
+            face(Mth.approachDegrees(this.rocco.getYRot(), wanted, 20.0F), 0.0F);
+        }
+    }
+
+    // Se esta trepando a la orilla o sacudiendose arriba: nadie mas lo tiene que mover.
+    boolean climbingOut()
+    {
+        return this.shore != null || this.rocco.getMotion() == RoccoMotion.FLOAT_END;
     }
 
     // Nadando con vos en la superficie va a tu ritmo, a un costado. Antes lo llevaba la
@@ -804,14 +1042,70 @@ public final class RoccoTravel
     // queda alto baja. Lo de los costados lo hace la navegacion de siempre.
     private void buoy()
     {
-        double depth = waterDepth();
         Vec3 movement = this.rocco.getDeltaMovement();
-        double vertical = this.rocco.isInWater()
-                ? Mth.clamp((depth - FLOAT_DEPTH) * 0.25D, -0.08D, 0.08D)
-                : -0.08D;
-        this.rocco.setDeltaMovement(movement.x, vertical, movement.z);
+        this.rocco.setDeltaMovement(movement.x, buoyancy(), movement.z);
         this.rocco.resetFallDistance();
     }
+
+    private double buoyancy()
+    {
+        if (!this.rocco.isInWater())
+        {
+            return -0.08D;
+        }
+        // En una cascada baja con el agua: si contara como hondo, subiria flotando hasta arriba.
+        if (fallingWaterAt(this.rocco.blockPosition()))
+        {
+            return -0.1D;
+        }
+        return Mth.clamp((waterDepth() - FLOAT_DEPTH) * 0.25D, -0.08D, 0.08D);
+    }
+
+    private boolean fallingWaterAt(BlockPos pos)
+    {
+        net.minecraft.world.level.material.FluidState fluid = this.rocco.level().getFluidState(pos);
+        return fluid.hasProperty(net.minecraft.world.level.material.FlowingFluid.FALLING)
+                && fluid.getValue(net.minecraft.world.level.material.FlowingFluid.FALLING);
+    }
+
+    // Al pie de una cascada la navegacion cree que esta arriba de todo y no encuentra camino: camina
+    // hasta salir de abajo de la caida, hacia vos si se puede, y de ahi sigue como siempre.
+    private void stepOutOfWaterfall(@Nullable ServerPlayer owner)
+    {
+        BlockPos at = this.rocco.blockPosition();
+        if (!this.rocco.onGround() || !fallingWaterAt(at))
+        {
+            return;
+        }
+        Vec3 here = this.rocco.position();
+        Vec3 goal = owner != null ? owner.position() : here;
+        Vec3 best = null;
+        double bestScore = Double.MAX_VALUE;
+        for (int dx = -WATERFALL_REACH; dx <= WATERFALL_REACH; dx++)
+        {
+            for (int dz = -WATERFALL_REACH; dz <= WATERFALL_REACH; dz++)
+            {
+                BlockPos next = at.offset(dx, 0, dz);
+                if (fallingWaterAt(next))
+                {
+                    continue;
+                }
+                Vec3 center = new Vec3(next.getX() + 0.5D, here.y, next.getZ() + 0.5D);
+                double score = center.distanceToSqr(here) + center.distanceTo(goal) * 0.3D;
+                if (score < bestScore && clearWayTo(center))
+                {
+                    bestScore = score;
+                    best = center;
+                }
+            }
+        }
+        if (best != null)
+        {
+            Vec3 step = best.subtract(here).normalize().scale(SHORE_SPEED);
+            this.rocco.setDeltaMovement(step.x, this.rocco.getDeltaMovement().y, step.z);
+        }
+    }
+
 
     // ---------- buceando ----------
 

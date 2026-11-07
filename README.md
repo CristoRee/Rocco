@@ -132,7 +132,7 @@ Se apagan en **Config > Vida y rutina > Regalos**.
 ### Te acompaña a todos lados
 
 - **Volando:** si planeás con elytra (o volás en creativo), agarra sus hojitas, las convierte en alas y vuela a tu lado. Con cohete va a toda velocidad, en picada pliega las alas y al aterrizar se las vuelve a poner en la cabeza.
-- **En el agua:** flota con su flotador de patito y nada a tu lado a tu ritmo; si buceás, se pone las antiparras y el snorkel y bucea con vos. Nunca se ahoga.
+- **En el agua:** flota con su flotador de patito y nada a tu lado a tu ritmo, y cuando salís se trepa a la orilla; si buceás, se pone las antiparras y el snorkel y bucea con vos. Nunca se ahoga.
 - **En bote:** no se sube al tuyo: tiene su propio barquito de calabaza y rema al costado.
 - **Nunca se pierde:** si quedó lejos, en una zona descargada, del otro lado de un portal o cayó al vacío, aparece al lado tuyo. Si estás nadando lejos de la costa, cae al agua junto a vos.
 

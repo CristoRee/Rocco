@@ -45,6 +45,8 @@
 - **Órdenes solo del dueño:** opción nueva (**Config > Rocco > Órdenes solo del dueño**) para que en multijugador solo su dueño le dé órdenes y abra su menú.
 
 ### Arreglado
+- **Salir del agua:** con el patito no podía subir a la orilla: se quedaba empujando y terminaba teletransportándose, o flotando para siempre si te quedabas al lado o tenía un encargo en tierra. Ahora nada hasta el borde, se trepa de un saltito (hasta una orilla un bloque más alta que el agua) y recién arriba se sacude. Si la orilla es una pared más alta, sigue apareciendo a tu lado.
+- **Cascadas:** con el patito subía flotando hasta arriba de la caída. Ahora baja con el agua y sale caminando de abajo.
 - **Las órdenes por chat se ejecutaban fuera del hilo del servidor:** al pedirle algo por chat, Rocco podía decir que no veía ningún cofre con el cofre al lado, y podían aparecer errores al azar. Ahora guarda, trae y trabaja igual por chat que desde el menú, y su respuesta sale después de tu mensaje.
 - **Multijugador:** tu Rocco te escucha aunque el de otro jugador esté más cerca.
 - **El menú y la configuración salían en inglés con el juego en español:** ahora se ven en español en todas sus variantes.

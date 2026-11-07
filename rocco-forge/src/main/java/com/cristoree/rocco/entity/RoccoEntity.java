@@ -2565,6 +2565,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             return;
         }
+        // Saliendo del agua espera a pisar tierra, y de ahi vuelve a buscar el camino.
+        if (this.journey.climbingOut())
+        {
+            this.approachTicks = 0;
+            return;
+        }
 
         Job next = this.jobs.peek();
         if (next == null)
@@ -3392,7 +3398,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Lo esta llevando nadando al lado tuyo: el seguir de siempre no lo tiene que mover.
     public boolean isSwimmingAlongside(Player player)
     {
-        return player instanceof ServerPlayer swimmer && this.journey.swimsWith(swimmer);
+        return player instanceof ServerPlayer swimmer && (this.journey.swimsWith(swimmer) || this.journey.climbingOut());
     }
 
     @Override
