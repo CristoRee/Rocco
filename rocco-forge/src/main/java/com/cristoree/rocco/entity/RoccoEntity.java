@@ -1354,6 +1354,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         return hostileNearby(radius);
     }
 
+    // Puede darte una ahora: si no, primero lo explica en vez de prometerla.
+    public boolean colaReady()
+    {
+        return getRoccoState() == RoccoState.ACTIVE && !isTravelling() && !isInWater()
+                && level().getGameTime() >= this.nextColaGift;
+    }
+
     // "Dame una Roco Cola": la saca de atras de la espalda y te la da. Se tiene que enfriar otra.
     public boolean giveCola(Player player)
     {

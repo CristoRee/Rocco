@@ -552,7 +552,8 @@ public final class OfflineRocco
         }
         if (COLA_GIVE.matcher(text).find())
         {
-            return act("cola_give", RoccoExpression.CHEER, "dar_cola", "");
+            return rocco == null || rocco.colaReady() ? act("cola_give", RoccoExpression.CHEER, "dar_cola", "")
+                    : new Answer("", RoccoExpression.HAPPY, "dar_cola", "");
         }
         if (BACKPACK_OFF.matcher(text).find())
         {

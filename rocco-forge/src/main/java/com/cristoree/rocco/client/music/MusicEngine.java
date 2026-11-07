@@ -4,9 +4,7 @@ import com.sedmelluq.discord.lavaplayer.format.Pcm16AudioDataFormat;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
-import com.sedmelluq.discord.lavaplayer.source.bandcamp.BandcampAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager;
-import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
@@ -16,14 +14,19 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-// Abre links de musica con lavaplayer: archivos de audio (MP3, OGG, M4A, FLAC, WAV), radios por
-// internet, Bandcamp y Twitch. Todo corre en el juego de cada jugador, con su conexion.
+// Abre links de musica con lavaplayer: archivos de audio (MP3, OGG, M4A, FLAC, WAV) y radios por
+// internet. Solo links que ya son audio: no saca el sonido de ninguna pagina ni entra a la API
+// privada de ningun sitio. Todo corre en el juego de cada jugador, con su conexion.
 public final class MusicEngine
 {
     // Lo que sale de abrir un link: la pista lista para sonar, el titulo y el link final.
     public record Opened(AudioTrack track, String title, String url, long durationMs)
     {
     }
+
+    private static final String USER_AGENT = "RoccoMod (Minecraft mod; +https://github.com/CristoRee/Rocco)";
+    private static final int CONNECT_TIMEOUT_MS = 10_000;
+    private static final int READ_TIMEOUT_MS = 15_000;
 
     @Nullable
     private static AudioPlayerManager manager;
@@ -36,10 +39,15 @@ public final class MusicEngine
             // 48 kHz estereo de 16 bits: despues se mezcla a mono para que suene desde Rocco.
             created.getConfiguration().setOutputFormat(new Pcm16AudioDataFormat(2, 48000, 960, false));
             created.setFrameBufferDuration(5000);
-            // Solo estas: el link directo va al final porque acepta cualquier cosa.
-            created.registerSourceManager(new BandcampAudioSourceManager());
-            created.registerSourceManager(new TwitchStreamAudioSourceManager());
-            created.registerSourceManager(new HttpAudioSourceManager());
+            HttpAudioSourceManager links = new HttpAudioSourceManager();
+            // Se presenta como lo que es (hay sitios, como Wikimedia, que lo exigen) y le da tiempo
+            // a los servidores lentos: de fabrica corta a los 3 segundos.
+            links.configureBuilder(builder -> builder.setUserAgent(USER_AGENT));
+            links.configureRequests(config -> org.apache.http.client.config.RequestConfig.copy(config)
+                    .setConnectTimeout(CONNECT_TIMEOUT_MS)
+                    .setSocketTimeout(READ_TIMEOUT_MS)
+                    .build());
+            created.registerSourceManager(links);
             manager = created;
         }
         return manager;
@@ -57,9 +65,37 @@ public final class MusicEngine
     // Abre el link y da la pista. Nunca en el hilo del juego.
     public static Opened open(String url) throws Exception
     {
-        AudioTrack track = load(url);
+        AudioTrack track;
+        try
+        {
+            track = load(url);
+        }
+        catch (Exception e)
+        {
+            // Los sitios a veces tropiezan: un error pasajero se prueba una vez mas.
+            if (!passing(e))
+            {
+                throw e;
+            }
+            Thread.sleep(1000L);
+            track = load(url);
+        }
         return new Opened(track, title(track), track.getInfo().uri == null ? url : track.getInfo().uri,
                 track.getInfo().isStream ? 0L : track.getDuration());
+    }
+
+    // El servidor tardo de mas o fallo de su lado (un error 5xx). Un 404 o un archivo raro no cambian.
+    private static boolean passing(Throwable error)
+    {
+        for (Throwable cause = error; cause != null; cause = cause.getCause() == cause ? null : cause.getCause())
+        {
+            if (cause instanceof java.net.SocketTimeoutException
+                    || (cause instanceof IllegalStateException && String.valueOf(cause.getMessage()).startsWith("Status code 5")))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static AudioTrack load(String item) throws Exception
@@ -122,6 +158,40 @@ public final class MusicEngine
             title = author + " - " + title;
         }
         return title.isBlank() ? "una cancion" : title;
+    }
+
+    // Un link a esta misma computadora o a su red: el link que puso otro jugador no tiene por que
+    // hacer que tu juego toque tu router o lo que tengas en tu casa. Hace una consulta de DNS: nunca
+    // en el hilo del juego. Si no se puede saber, no cuenta como local: el link va a fallar solo.
+    static boolean pointsToLocalNetwork(String url)
+    {
+        try
+        {
+            String host = new java.net.URI(url).getHost();
+            if (host == null)
+            {
+                return false;
+            }
+            String name = host.toLowerCase(Locale.ROOT);
+            if (name.equals("localhost") || name.endsWith(".localhost") || name.endsWith(".local") || name.endsWith(".lan"))
+            {
+                return true;
+            }
+            for (java.net.InetAddress address : java.net.InetAddress.getAllByName(host))
+            {
+                byte first = address.getAddress()[0];
+                if (address.isLoopbackAddress() || address.isSiteLocalAddress() || address.isLinkLocalAddress()
+                        || address.isAnyLocalAddress() || (address instanceof java.net.Inet6Address && (first & 0xFE) == 0xFC))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        catch (java.net.URISyntaxException | java.net.UnknownHostException e)
+        {
+            return false;
+        }
     }
 
     // Por que fallo, en pocas palabras (para el log).

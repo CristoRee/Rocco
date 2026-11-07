@@ -8,7 +8,7 @@
 - Roco Cola para vos: refresca y viene con un eructo gigante.
 - Cuidar la casa: se queda mientras explorás, cosecha, esquila, hace criar a los animales hasta un tope, saca los que sobran, junta lo que dejan y guarda todo. La casa sigue cargada aunque estés lejos, y al volver te cuenta qué hizo.
 - Te dice dónde guardó las cosas.
-- Música desde links: Rocco pone la canción, suena desde él y la canta y la baila al ritmo. Archivos de audio (MP3, OGG...), radios por internet, Bandcamp y Twitch. En multijugador todos escuchan lo mismo a la vez.
+- Música desde links: Rocco pone la canción, suena desde él y la canta y la baila al ritmo. Archivos de audio (MP3, OGG...) y radios por internet. En multijugador todos escuchan lo mismo a la vez.
 - Dos bailes nuevos en bucle, con 3 cancioncitas cuando se lo pedís, y baila cuando suena un tocadiscos cerca.
 - Snorkel nuevo.
 - Armaduras con un estilo para cada material (coronita de oro, cuerno de unicornio de diamante, orejitas y colita de gato de netherite, pluma de hierro, moño de cota de malla, margarita de cuero que se tiñe, caparazón de tortuga).

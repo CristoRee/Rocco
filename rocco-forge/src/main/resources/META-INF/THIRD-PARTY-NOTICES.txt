@@ -1,5 +1,7 @@
 Rocco includes the following third-party software, used to play music from links.
-Each one keeps its own license. Rocco does not modify them.
+Each one keeps its own license. Rocco does not modify them, except that the lavaplayer
+sources that extract audio from websites are left out of the jar. Full license texts are
+in META-INF/licenses (Apache-2.0, LGPL-2.1 and the Fraunhofer FDK AAC license).
 
 lavaplayer 2.2.7 (dev.arbjerg:lavaplayer, lava-common, lavaplayer-natives)
   https://github.com/lavalink-devs/lavaplayer

@@ -43,7 +43,7 @@ Armá el jar con `gradlew build` dentro de `rocco-forge`. Queda en `rocco-forge/
 - **Servicios externos:** la descripción ya explica a qué se conecta el mod y solo si el jugador pone una clave. Es lo que más piden en mods con IA.
 - **Voces de personas reales:** el mod no trae ninguna. Las imitaciones usan voces públicas que la comunidad sube a Fish Audio, bajo sus términos, y la búsqueda se puede apagar (`voice.impressionVoiceSearch`). Si la moderación lo objeta, apagarla de fábrica es un cambio de una línea.
 - **Contenido generado con IA:** antes de subir, revisá las reglas vigentes de CurseForge por si piden declarar assets hechos con IA (texturas, sonidos, frases grabadas).
-- **Música desde links:** solo abre archivos de audio, radios, Bandcamp y Twitch, con lavaplayer (Apache 2.0, licencias en `META-INF/THIRD-PARTY-NOTICES.txt`). No baja audio de YouTube, Spotify ni SoundCloud (esos links los rechaza), no ejecuta programas externos y no guarda nada en disco: el link lo pone el jugador. Si la moderación pregunta, es lo mismo que un reproductor de radio.
+- **Música desde links:** solo abre links que ya son audio (archivos y radios), con lavaplayer (Apache 2.0, licencias en `META-INF/THIRD-PARTY-NOTICES.txt` y `META-INF/licenses`). El jar no trae las fuentes de lavaplayer para sacar audio de sitios: YouTube, Spotify, SoundCloud, Twitch, Bandcamp y parecidos se rechazan. No ejecuta programas externos y no guarda nada en disco: el link lo pone el jugador. Si la moderación pregunta, es lo mismo que un reproductor de radio.
 - **Tamaño del jar (unos 19 MB):** casi todo son los decodificadores de audio de lavaplayer para Windows, Linux y Mac.
 - **Nombre "Roco Cola":** es una parodia; no usa logos ni el diseño de ninguna marca.
 

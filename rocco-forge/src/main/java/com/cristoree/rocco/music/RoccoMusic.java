@@ -42,10 +42,11 @@ public final class RoccoMusic
     private static final int START_DELAY_TICKS = 20;
 
     private static final Pattern URL = Pattern.compile("https?://[^\\s<>\"']{4,500}", Pattern.CASE_INSENSITIVE);
-    // Sitios de videos y apps de musica: no dejan sacar el audio, asi que ni se prueban.
+    // Sitios de videos y apps de musica: sus condiciones no dejan sacar el audio, asi que ni se prueban.
     private static final Pattern STREAMING_SITE = Pattern.compile("^https?://([a-z0-9-]+\\.)*(youtube\\.com|youtu\\.be"
             + "|youtube-nocookie\\.com|spotify\\.com|spotify\\.link|soundcloud\\.com|deezer\\.com|deezer\\.page\\.link|music\\.apple\\.com"
-            + "|tidal\\.com|music\\.amazon\\.[a-z.]+|tiktok\\.com|vimeo\\.com|instagram\\.com|facebook\\.com|x\\.com|twitter\\.com)(/|$|\\?)",
+            + "|tidal\\.com|music\\.amazon\\.[a-z.]+|tiktok\\.com|vimeo\\.com|instagram\\.com|facebook\\.com|x\\.com|twitter\\.com"
+            + "|bandcamp\\.com|twitch\\.tv)(/|$|\\?)",
             Pattern.CASE_INSENSITIVE);
 
     private static final AtomicInteger IDS = new AtomicInteger();
@@ -157,6 +158,12 @@ public final class RoccoMusic
             return;
         }
         String url = msg.url().isBlank() ? pending.url() : msg.url();
+        // Este link lo van a abrir todos los que esten cerca: no se confia en lo que manda un juego.
+        if (!URL.matcher(url).matches() || STREAMING_SITE.matcher(url).find())
+        {
+            rocco.sayLine("music_site_fail");
+            return;
+        }
         String title = msg.title().isBlank() ? "esa cancion" : msg.title();
         play(rocco, url, title, Math.max(0L, msg.durationMs()), 0L);
         rocco.sayLine("music_start", "title", shortTitle(title));

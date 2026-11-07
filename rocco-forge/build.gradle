@@ -83,11 +83,11 @@ minecraft {
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
 
-            mods {
+            if (!project.hasProperty('prodtest')) { mods {
                 "${mod_id}" {
                     source sourceSets.main
                 }
-            }
+            } }
         }
 
         client {
@@ -145,7 +145,10 @@ configurations {
     shade
     implementation.extendsFrom shade
     // En el entorno de desarrollo el juego necesita estas librerias en su propia capa.
-    minecraftLibrary.extendsFrom shade
+    // -Pprodtest: el mod se carga desde un jar en run/mods, armado con "shadowJar -x reobfShadowJar".
+    // Asi se prueba lo que le llega a la gente. Con runClient comun la musica no anda: lavaplayer
+    // queda repartido en varios modulos y no encuentra sus decodificadores; en el jar final van juntos.
+    if (!project.hasProperty('prodtest')) { minecraftLibrary.extendsFrom shade }
 }
 
 dependencies {
@@ -174,7 +177,7 @@ dependencies {
     // GeckoLib: motor de animaciones/modelos para la entidad de Rocco
     implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")
 
-    // Musica desde links (MP3, radios, Bandcamp, Twitch): lavaplayer abre el link y decodifica.
+    // Musica desde links (archivos de audio y radios): lavaplayer abre el link y decodifica.
     // Va adentro del jar (shade). Lo que Minecraft ya trae (httpclient, commons-io,
     // commons-codec, slf4j) no se repite: se usa el del juego.
     shade("dev.arbjerg:lavaplayer:${lavaplayer_version}") { excludeProvidedByMinecraft(delegate) }
@@ -266,6 +269,11 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
     exclude 'natives/linux-x86/**', 'natives/linux-arm/**', 'natives/linux-armhf/**', 'natives/linux-aarch32/**',
             'natives/linux-musl-*/**', 'natives/win-x86/**'
     exclude 'META-INF/versions/**/module-info.class', 'module-info.class', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+    // Solo se usa el link directo: las fuentes que sacan audio de sitios ni viajan en el jar.
+    ['bandcamp', 'beam', 'getyarn', 'local', 'nico', 'soundcloud', 'twitch', 'vimeo', 'yamusic', 'youtube'].each {
+        exclude "com/sedmelluq/discord/lavaplayer/source/${it}/**"
+    }
+    exclude 'com/sedmelluq/discord/lavaplayer/source/AudioSourceManagers*'
     finalizedBy 'reobfShadowJar'
 }
 

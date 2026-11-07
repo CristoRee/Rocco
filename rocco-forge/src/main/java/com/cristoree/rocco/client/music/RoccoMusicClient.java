@@ -47,6 +47,8 @@ public final class RoccoMusicClient
     });
 
     private static final Map<Integer, Session> SESSIONS = new HashMap<>();
+    // Los links que este jugador pidio y abrio: los suyos pueden ser de su propia red.
+    private static final java.util.Set<String> MINE = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     // El reloj del mundo, para el hilo del sonido: el tick y cuando llego.
     private static volatile long clockTick;
@@ -106,6 +108,7 @@ public final class RoccoMusicClient
                 {
                     throw new IllegalStateException(failure);
                 }
+                MINE.add(opened.url());
                 answer = new RoccoNetwork.MusicResolved(msg.request(), true, opened.url(), opened.title(), opened.durationMs(), "");
             }
             catch (Exception e)
@@ -194,6 +197,11 @@ public final class RoccoMusicClient
         String url = session.info.url();
         try
         {
+            if (!MINE.contains(url) && MusicEngine.pointsToLocalNetwork(url))
+            {
+                RoccoMod.LOGGER.info("[Rocco] No abro un link de otro jugador que apunta a tu red: {}", url);
+                return;
+            }
             MusicEngine.Opened opened = MusicEngine.open(url);
             start(session, opened);
         }
@@ -315,6 +323,7 @@ public final class RoccoMusicClient
     {
         SESSIONS.values().forEach(Session::close);
         SESSIONS.clear();
+        MINE.clear();
     }
 
     // ---------- para Rocco (animaciones) ----------
