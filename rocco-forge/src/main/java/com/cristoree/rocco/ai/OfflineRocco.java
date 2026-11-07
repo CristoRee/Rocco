@@ -1016,7 +1016,7 @@ public final class OfflineRocco
             {
                 return RoccoExpression.CHEER;
             }
-            case "music_fail", "music_site_fail" ->
+            case "music_fail", "music_site_fail", "music_page" ->
             {
                 return RoccoExpression.SAD;
             }
@@ -1473,6 +1473,8 @@ public final class OfflineRocco
                     "No llego a ese arbol."}),
             Map.entry("chop_done", new String[]{
                     "Tale el arbol ({count} troncos) y plante otro. La Madre Naturaleza esta orgullosa."}),
+            Map.entry("chop_done_no_plant", new String[]{
+                    "Tale el arbol ({count} troncos). Ahi no prende otro arbolito: plantalo vos en tierra, porfa."}),
 
             Map.entry("gather_ack", new String[]{
                     "Voy a conseguirlo."}),
@@ -1692,6 +1694,8 @@ public final class OfflineRocco
             Map.entry("music_fail", new String[]{
                     "No pude abrir ese link. Seguro que es de una cancion?",
                     "Ese link no me da musica. Proba con otro."}),
+            Map.entry("music_page", new String[]{
+                    "Eso es una pagina, no la musica. Pasame el link del audio: el que termina en .mp3, .aac, .m3u o .pls."}),
             Map.entry("music_site_fail", new String[]{
                     "De ahi no puedo poner musica. Pasame el link de un MP3 o de una radio.",
                     "Esos links no los puedo abrir. Uno de un MP3 o de una radio si."}),

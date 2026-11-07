@@ -39,18 +39,22 @@ public final class MusicEngine
             // 48 kHz estereo de 16 bits: despues se mezcla a mono para que suene desde Rocco.
             created.getConfiguration().setOutputFormat(new Pcm16AudioDataFormat(2, 48000, 960, false));
             created.setFrameBufferDuration(5000);
-            HttpAudioSourceManager links = new HttpAudioSourceManager();
-            // Se presenta como lo que es (hay sitios, como Wikimedia, que lo exigen) y le da tiempo
-            // a los servidores lentos: de fabrica corta a los 3 segundos.
-            links.configureBuilder(builder -> builder.setUserAgent(USER_AGENT));
-            links.configureRequests(config -> org.apache.http.client.config.RequestConfig.copy(config)
-                    .setConnectTimeout(CONNECT_TIMEOUT_MS)
-                    .setSocketTimeout(READ_TIMEOUT_MS)
-                    .build());
-            created.registerSourceManager(links);
+            created.registerSourceManager(configure(new HttpAudioSourceManager(RadioFormats.containers())));
             manager = created;
         }
         return manager;
+    }
+
+    // Se presenta como lo que es (hay sitios, como Wikimedia, que lo exigen) y le da tiempo a los
+    // servidores lentos: de fabrica corta a los 3 segundos.
+    static <T extends com.sedmelluq.discord.lavaplayer.tools.io.HttpConfigurable> T configure(T http)
+    {
+        http.configureBuilder(builder -> builder.setUserAgent(USER_AGENT));
+        http.configureRequests(config -> org.apache.http.client.config.RequestConfig.copy(config)
+                .setConnectTimeout(CONNECT_TIMEOUT_MS)
+                .setSocketTimeout(READ_TIMEOUT_MS)
+                .build());
+        return http;
     }
 
     public static synchronized void shutdown()
@@ -140,15 +144,42 @@ public final class MusicEngine
         return result.get(30, TimeUnit.SECONDS);
     }
 
+    // Lo que no dice nada: "playlist", "stream", "live"... de una radio se usa otra parte del link.
+    private static final java.util.regex.Pattern GENERIC = java.util.regex.Pattern.compile(
+            "(?i)(playlist|chunks?|index|stream\\w*|live|listen|play|radio|master|audio|hls|icecast|mount|aac|mp3|ogg|\\d+|;|)");
+
+    // De "https://popradio.stweb.tv/popradio/live/playlist.m3u8" sale "popradio": la ultima parte del
+    // camino que diga algo, o si no el nombre del sitio.
+    private static String nameFromLink(String uri)
+    {
+        String clean = uri.replaceAll("[?#].*$", "");
+        String[] path = clean.replaceFirst("^[a-zA-Z]+://[^/]*", "").split("/");
+        for (int i = path.length - 1; i >= 0; i--)
+        {
+            String part = java.net.URLDecoder.decode(path[i].replaceAll("\\.[A-Za-z0-9]{2,4}$", ""), java.nio.charset.StandardCharsets.UTF_8)
+                    .replace('_', ' ').replace(';', ' ').trim();
+            if (!GENERIC.matcher(part).matches())
+            {
+                return part;
+            }
+        }
+        String host = clean.replaceFirst("^[a-zA-Z]+://", "").replaceAll("[/:].*$", "");
+        for (String label : host.split("\\."))
+        {
+            if (!label.matches("(?i)www\\d*|stream\\w*|server\\d*|ice\\d*|cast\\d*|live|radio|play|edge.*|cdn.*|s\\d+") && !label.isBlank())
+            {
+                return label;
+            }
+        }
+        return "";
+    }
+
     private static String title(AudioTrack track)
     {
         String title = track.getInfo().title;
-        if (title == null || title.isBlank() || title.equals("Unknown title"))
+        if (title == null || title.isBlank() || title.equals("Unknown title") || GENERIC.matcher(title.trim()).matches())
         {
-            String uri = track.getInfo().uri == null ? "" : track.getInfo().uri;
-            String file = uri.replaceAll("[?#].*$", "");
-            file = file.substring(file.lastIndexOf('/') + 1).replaceAll("\\.[A-Za-z0-9]{2,4}$", "");
-            title = java.net.URLDecoder.decode(file, java.nio.charset.StandardCharsets.UTF_8).replace('_', ' ').trim();
+            title = nameFromLink(track.getInfo().uri == null ? "" : track.getInfo().uri);
         }
         // El artista adelante solo si el titulo no lo trae ("Artista - Cancion").
         String author = track.getInfo().author;

@@ -47,6 +47,13 @@
 - **Órdenes solo del dueño:** opción nueva (**Config > Rocco > Órdenes solo del dueño**) para que en multijugador solo su dueño le dé órdenes y abra su menú.
 
 ### Arreglado
+- **Guardar el equipo:** "guardá las herramientas y la armadura" no guardaba nada, porque creía que todo lo que llevaba lo tenía puesto. Ahora entiende herramientas, armas, armadura, escudos y equipo, también juntos ("el escudo y el arco"), y solo se queda con lo que de verdad tiene puesto. Con "guardá todo" se queda además con su mejor herramienta de cada tipo para trabajar.
+- **Buscar en los cofres de toda la casa:** si había un cofre cerca sin lo pedido, no miraba más lejos, y solo buscaba 6 bloques para arriba o para abajo. Ahora busca hasta 32 bloques (64 para traer algo), en pisos y sótanos.
+- **Escaleras:** al subir un escalón se le borraba el camino y abandonaba el encargo al pie de la escalera.
+- **Animales que se mueven:** iba a donde estaba la oveja al elegirla; si se había corrido, no la esquilaba. Ahora la sigue.
+- **Desde lejos:** lo que te dice mientras hace un encargo lejos ("no llego", "listo") te llega aunque estés a más de 24 bloques.
+- **Talar:** decía que había plantado otro árbol aunque no tuviera un arbolito. Ahora siempre planta uno donde estaba (con el suyo o con el poder de la Madre Naturaleza), y cuatro juntos si era un roble oscuro.
+- **Radios:** ahora suenan las de AAC/AAC+ (muy comunes en Uruguay, Argentina y México), las listas HLS (.m3u8) de radios argentinas y las listas .m3u comunes. Si le pasás la página de la radio en vez del link del audio, te lo explica.
 - **Música desde links:** los sitios que piden que el programa se identifique (como Wikimedia) ya abren, y un servidor lento o con un error pasajero ya no falla de una.
 - **Roco Cola:** si todavía se está enfriando, Rocco ya no dice "saliendo!" antes de avisarte que tenés que esperar.
 - **Salir del agua:** con el patito no podía subir a la orilla: se quedaba empujando y terminaba teletransportándose, o flotando para siempre si te quedabas al lado o tenía un encargo en tierra. Ahora nada hasta el borde, se trepa de un saltito (hasta una orilla un bloque más alta que el agua) y recién arriba se sacude. Si la orilla es una pared más alta, sigue apareciendo a tu lado.

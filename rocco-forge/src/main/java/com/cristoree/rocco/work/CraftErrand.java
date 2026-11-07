@@ -152,7 +152,7 @@ public final class CraftErrand extends Errand
     private Map<String, Integer> stockWithChests()
     {
         Map<String, Integer> combined = Inv.tally(this.rocco.inventory());
-        for (BlockPos chest : Storage.findAround(this.level, this.rocco.blockPosition(), requester(), RoccoCommonConfig.WORK_SEARCH_RADIUS.get()))
+        for (BlockPos chest : Storage.findWide(this.level, this.rocco.blockPosition(), requester(), RoccoCommonConfig.WORK_SEARCH_RADIUS.get()))
         {
             Container container = Storage.open(this.level, chest, requester());
             if (container != null)
@@ -339,7 +339,7 @@ public final class CraftErrand extends Errand
     {
         this.searched = true;
 
-        List<BlockPos> chests = Storage.findAround(this.level, this.rocco.blockPosition(), requester(), RoccoCommonConfig.WORK_SEARCH_RADIUS.get());
+        List<BlockPos> chests = Storage.findWide(this.level, this.rocco.blockPosition(), requester(), RoccoCommonConfig.WORK_SEARCH_RADIUS.get());
         Map<BlockPos, Container> opened = new LinkedHashMap<>();
         Map<String, Integer> combined = Inv.tally(this.rocco.inventory());
         for (BlockPos chest : chests)

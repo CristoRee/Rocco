@@ -59,11 +59,54 @@ public final class Names
 
     private static final Pattern FILLER = Pattern.compile(
             "\\b(el|la|los|las|lo|unos|unas|un|una|uno|al|del|me|te|mi|tu|ese|esa|esos|esas|este|esta|estos|estas|"
-            + "eso|esto|algo|de|por favor|porfa|ahora|ya|aca|ahi|alla|mas|cosas?|items?|mio|tuyo|para mi)\\b");
+            + "eso|esto|algo|de|por favor|porfa|ahora|ya|aca|ahi|alla|mas|cosas?|items?|mio|tuyo|para mi|inventario|tapa|mochila|"
+            + "que tenes|que tienes|que llevas|tuyas?|tuyos|suyas?|suyos)\\b");
 
     private static final Map<String, String> WORDS = new HashMap<>();
     private static final Map<String, TagKey<Item>> GROUPS = new HashMap<>();
     private static final Map<String, List<String>> CHOICES = new HashMap<>();
+    // Clases de cosas: "las herramientas", "la armadura", "las armas", "el equipo".
+    private static final Map<String, Predicate<Item>> KINDS = new HashMap<>();
+
+    static
+    {
+        Predicate<Item> tools = item -> item instanceof net.minecraft.world.item.DiggerItem
+                || item instanceof net.minecraft.world.item.ShearsItem
+                || item instanceof net.minecraft.world.item.FlintAndSteelItem
+                || item instanceof net.minecraft.world.item.FishingRodItem;
+        Predicate<Item> weapons = item -> item instanceof net.minecraft.world.item.SwordItem
+                || item instanceof net.minecraft.world.item.BowItem
+                || item instanceof net.minecraft.world.item.CrossbowItem
+                || item instanceof net.minecraft.world.item.TridentItem;
+        Predicate<Item> armor = item -> item instanceof net.minecraft.world.item.ArmorItem;
+        Predicate<Item> shields = item -> item instanceof net.minecraft.world.item.ShieldItem;
+        kind(tools, "herramientas", "herramienta", "tools", "tool");
+        kind(weapons, "armas", "arma", "weapons", "weapon");
+        kind(armor, "armadura", "armaduras", "armor", "armour");
+        kind(shields, "escudos");
+        kind(tools.or(weapons).or(armor).or(shields), "equipo", "equipamiento", "equipamientos", "gear");
+    }
+
+    private static void kind(Predicate<Item> test, String... names)
+    {
+        for (String name : names)
+        {
+            KINDS.put(name, test);
+        }
+    }
+
+    private static List<Item> ofKind(Predicate<Item> test)
+    {
+        List<Item> out = new ArrayList<>();
+        for (Item item : ForgeRegistries.ITEMS)
+        {
+            if (item != Items.AIR && test.test(item))
+            {
+                out.add(item);
+            }
+        }
+        return out;
+    }
     private static final Map<TagKey<Item>, String> GROUP_FALLBACK = Map.of(
             ItemTags.PLANKS, "minecraft:oak_planks",
             ItemTags.LOGS, "minecraft:oak_log",
@@ -357,8 +400,59 @@ public final class Names
         String subject = FILLER.matcher(" " + clean + " ").replaceAll(" ").replaceAll("\\s+", " ").trim();
         // "de" se fue con el relleno: se vuelve a probar el texto con "de" para "pico de piedra".
         List<Item> items = resolve(clean.replaceAll("\\s+", " ").trim(), subject);
+        List<Item> listed = listed(clean);
+        if (listed != null)
+        {
+            items = listed;
+        }
 
         return new Query(subject, items, count, all);
+    }
+
+    // Varias cosas juntas, si cada parte es algo. Un nombre que lleva "y" ("pedernal y acero") sigue
+    // siendo uno solo. null si no es una lista.
+    @org.jetbrains.annotations.Nullable
+    private static List<Item> listed(String clean)
+    {
+        String[] parts = clean.split("\\s*(?:,|\\by\\b|\\be\\b|\\band\\b)\\s*");
+        if (parts.length < 2)
+        {
+            return null;
+        }
+        String whole = clean.replaceAll("\\s+", " ").trim();
+        if (WORDS.containsKey(whole) || exactName(whole))
+        {
+            return null;
+        }
+        java.util.LinkedHashSet<Item> all = new java.util.LinkedHashSet<>();
+        for (String part : parts)
+        {
+            String piece = part.replaceAll("\\s+", " ").trim();
+            String subject = FILLER.matcher(" " + piece + " ").replaceAll(" ").replaceAll("\\s+", " ").trim();
+            if (subject.isEmpty())
+            {
+                continue;
+            }
+            List<Item> found = resolve(piece, subject);
+            if (found.isEmpty())
+            {
+                return null;
+            }
+            all.addAll(found);
+        }
+        return all.isEmpty() ? null : new ArrayList<>(all);
+    }
+
+    private static boolean exactName(String text)
+    {
+        for (Item item : ForgeRegistries.ITEMS)
+        {
+            if (item != Items.AIR && normalize(name(item)).equals(text))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static List<Item> resolve(String withConnectors, String subject)
@@ -388,6 +482,15 @@ public final class Names
             if (id != null && Inv.item(id) != Items.AIR)
             {
                 return List.of(Inv.item(id));
+            }
+            Predicate<Item> kind = KINDS.get(candidate);
+            if (kind != null)
+            {
+                List<Item> members = ofKind(kind);
+                if (!members.isEmpty())
+                {
+                    return members;
+                }
             }
             List<String> choices = CHOICES.get(candidate);
             if (choices != null)

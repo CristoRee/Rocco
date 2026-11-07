@@ -661,8 +661,9 @@ public final class RoccoCommonConfig
                          "a buscarlos el solo a los cofres de alrededor.")
                 .defineInRange("waitForItemsSeconds", 30, 5, 600);
         WORK_SEARCH_RADIUS = b
-                .comment("Hasta que distancia busca cofres, hornos y mesas de crafteo.")
-                .defineInRange("searchRadius", 16, 4, 48);
+                .comment("Hasta que distancia busca cofres, hornos y mesas de crafteo, alrededor de el y de vos.",
+                         "Para buscar algo que le pediste mira hasta el doble (como maximo 96 bloques).")
+                .defineInRange("chestSearchRadius", 32, 8, 64);
         WORK_GIVE_RESULTS = b
                 .comment("Lo que craftea, cocina o trae te lo da en la mano (te lo tira cerca).",
                          "Si es false, se lo queda en su inventario.")

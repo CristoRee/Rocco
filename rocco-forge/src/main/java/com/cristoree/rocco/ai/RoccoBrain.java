@@ -1064,14 +1064,22 @@ public class RoccoBrain
         {
             return;
         }
+        // Su dueño lo lee aunque Rocco se haya ido a buscar algo a la otra punta de la casa: si no, el
+        // "no llego" o el "listo" se perdian.
+        java.util.UUID owner = this.rocco.getOwnerId();
+        double ownerRadius = Math.max(radius, OWNER_READS_RADIUS);
         for (ServerPlayer nearby : level.players())
         {
-            if (nearby.distanceToSqr(this.rocco) <= radius * radius)
+            double distance = nearby.distanceToSqr(this.rocco);
+            boolean isOwner = owner != null && owner.equals(nearby.getUUID());
+            if (distance <= radius * radius || (isOwner && distance <= ownerRadius * ownerRadius))
             {
                 nearby.sendSystemMessage(line);
             }
         }
     }
+
+    private static final double OWNER_READS_RADIUS = 96.0D;
 
     private void speak(String chat, String voice, @Nullable String impression)
     {

@@ -48,6 +48,8 @@ public final class DepositErrand extends Errand
     private final Set<BlockPos> usedChests = new LinkedHashSet<>();
     // Cofres a los que no pudo llegar: al repartir de nuevo ya no cuentan.
     private final Set<BlockPos> unreachable = new java.util.HashSet<>();
+    // Las herramientas con las que trabaja (se recalcula en cada paso).
+    private java.util.Set<ItemStack> workTools = java.util.Set.of();
     @Nullable
     private Visit current;
     private boolean visiting;
@@ -75,6 +77,7 @@ public final class DepositErrand extends Errand
     @Override
     protected Status step()
     {
+        this.workTools = Tools.workTools(this.rocco.inventory());
         if (this.visits == null)
         {
             planVisits();
@@ -385,8 +388,8 @@ public final class DepositErrand extends Errand
     {
         return switch (this.mode)
         {
-            // Las herramientas se las queda: son con las que trabaja.
-            case ALL -> !Tools.isTool(stack);
+            // Se queda solo con sus herramientas de trabajo (la mejor de cada una).
+            case ALL -> !this.workTools.contains(stack);
             case HARVEST -> this.rocco.harvestTypes().contains(stack.getItem());
             case MATCHING -> this.filter != null && this.filter.test(stack);
         };

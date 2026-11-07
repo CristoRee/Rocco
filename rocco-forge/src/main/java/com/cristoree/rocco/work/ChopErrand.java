@@ -35,8 +35,11 @@ public final class ChopErrand extends Errand
     private final boolean quiet;
     private Phase phase = Phase.FIND;
     private BlockPos base;
+    // Donde estaba el tronco a ras del piso (cuatro en un roble oscuro, que necesita cuatro arbolitos).
+    private final List<BlockPos> trunk = new ArrayList<>();
     private Item sapling = Items.AIR;
     private int logs;
+    private int planted;
 
     public ChopErrand(RoccoEntity rocco, @Nullable Player requester, boolean quiet)
     {
@@ -60,6 +63,14 @@ public final class ChopErrand extends Errand
 
                 this.base = tree.get(0);
                 this.sapling = saplingFor(this.level.getBlockState(this.base));
+                int bottom = this.base.getY();
+                for (BlockPos log : tree)
+                {
+                    if (log.getY() == bottom && this.trunk.size() < 4)
+                    {
+                        this.trunk.add(log);
+                    }
+                }
 
                 for (int i = 0; i < tree.size(); i++)
                 {
@@ -85,12 +96,22 @@ public final class ChopErrand extends Errand
                     return Status.FAILED;
                 }
                 this.phase = Phase.REPLANT;
-                // Replanta el arbolito solo si tiene uno encima: plantar gasta, como al jugador.
+                // Planta otro donde estaba: con el arbolito que tenga encima y, si no tiene, con el
+                // poder de la Madre Naturaleza. El roble oscuro solo crece de a cuatro.
                 Crops.Plantable plant = this.sapling == Items.AIR ? null : Crops.plantableFor(this.sapling);
-                if (plant != null && Crops.seeds(this.rocco, plant) > 0 && Crops.fits(this.level, this.base, plant))
+                List<BlockPos> spots = this.sapling == Items.DARK_OAK_SAPLING && this.trunk.size() == 4 ? this.trunk : List.of(this.base);
+                if (plant != null)
                 {
-                    work(RoccoTask.PLANTING, this.base, new ItemStack(this.sapling),
-                            level -> Crops.plant(level, this.base, plant, this.rocco));
+                    work(RoccoTask.PLANTING, this.base, new ItemStack(this.sapling), level ->
+                    {
+                        for (BlockPos spot : spots)
+                        {
+                            if (replant(spot, plant))
+                            {
+                                this.planted++;
+                            }
+                        }
+                    });
                 }
                 return Status.RUNNING;
             }
@@ -99,7 +120,7 @@ public final class ChopErrand extends Errand
                 this.phase = Phase.DONE;
                 if (!this.quiet)
                 {
-                    say("chop_done", "count", String.valueOf(this.logs));
+                    say(this.planted > 0 ? "chop_done" : "chop_done_no_plant", "count", String.valueOf(this.logs));
                 }
                 return Status.DONE;
             }
@@ -108,6 +129,22 @@ public final class ChopErrand extends Errand
                 return Status.DONE;
             }
         }
+    }
+
+    // Un arbolito en ese lugar: el que tenga encima, o uno de regalo de la naturaleza.
+    private boolean replant(BlockPos spot, Crops.Plantable plant)
+    {
+        if (!Crops.fits(this.level, spot, plant))
+        {
+            return false;
+        }
+        if (Crops.seeds(this.rocco, plant) > 0)
+        {
+            return Crops.plant(this.level, spot, plant, this.rocco);
+        }
+        this.level.setBlock(spot, plant.state(), net.minecraft.world.level.block.Block.UPDATE_ALL);
+        this.level.playSound(null, spot, net.minecraft.sounds.SoundEvents.GRASS_PLACE, net.minecraft.sounds.SoundSource.BLOCKS, 0.5F, 1.0F);
+        return true;
     }
 
     // Los troncos del arbol mas cercano, de abajo hacia arriba.

@@ -265,6 +265,53 @@ public final class Tools
         return out.toString();
     }
 
+    // Las herramientas con las que trabaja: la mejor de cada clase (pico, hacha, pala, azada, tijeras,
+    // caña, encendedor). "Guardá todo" o "dame todo" no las tocan; las repetidas y la armadura que
+    // no tiene puesta si. Lo que tiene puesto no esta en el inventario: eso nunca se guarda.
+    public static java.util.Set<ItemStack> workTools(net.minecraft.world.Container inventory)
+    {
+        java.util.Map<String, ItemStack> best = new java.util.HashMap<>();
+        for (ItemStack stack : Inv.contents(inventory))
+        {
+            String kind = workKind(stack);
+            if (kind == null)
+            {
+                continue;
+            }
+            ItemStack current = best.get(kind);
+            if (current == null || rank(stack) > rank(current))
+            {
+                best.put(kind, stack);
+            }
+        }
+        java.util.Set<ItemStack> out = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        out.addAll(best.values());
+        return out;
+    }
+
+    @org.jetbrains.annotations.Nullable
+    private static String workKind(ItemStack stack)
+    {
+        net.minecraft.world.item.Item item = stack.getItem();
+        if (item instanceof PickaxeItem) return "pickaxe";
+        if (item instanceof AxeItem) return "axe";
+        if (item instanceof ShovelItem) return "shovel";
+        if (item instanceof HoeItem) return "hoe";
+        if (item instanceof net.minecraft.world.item.ShearsItem) return "shears";
+        if (item instanceof net.minecraft.world.item.FishingRodItem) return "rod";
+        if (item instanceof net.minecraft.world.item.FlintAndSteelItem) return "flint";
+        return null;
+    }
+
+    // Mejor material primero, despues encantada, despues la que mas vida le queda.
+    private static double rank(ItemStack stack)
+    {
+        double tier = stack.getItem() instanceof net.minecraft.world.item.TieredItem tiered ? tiered.getTier().getLevel() * 1000.0D
+                + tiered.getTier().getSpeed() * 10.0D : 0.0D;
+        double left = stack.isDamageableItem() ? (stack.getMaxDamage() - stack.getDamageValue()) / (double) stack.getMaxDamage() : 1.0D;
+        return tier + (stack.isEnchanted() ? 500.0D : 0.0D) + left;
+    }
+
     public static boolean isTool(ItemStack stack)
     {
         return stack.isDamageableItem()

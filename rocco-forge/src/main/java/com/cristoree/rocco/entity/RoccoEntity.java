@@ -423,12 +423,15 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
     private static final double PUNCH_DAMAGE = 2.0D;
 
+    // Hasta donde arma un camino: tiene que alcanzar el cofre mas lejano que puede buscar (96 bloques).
+    private static final double PATH_RANGE = 100.0D;
+
     public static AttributeSupplier.Builder createAttributes()
     {
         return PathfinderMob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 20.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.28D)
-                .add(Attributes.FOLLOW_RANGE, 32.0D)
+                .add(Attributes.FOLLOW_RANGE, PATH_RANGE)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.6D)
                 // A piñas pega 2 (el jugador 1, un lobo 4) y las armas suman lo suyo (con sus encantamientos).
                 .add(Attributes.ATTACK_DAMAGE, PUNCH_DAMAGE)
@@ -1156,6 +1159,19 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                 this.nodeEvaluator = new RoccoGates.Nodes();
                 this.nodeEvaluator.setCanPassDoors(true);
                 return new net.minecraft.world.level.pathfinder.PathFinder(this.nodeEvaluator, maxVisitedNodes);
+            }
+
+            // En el aire (saltando un escalon) el juego no deja calcular un camino nuevo y borraba el
+            // que tenia: el encargo lo daba por imposible y se quedaba al pie de la escalera. Sigue
+            // con el que traia.
+            @Override
+            public boolean moveTo(@Nullable net.minecraft.world.level.pathfinder.Path path, double speed)
+            {
+                if (path == null && !canUpdatePath() && this.path != null && !this.path.isDone())
+                {
+                    return true;
+                }
+                return super.moveTo(path, speed);
             }
         };
     }
@@ -2601,9 +2617,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             return;
         }
 
-        // Primero se acerca; la animacion arranca cuando la mano llega al bloque.
-        double distance = Math.sqrt(distanceToSqr(
-                next.target().getX() + 0.5D, next.target().getY(), next.target().getZ() + 0.5D));
+        // Primero se acerca; la animacion arranca cuando la mano llega al bloque. Si es un animal, va a
+        // donde esta ahora: antes iba a donde estaba cuando lo eligio, y si la oveja se habia movido
+        // llegaba, no la alcanzaba y no la esquilaba.
+        Entity aimed = next.entityId() >= 0 ? level().getEntity(next.entityId()) : null;
+        BlockPos goal = aimed != null && aimed.isAlive() ? aimed.blockPosition() : next.target();
+        double distance = Math.sqrt(distanceToSqr(goal.getX() + 0.5D, goal.getY(), goal.getZ() + 0.5D));
 
         if (distance <= next.reachOr(WORK_REACH) || reachesStorage(next))
         {
@@ -2616,7 +2635,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             }
             else if (!isPerformance(next.task()))
             {
-                lookAtBlock(next.target());
+                lookAtBlock(goal);
             }
             this.jobs.poll();
             this.pathFailures = 0;
@@ -2649,8 +2668,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
         if (this.approachTicks % 10 == 1)
         {
-            boolean moving = getNavigation().moveTo(next.target().getX() + 0.5D, next.target().getY(),
-                    next.target().getZ() + 0.5D, 1.0D);
+            boolean moving = getNavigation().moveTo(goal.getX() + 0.5D, goal.getY(), goal.getZ() + 0.5D, 1.0D);
             this.pathFailures = moving ? 0 : this.pathFailures + 1;
         }
     }
@@ -4438,6 +4456,12 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         super.readAdditionalSaveData(tag);
         setRoccoState(RoccoState.byId(tag.getInt("RoccoState")));
+        // Un Rocco guardado con una version anterior trae el alcance de antes.
+        net.minecraft.world.entity.ai.attributes.AttributeInstance range = getAttribute(Attributes.FOLLOW_RANGE);
+        if (range != null && range.getBaseValue() < PATH_RANGE)
+        {
+            range.setBaseValue(PATH_RANGE);
+        }
         setExpression(RoccoExpression.byId(tag.getInt("RoccoExpression")));
         this.awakenTicks = tag.getInt("AwakenTicks");
 

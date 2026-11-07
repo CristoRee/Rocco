@@ -41,7 +41,7 @@ Se le habla por el chat (o por micrófono). Algunos ejemplos:
 | "poné esto: https://..." | Pone la música de un link y la canta y la baila al ritmo de la canción. Ver **Música** abajo. |
 | "esta es mi casa" / "llevame a casa" | Recuerda lugares y te guía hasta ellos. |
 | "dame una Roco Cola" | Te da una bien helada. Tomala y mirá lo que pasa. Ver **Roco Cola** abajo. |
-| "traeme carbón", "guardá todo", "ordená los cofres" | Busca, guarda y ordena las cosas de tus cofres. Lo que tiene puesto (armadura, arma y escudo) no lo guarda. Si le preguntás "¿dónde guardaste?", te dice en qué cofre. |
+| "traeme carbón", "guardá todo", "ordená los cofres" | Busca, guarda y ordena las cosas de tus cofres. Entiende "las herramientas", "la armadura", "las armas" o "el equipo", también juntos. Lo que tiene puesto no lo guarda nunca, y con "guardá todo" se queda con su mejor herramienta de cada tipo para trabajar. Busca en los cofres de toda la casa: hasta 32 bloques, y hasta 64 para traerte algo. Si le preguntás "¿dónde guardaste?", te dice en qué cofre. |
 | "talá un árbol", "conseguime 10 de madera", "iluminá" | Junta materiales de la naturaleza y pone antorchas donde está oscuro. |
 | "criá las vacas", "dales de comer a los animales", "esquilá las ovejas" | Les da de comer de a pares para que tengan crías, y esquila las ovejas (si no tiene tijeras, se las hace con 2 de hierro). |
 | "quedate cuidando la casa", "cuidá los animales" | Se queda en tu casa mientras explorás. Ver **Cuidar la casa** abajo. |
@@ -110,7 +110,7 @@ El tope, sacar los que sobran, esquilar, usar el hierro de los cofres para las t
 
 Pasale un link a Rocco y lo pone: suena desde él (camina con la música, como un parlante con patas) y mientras tanto canta con su micrófono y a veces baila, al ritmo de la canción. Las canciones lentas las canta suave, y el rap y el trap con actitud.
 
-- **Qué links andan:** archivos de audio (MP3, OGG, M4A, FLAC, WAV) y radios por internet: links que ya son audio. Los de YouTube, Spotify, SoundCloud, Twitch, Bandcamp y otras apps de videos o música no: sacarles el sonido va contra sus condiciones o entra por caminos que no ofrecen, y Rocco te pide otro link.
+- **Qué links andan:** archivos de audio (MP3, OGG, M4A, FLAC, WAV) y radios por internet (MP3, AAC/AAC+, listas .m3u, .m3u8 y .pls): links que ya son audio. Si tenés la página de la radio, buscá ahí el link del audio o el de la lista. Los de YouTube, Spotify, SoundCloud, Twitch, Bandcamp y otras apps de videos o música no: sacarles el sonido va contra sus condiciones o entra por caminos que no ofrecen, y Rocco te pide otro link.
 - **Lo que le pasás es cosa tuya:** Rocco no guarda ni comparte el audio, cada juego abre el link por su cuenta, como un navegador. Pasale solo música que tengas derecho a escuchar: tuya, con licencia libre (Creative Commons, dominio público) o radios que se puedan oír por internet.
 - **Por chat:** "poné esto https://...", "pausá la música", "seguí con la música", "pará la música", "subí/bajá el volumen".
 - **En multijugador** todos los que están cerca escuchan lo mismo al mismo tiempo, y el que llega tarde entra en el punto justo. Cada uno la escucha desde su juego.

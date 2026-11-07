@@ -293,7 +293,7 @@ public final class RanchErrand extends Errand
     {
         int total = 0;
         ServerPlayer player = requester();
-        for (BlockPos chest : Storage.findAround(this.level, this.rocco.blockPosition(), player, RoccoCommonConfig.WORK_SEARCH_RADIUS.get()))
+        for (BlockPos chest : Storage.findWide(this.level, this.rocco.blockPosition(), player, RoccoCommonConfig.WORK_SEARCH_RADIUS.get()))
         {
             Container container = Storage.open(this.level, chest, player);
             if (container != null)

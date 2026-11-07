@@ -61,7 +61,7 @@ public final class Storage
                 for (BlockEntity entity : chunk.getBlockEntities().values())
                 {
                     BlockPos pos = entity.getBlockPos();
-                    if (pos.distSqr(center) > maxSqr || Math.abs(pos.getY() - center.getY()) > 6 || !isStorage(entity))
+                    if (pos.distSqr(center) > maxSqr || Math.abs(pos.getY() - center.getY()) > height(radius) || !isStorage(entity))
                     {
                         continue;
                     }
@@ -79,14 +79,33 @@ public final class Storage
         return found;
     }
 
+    // Cuanto mira para arriba y para abajo: en una casa con sotano y primer piso, 6 bloques no alcanzaban.
+    private static int height(int radius)
+    {
+        return Math.max(6, Math.min(24, radius / 2));
+    }
+
     // Los cofres para un encargo: alrededor de Rocco y alrededor del jugador, del mas cercano a Rocco
-    // al mas lejano. Si no hay ninguno a 'radius', busca al doble (hasta 48): para vos la casa de al
-    // lado esta "ahi nomas" aunque quede a 20 bloques, y antes decia que no habia ningun cofre.
+    // al mas lejano. Si no hay ninguno a 'radius', busca al doble: para vos la casa de al lado esta
+    // "ahi nomas" aunque quede lejos, y antes decia que no habia ningun cofre.
     public static List<BlockPos> findAround(ServerLevel level, BlockPos center, @Nullable Player player, int radius)
     {
         List<BlockPos> found = findBoth(level, center, player, radius);
-        int wider = Math.min(radius * 2, 48);
+        int wider = wide(radius);
         return found.isEmpty() && wider > radius ? findBoth(level, center, player, wider) : found;
+    }
+
+    // Para buscar algo: todos los cofres hasta el doble del radio, del mas cercano al mas lejano. Antes
+    // miraba al doble solo si no habia NINGUN cofre cerca: con un par de cofres sin hierro al lado,
+    // decia que no habia hierro aunque hubiera un cofre lleno a 20 bloques.
+    public static List<BlockPos> findWide(ServerLevel level, BlockPos center, @Nullable Player player, int radius)
+    {
+        return findBoth(level, center, player, wide(radius));
+    }
+
+    private static int wide(int radius)
+    {
+        return Math.min(radius * 2, 96);
     }
 
     private static List<BlockPos> findBoth(ServerLevel level, BlockPos center, @Nullable Player player, int radius)
@@ -121,7 +140,7 @@ public final class Storage
                 for (BlockEntity entity : level.getChunk(chunkX, chunkZ).getBlockEntities().values())
                 {
                     BlockPos pos = entity.getBlockPos();
-                    if (pos.distSqr(center) <= maxSqr && Math.abs(pos.getY() - center.getY()) <= 6 && filter.test(entity))
+                    if (pos.distSqr(center) <= maxSqr && Math.abs(pos.getY() - center.getY()) <= height(radius) && filter.test(entity))
                     {
                         found.add(pos.immutable());
                     }

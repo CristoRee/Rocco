@@ -154,7 +154,8 @@ public final class RoccoMusic
         if (!msg.ok())
         {
             RoccoMod.LOGGER.info("[Rocco] No se pudo abrir la musica {}: {}", pending.url(), msg.error());
-            rocco.sayLine("music_fail");
+            // Una pagina web (la de la radio, por ejemplo) no es el audio: se le dice que busque el link del stream.
+            rocco.sayLine(msg.error().contains("Unknown file format") ? "music_page" : "music_fail");
             return;
         }
         String url = msg.url().isBlank() ? pending.url() : msg.url();

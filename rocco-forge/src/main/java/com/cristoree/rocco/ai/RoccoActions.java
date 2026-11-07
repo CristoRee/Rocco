@@ -805,7 +805,8 @@ public final class RoccoActions
         if (query.all() && !query.found() || Names.normalize(argument).matches("^(todo|todas|todos)?$"))
         {
             // "Todo" son sus cosas: las herramientas con las que trabaja se las queda.
-            filter = stack -> !Tools.isTool(stack);
+            java.util.Set<ItemStack> keep = Tools.workTools(rocco.inventory());
+            filter = stack -> !keep.contains(stack);
             amount = 0;
         }
         else if (query.found())

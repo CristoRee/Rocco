@@ -52,7 +52,7 @@ public final class FetchErrand extends Errand
     {
         List<BlockPos> chests = onlyChest != null
                 ? List.of(onlyChest)
-                : Storage.findAround((net.minecraft.server.level.ServerLevel) rocco.level(), rocco.blockPosition(),
+                : Storage.findWide((net.minecraft.server.level.ServerLevel) rocco.level(), rocco.blockPosition(),
                         requester, RoccoCommonConfig.WORK_SEARCH_RADIUS.get());
 
         // Los cofres vienen del mas cercano al mas lejano. Si uno solo tiene todo lo pedido, va a

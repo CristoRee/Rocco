@@ -90,7 +90,7 @@ public final class RoccoContextBuilder
         {
             facts.put("What you did and said recently (oldest first; this is the real record, trust it)", deeds);
         }
-        facts.put("Your inventory", inventoryOf(rocco));
+        facts.put("Your inventory (carried in your lid/backpack, NOT worn: you can store or give any of it)", inventoryOf(rocco));
         facts.put("Your backpack", rocco.backpackTier() == 0
                 ? "none (" + rocco.inventory().getContainerSize() + " slots in your lid; the player can craft you one once they have the seed you give them when you become friends)"
                 : "number " + rocco.backpackTier() + " of 6 (" + rocco.inventory().getContainerSize() + " slots in total)");
@@ -147,7 +147,7 @@ public final class RoccoContextBuilder
         facts.put("Your health", Math.round(rocco.getHealth()) + " of " + Math.round(rocco.getMaxHealth())
                 + (rocco.life().saturation() > 0.0F ? " (you ate recently: healing faster)" : " (you heal by yourself little by little)"));
         facts.put("You may use on your own", usesOf(rocco));
-        facts.put("What you are wearing", gearOf(rocco));
+        facts.put("What you are wearing (only these are equipped; anything else is just carried)", gearOf(rocco));
         facts.put("You may attack", targetsOf(rocco));
         facts.put("Your ender chest power", rocco.life().hasEnderPocket()
                 ? "yes: you keep everything if you die"
