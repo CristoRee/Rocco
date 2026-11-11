@@ -13,7 +13,7 @@ En https://authors.curseforge.com → **Create Project** → Minecraft → Mods.
 | Descripción | El contenido de `DESCRIPCION.md` (el editor acepta Markdown) |
 | Categoría principal | Mobs |
 | Otras categorías | Adventure and RPG, Utility & QoL |
-| Licencia | **Custom License**, pegando el texto completo de `../LICENSE.md` |
+| Licencia | **Custom License**, pegando `LICENCIA-curseforge.txt` en el editor común (no interpreta Markdown y su ventana Source Code no deja pegar). Los títulos se marcan con el desplegable "Paragraph" |
 | Avatar del proyecto | Un render cuadrado de Rocco. Conviene exportar uno nuevo desde Blockbench de 512 × 512 o más: el `logo.png` del mod es de 256 × 256 y escalado se ve borroso |
 | Código fuente / issues | El link de GitHub solo si el repositorio es público. Si es privado, dejalo vacío (los links del `mods.toml` apuntan ahí) |
 
