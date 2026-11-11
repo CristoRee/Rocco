@@ -19,18 +19,18 @@ En https://authors.curseforge.com → **Create Project** → Minecraft → Mods.
 
 ## 2. Subir el archivo
 
-Armá el jar con `gradlew build` dentro de `rocco-forge`. Queda en `rocco-forge/build/libs/rocco-forge-1.20.1-1.5.0.jar`.
+Armá el jar con `gradlew build` dentro de `rocco-forge`. Queda en `rocco-forge/build/libs/rocco-forge-1.20.1-1.6.0.jar`.
 
 | Campo | Qué poner |
 |---|---|
-| Archivo | `rocco-forge-1.20.1-1.5.0.jar` |
-| Nombre visible | Rocco 1.5.0 (Forge 1.20.1) |
+| Archivo | `rocco-forge-1.20.1-1.6.0.jar` |
+| Nombre visible | Rocco 1.6.0 (Forge 1.20.1) |
 | Tipo | Release (o Beta, si querés probarlo primero con algunos jugadores) |
 | Versión del juego | 1.20.1 |
 | Mod loader | Forge |
 | Entorno | Client y Server (va en los dos) |
 | Java | 17 |
-| Changelog | El de `ARCHIVO-1.5.0.md` |
+| Changelog | El de `ARCHIVO-1.6.0.md` |
 | Dependencias | **GeckoLib**: Required Dependency |
 
 ## 3. Imágenes

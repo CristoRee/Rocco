@@ -47,6 +47,9 @@ public final class RoccoCombat
     private static final double GIVE_UP = 24.0D;
     // Despues de la pelea queda en guardia un ratito antes de volver a lo de siempre.
     private static final int CALM_DOWN_TICKS = 60;
+    // La botella: en el tick 23 de bottle_smash la revienta; con el otro a menos de 2,5 bloques espera.
+    private static final int SMASH_TICK = 23;
+    private static final double SMASH_DISTANCE = 2.5D;
 
     public static int defaultTargets()
     {
@@ -216,6 +219,10 @@ public final class RoccoCombat
         private int drawTicks = -1;
         private int repath;
         private boolean warnedArrows;
+        // La botella rota (ROCCO-V14 3.1): el dado se tira una vez por pelea; si sale, apenas el
+        // otro esta a mas de 2,5 bloques rompe una Roco Cola vacia contra el piso.
+        private boolean bottleChance;
+        private int smashTicks = -1;
 
         Fight(RoccoEntity rocco)
         {
@@ -233,7 +240,8 @@ public final class RoccoCombat
         @Override
         public boolean canContinueToUse()
         {
-            return canUse() || this.swingTicks >= 0;
+            // La botella ya reventada se termina de mostrar aunque la pelea haya terminado.
+            return canUse() || this.swingTicks >= 0 || this.smashTicks >= SMASH_TICK + RoccoEntity.ANIM_LAG;
         }
 
         private boolean quietHunt(@Nullable LivingEntity target)
@@ -266,6 +274,10 @@ public final class RoccoCombat
             this.swingTicks = -1;
             this.drawTicks = -1;
             this.repath = 0;
+            this.smashTicks = -1;
+            double chance = RoccoCommonConfig.BROKEN_BOTTLE_CHANCE.get();
+            this.bottleChance = chance > 0.0D && this.rocco.weapon().isEmpty() && this.rocco.getMainHandItem().isEmpty()
+                    && this.rocco.getRandom().nextDouble() < chance;
             this.rocco.enterCombat();
             // Sacar una vaca que sobra no es una pelea: no grita nada.
             if (!quietHunt(this.rocco.getTarget()))
@@ -280,8 +292,19 @@ public final class RoccoCombat
             LivingEntity target = this.rocco.getTarget();
             if (target != null && !target.isAlive() && !quietHunt(target))
             {
-                this.rocco.sayLineOnce("combat_win", 600);
+                boolean bottle = this.rocco.getMainHandItem().is(com.cristoree.rocco.registry.ModItems.BOTELLA_ROTA.get());
+                this.rocco.sayLineOnce(bottle ? "bottle_win" : "combat_win", 600);
             }
+            // Si la pelea termino antes de romperla, guarda la botella sin romper nada.
+            if (this.smashTicks >= 0)
+            {
+                this.smashTicks = -1;
+                if (this.rocco.getScene() == RoccoScene.BOTTLE_SMASH)
+                {
+                    this.rocco.playScene(RoccoScene.NONE);
+                }
+            }
+            this.bottleChance = false;
             this.rocco.setTarget(null);
             this.rocco.clearOrderedTarget();
             this.rocco.getNavigation().stop();
@@ -308,6 +331,12 @@ public final class RoccoCombat
             this.rocco.getLookControl().setLookAt(target, 30.0F, 30.0F);
             this.rocco.enterCombat();
 
+            if (this.smashTicks >= 0)
+            {
+                tickSmash(target);
+                return;
+            }
+
             // La espera entre golpes corre tambien durante la animacion (si no, pegaba la mitad de seguido).
             if (this.cooldown > 0)
             {
@@ -329,6 +358,14 @@ public final class RoccoCombat
                 return;
             }
 
+            if (this.bottleChance && this.drawTicks < 0 && this.rocco.onGround() && !this.rocco.isInWater()
+                    && this.rocco.weapon().isEmpty() && this.rocco.getMainHandItem().isEmpty()
+                    && this.rocco.distanceToSqr(target) > SMASH_DISTANCE * SMASH_DISTANCE)
+            {
+                startSmash();
+                return;
+            }
+
             RoccoGear.Attack attack = RoccoGear.attackFor(this.rocco.weapon());
             if (attack.ranged() && !hasArrows(this.rocco))
             {
@@ -347,6 +384,51 @@ public final class RoccoCombat
             else
             {
                 meleeAt(target, attack);
+            }
+        }
+
+        // ---------- la botella rota ----------
+
+        private void startSmash()
+        {
+            this.bottleChance = false;
+            this.smashTicks = 0;
+            this.rocco.getNavigation().stop();
+            this.rocco.stopUsingItem();
+            this.rocco.setCombatStance(STANCE_GUARD);
+            // Si tiene una vacia la usa; si no, la saca igual de la cabeza (como la que regala).
+            com.cristoree.rocco.work.Inv.take(this.rocco.inventory(), com.cristoree.rocco.registry.ModItems.ROCO_COLA_EMPTY.get(), 1);
+            this.rocco.playScene(RoccoScene.BOTTLE_SMASH);
+            this.rocco.sayLine(RoccoExpression.SMUG, "bottle_decide");
+        }
+
+        // Quieto mirando al otro; en el tick 23 la revienta y le queda el pico en la mano.
+        private void tickSmash(LivingEntity target)
+        {
+            this.smashTicks++;
+            double dx = target.getX() - this.rocco.getX();
+            double dz = target.getZ() - this.rocco.getZ();
+            float yaw = dx * dx + dz * dz < 0.01D ? this.rocco.getYRot()
+                    : (float) (Math.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
+            this.rocco.holdStill(yaw);
+            int t = this.smashTicks - RoccoEntity.ANIM_LAG;
+            if (t == SMASH_TICK && this.rocco.getMainHandItem().isEmpty())
+            {
+                this.rocco.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND,
+                        new ItemStack(com.cristoree.rocco.registry.ModItems.BOTELLA_ROTA.get()));
+            }
+            if (t == SMASH_TICK + 6)
+            {
+                this.rocco.sayLine(RoccoExpression.SMUG, "bottle_smashed");
+            }
+            if (this.smashTicks >= RoccoScene.BOTTLE_SMASH.ticks + RoccoEntity.ANIM_LAG)
+            {
+                this.smashTicks = -1;
+                this.cooldown = 0;
+                if (this.rocco.getScene() == RoccoScene.BOTTLE_SMASH)
+                {
+                    this.rocco.playScene(RoccoScene.NONE);
+                }
             }
         }
 

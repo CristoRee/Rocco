@@ -1,5 +1,21 @@
 # Cambios
 
+## 1.6.0
+
+### Nuevo
+- **Truco con Rocco:** "¿jugamos un truco?" y se abre el menú de la partida: uruguayo (con muestra) o argentino, a 15 o a 30, con o sin flor, Rocco tranqui, normal o pícaro, mate entre manos o nunca, y equipos por orden de llegada o mezclados. Los que estén a 12 bloques o menos se suman con un botón en el chat durante 30 segundos, hasta 7 jugadores. Rocco saca de la cabeza una mesa y una silla para cada uno, se sientan todos y reparte. Se juega 1 contra 1, de a tres (el mano solo contra los otros dos, con 4 cartas y un descarte), 2 contra 2, 3 contra 3 y 4 contra 4; con 4 o 6 jugadores Rocco arbitra y ceba. Hay truco, retruco, vale cuatro, envido, real envido, falta envido, flor, contraflor, irse al mazo, y Rocco tiene su forma de jugar (a veces miente, y en equipo le hace señas a su compañero). Ceba mate entre mano y mano. La pantalla de la mesa muestra tus cartas, lo que podés cantar, el tanteador con fósforos y la muestra; con **R** la cerrás para mirar alrededor y la volvés a abrir. Para levantarte en medio de la partida, agachate y confirmá en el chat.
+- **Asado:** "hacé un asado" y saca su parrilla de tapa roja, se pone el delantal y asa de a una la carne cruda que tenga (vaca, cerdo y oveja), igual de rápido que un ahumador y con 16 piezas por carbón. Salen asado de tira, bondiola a la parrilla y costillitas de cordero, que van a su inventario; clic derecho a la parrilla y te pasa una. "Pará de cocinar" lo termina tranquilo.
+- **Tortas fritas:** "haceme tortas fritas" y, con trigo (el suyo o el que tengas en la mano), arma la olla y la mesa, amasa, fríe y toma mate. Un trigo, una torta frita; clic derecho al pote y te da una.
+- **Botella vacía de Roco Cola:** se tira y se rompe donde pega (medio corazón). Agachado, con clic derecho al piso, se rompe en tu mano y te queda la **botella rota**: un arma corta de 3 de daño que dura 40 golpes.
+- **Rocco y la botella rota:** si va a pelear sin arma, a veces saca una Roco Cola vacía de la cabeza, la revienta contra el piso y pelea con el pico roto hasta que se le hace pedazos. Se ajusta en **Config > Vida y rutina > Pelea**.
+- **Comidas nuevas:** torta frita, asado de tira, bondiola a la parrilla y costillitas de cordero.
+
+### Cambiado
+- **Mochilas nuevas:** las 6 están rediseñadas y ahora se ven en 3D en la mano, en el piso y en los marcos.
+
+### Arreglado
+- Al cortar un baile a la mitad, la cabeza de Rocco ya no da una vuelta entera.
+
 ## 1.5.0
 
 ### Nuevo

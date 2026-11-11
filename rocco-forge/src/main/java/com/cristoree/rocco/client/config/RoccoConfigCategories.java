@@ -291,6 +291,7 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.ATTACK_CREEPERS, "Pelea con creepers"),
                         opt(common, RoccoCommonConfig.OWNER_CAN_HURT_ROCCO, "Tus golpes lo lastiman"),
                         opt(common, RoccoCommonConfig.WEAPON_DURABILITY, "Se gastan sus armas"),
+                        opt(common, RoccoCommonConfig.BROKEN_BOTTLE_CHANCE, "Chance de botella rota"),
                         opt(common, RoccoCommonConfig.DEFAULT_ATTACK_HOSTILES, "Rocco nuevo: ataca hostiles"),
                         opt(common, RoccoCommonConfig.DEFAULT_ATTACK_PEACEFUL, "Rocco nuevo: ataca pacíficos"),
                         opt(common, RoccoCommonConfig.DEFAULT_ATTACK_PLAYERS, "Rocco nuevo: ataca jugadores")),

@@ -112,6 +112,7 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.BooleanValue ATTACK_CREEPERS;
     public static final ForgeConfigSpec.BooleanValue OWNER_CAN_HURT_ROCCO;
     public static final ForgeConfigSpec.BooleanValue WEAPON_DURABILITY;
+    public static final ForgeConfigSpec.DoubleValue BROKEN_BOTTLE_CHANCE;
     public static final ForgeConfigSpec.BooleanValue DEFAULT_ATTACK_HOSTILES;
     public static final ForgeConfigSpec.BooleanValue DEFAULT_ATTACK_PEACEFUL;
     public static final ForgeConfigSpec.BooleanValue DEFAULT_ATTACK_PLAYERS;
@@ -553,6 +554,10 @@ public final class RoccoCommonConfig
         WEAPON_DURABILITY = b
                 .comment("Sus armas y armaduras se gastan como las tuyas.")
                 .define("weaponDurability", true);
+        BROKEN_BOTTLE_CHANCE = b
+                .comment("Si va a pelear sin arma, la chance (una vez por pelea) de romper una Roco Cola vacia",
+                         "contra el piso y pelear con el pico roto. 0 = nunca.")
+                .defineInRange("brokenBottleChance", 0.4D, 0.0D, 1.0D);
         DEFAULT_ATTACK_HOSTILES = b
                 .comment("A quien puede atacar un Rocco nuevo (despues se cambia en su menu): mobs hostiles.")
                 .define("defaultAttackHostiles", true);

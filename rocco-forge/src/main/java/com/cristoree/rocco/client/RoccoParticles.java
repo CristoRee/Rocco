@@ -272,6 +272,17 @@ public final class RoccoParticles
         public static final Look HEART_POP = new Look(20, 26, 0.12F, 0.9F, 0.0F, true, 0.6F, true, 0.0F, 0.03F, 0.98D);
         public static final Look JOY_TEAR = new Look(14, 18, 0.07F, 1.0F, 0.05F, true, 0.6F, false, 0.0F, 0.0F, 0.98D);
         public static final Look SEED_POP = new Look(14, 20, 0.09F, 1.0F, 0.03F, true, 0.6F, true, 0.15F, 0.0F, 0.96D);
+        // La parrilla y la olla (v14). Las que suben llevan gravedad negativa: con el roce se
+        // estabilizan en la velocidad de la guia (el humo, unos 0,04 por tick).
+        public static final Look GRILL_SMOKE = new Look(40, 60, 0.14F, 2.2F, -0.11F, true, 0.35F, false, 0.03F, 0.01F, 0.9D);
+        public static final Look HEAT_WAVE = new Look(20, 20, 0.12F, 1.4F, -0.3F, true, 0.0F, false, 0.0F, 0.0F, 0.9D);
+        public static final Look EMBER = new Look(25, 25, 0.045F, 0.5F, -0.15F, true, 0.6F, true, 0.0F, 0.04F, 0.92D);
+        public static final Look FAT_SIZZLE = new Look(8, 8, 0.05F, 0.8F, 0.6F, true, 0.5F, false, 0.0F, 0.0F, 0.96D);
+        public static final Look FLAME_BURST = new Look(10, 10, 0.12F, 2.0F, 0.0F, true, 0.4F, true, 0.0F, 0.0F, 0.9D);
+        public static final Look OIL_BUBBLE = new Look(10, 10, 0.05F, 1.3F, -0.02F, true, 0.6F, false, 0.0F, 0.0F, 0.9D);
+        public static final Look OIL_SPLASH = new Look(12, 16, 0.05F, 0.8F, 0.8F, true, 0.6F, false, 0.0F, 0.0F, 0.97D);
+        public static final Look OIL_DRIP = new Look(15, 20, 0.04F, 0.9F, 1.0F, false, 0.7F, false, 0.0F, 0.0F, 0.98D);
+        public static final Look FLOUR_PUFF = new Look(20, 20, 0.12F, 2.2F, -0.01F, true, 0.3F, false, 0.0F, 0.0F, 0.88D);
     }
 
     public static final class Tuned extends TextureSheetParticle
@@ -346,6 +357,59 @@ public final class RoccoParticles
                                        double dx, double dy, double dz)
         {
             return new Tuned(level, x, y, z, dx, dy, dz, this.sprites, this.look);
+        }
+    }
+
+    // Un pedacito de vidrio de la botella: cae, rebota en el piso y se apaga (v14).
+    public static final class GlassShard extends TextureSheetParticle
+    {
+        GlassShard(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites)
+        {
+            super(level, x, y, z);
+            this.lifetime = 26 + this.random.nextInt(9);
+            this.quadSize = 0.05F + this.random.nextFloat() * 0.03F;
+            this.gravity = 0.9F;
+            this.friction = 0.96F;
+            this.hasPhysics = true;
+            this.xd = dx;
+            this.yd = dy;
+            this.zd = dz;
+            this.roll = this.oRoll = this.random.nextFloat() * Mth.TWO_PI;
+            pickSprite(sprites);
+        }
+
+        @Override
+        public void tick()
+        {
+            super.tick();
+            this.oRoll = this.roll;
+            if (!this.onGround)
+            {
+                this.roll += 0.3F;
+            }
+            else
+            {
+                this.xd *= 0.6D;
+                this.zd *= 0.6D;
+            }
+            float life = (float) this.age / this.lifetime;
+            this.alpha = life > 0.7F ? 1.0F - (life - 0.7F) / 0.3F : 1.0F;
+        }
+
+        @Override
+        public ParticleRenderType getRenderType()
+        {
+            return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+        }
+    }
+
+    public record GlassShardProvider(SpriteSet sprites) implements ParticleProvider<SimpleParticleType>
+    {
+        @Override
+        public Particle createParticle(SimpleParticleType type, ClientLevel level, double x, double y, double z,
+                                       double dx, double dy, double dz)
+        {
+            return new GlassShard(level, x, y, z, dx, dy, dz, this.sprites);
         }
     }
 

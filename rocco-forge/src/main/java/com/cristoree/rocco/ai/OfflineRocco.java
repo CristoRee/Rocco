@@ -24,6 +24,13 @@ public final class OfflineRocco
     // ---------- ordenes ----------
 
     private static final Pattern NOT_FOLLOW = Pattern.compile("\\b(no me sigas|deja de seguirme|dejame solo|no vengas)\\b");
+    // La parrilla, la olla y el truco (ROCCO-V14).
+    private static final Pattern STOP_COOK = Pattern.compile("\\b(para|deja) de (cocinar|asar|hacer el asado|hacer tortas|freir)\\b"
+            + "|\\b(apaga\\w*|termina\\w*|levanta\\w*|guarda\\w*) (la |el |las )?(parrilla|asado|tortas|fuego|olla|cocina)\\b");
+    private static final Pattern ASADO = Pattern.compile("\\b(asado|asadito|parrillada)\\b|\\bprend\\w* (la |el )?(parrilla|fuego)\\b"
+            + "|\\b(cocina\\w*|asa|asar|asame|asanos|haceme|hace) (una |un |la |el |unas |unos |algo de )?(carne|vacio|chorizo|bondiola|costilla\\w*)\\b");
+    private static final Pattern TORTAS = Pattern.compile("\\btortas? fritas?\\b|\\btortafritas?\\b");
+    private static final Pattern TRUCO = Pattern.compile("\\b(truco|truquito|truquiado|un truco)\\b");
     private static final Pattern STOP = Pattern.compile("\\b(basta|stop|cancela|para de|deja de|para ya)\\b|^\\s*(para|parar|frena|frenar)\\s*$");
     // Sin "aca" ni "vamos": "que haces aca?" o "vamos a plantar" no son una orden de seguir.
     private static final Pattern FOLLOW = Pattern.compile("\\b(seguime|segui|sigueme|veni|veni aca|ven aqui|ven aca|ven conmigo|follow|follow me|come here)\\b");
@@ -316,6 +323,7 @@ public final class OfflineRocco
     private static final Pattern LEADING_FILLER = Pattern.compile(
             "^((che|dale(?! de comer)|porfa|por favor|bueno|ahora|ya|y|ey|oye|eh|a ver|tipo|mira),?\\s+)+");
     private static final Pattern COMMAND_START = Pattern.compile("^(no me sigas|deja de|para|basta|stop|cancela\\w*"
+            + "|prende\\w*|apaga\\w*|termina\\w*|jugamos|juguemos|juga\\w*|truco|asado|asa|asame|tortas? fritas?"
             + "|segui\\w*|sigueme|veni\\w*|ven|vente|espera\\w*|quedate|quieto|senta\\w*|sientate|dormi\\w*|duerme\\w*|a mimir"
             + "|levanta\\w*|desperta\\w*|despierta\\w*|planta\\w*|sembra\\w*|siembra\\w*|cosecha\\w*|abri\\w*|cerra\\w*"
             + "|come\\w*|trag\\w*|craftea\\w*|fabrica\\w*|hace\\w*|haz\\w*|arma\\w*|construi\\w*|construye\\w*|cocina\\w*"
@@ -342,7 +350,8 @@ public final class OfflineRocco
         {
             return music;
         }
-        String text = LEADING_FILLER.matcher(normalize(message)).replaceFirst("").trim();
+        // "¿jugamos un truco?": los signos de apertura no cuentan para ver si empieza con una orden.
+        String text = LEADING_FILLER.matcher(normalize(message).replaceFirst("^[¿¡\\s]+", "")).replaceFirst("").trim();
         if (text.isEmpty() || text.split("\\s+").length > 10 || ABILITY_QUESTION.matcher(text).find()
                 || PAST_QUESTION.matcher(text).find()
                 || !COMMAND_START.matcher(text).find())
@@ -740,6 +749,20 @@ public final class OfflineRocco
             return act("pickup_ack", RoccoExpression.SMUG, "juntar", "");
         }
 
+        // La parrilla de Rocco va antes que el horno: "hace un asado", "cocinate una carne".
+        if (TORTAS.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.HAPPY, "tortas_fritas", "");
+        }
+        if (ASADO.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.HAPPY, "asado", "");
+        }
+        if (TRUCO.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.CHEER, "jugar_truco", "");
+        }
+
         Matcher cook = COOK.matcher(text);
         if (cook.find())
         {
@@ -859,6 +882,10 @@ public final class OfflineRocco
         if (NOT_FOLLOW.matcher(text).find())
         {
             return act("wait", RoccoExpression.BORED, "esperar", "");
+        }
+        if (STOP_COOK.matcher(text).find())
+        {
+            return new Answer("", RoccoExpression.HAPPY, "parar_cocina", "");
         }
         if (STOP.matcher(text).find())
         {
@@ -1007,6 +1034,10 @@ public final class OfflineRocco
             case "combat_start", "combat_no_arrows", "combat_weapon_broke", "attack_ack" ->
             {
                 return RoccoExpression.ANGRY;
+            }
+            case "asado_wait", "tortas_wait", "bottle_win" ->
+            {
+                return RoccoExpression.SMUG;
             }
             case "combat_win", "armor_equip", "death_info_safe", "ender_already", "photosynthesis" ->
             {
@@ -1747,6 +1778,142 @@ public final class OfflineRocco
                     "No tengo flechas! Voy a las pinas."}),
             Map.entry("combat_weapon_broke", new String[]{
                     "Se me rompio el arma!"}),
+
+            // La botella rota de Roco Cola.
+            Map.entry("bottle_decide", new String[]{
+                    "Esperame que saco algo de la cabeza...",
+                    "A ver que tengo guardado por aca...",
+                    "Uy, mira lo que encontre. Una botella vacia."}),
+            Map.entry("bottle_smashed", new String[]{
+                    "Ahora si, veni que te espero!",
+                    "Mira el pico que me quedo. Corta, eh.",
+                    "No lo intenten en sus casas."}),
+            Map.entry("bottle_win", new String[]{
+                    "Gracias, Roco Cola. Hasta vacia sirve.",
+                    "Reciclaje del bueno.",
+                    "Y eso que era retornable."}),
+            Map.entry("bottle_broke", new String[]{
+                    "Se me hizo pedacitos la botella...",
+                    "Chau botellita. Me quedan los vidrios y el recuerdo.",
+                    "Se rompio del todo. Voy a tener que tomarme otra."}),
+
+            // El asado.
+            Map.entry("asado_start", new String[]{
+                    "Prendo la parrilla. Esto va a quedar de primera.",
+                    "Asadito! Saco la parrilla, ya vas a ver.",
+                    "Dale, que hoy hay asado."}),
+            Map.entry("asado_no_coal", new String[]{
+                    "Me falta carbon, me alcanzas un poco?",
+                    "Sin carbon no hay brasas, che. Pasame un poco."}),
+            Map.entry("asado_no_meat", new String[]{
+                    "No tengo carne cruda en el cofre...",
+                    "Y que asamos? No tengo ni un pedacito de carne cruda."}),
+            Map.entry("asado_out_of_coal", new String[]{
+                    "Se me termino el carbon. Lo que esta hecho, hecho esta.",
+                    "Se apagaron las brasas. Hasta aca llegamos."}),
+            Map.entry("asado_wait", new String[]{
+                    "Paciencia, que se esta haciendo!",
+                    "Todavia no, que esta jugosa por adentro."}),
+            Map.entry("asado_end", new String[]{
+                    "A comer!",
+                    "Listo el asado! Aplausos para el asador.",
+                    "Esta a punto. A la mesa!"}),
+            // Las tortas fritas.
+            Map.entry("tortas_start", new String[]{
+                    "Tortas fritas! Pongo el aceite.",
+                    "Dia de tortas fritas. Me pongo el delantal.",
+                    "Dale, amaso unas tortas fritas con un matecito."}),
+            Map.entry("tortas_no_wheat", new String[]{
+                    "Sin trigo no hay masa, che.",
+                    "Me falta trigo para la masa. Me pasas un poco?"}),
+            Map.entry("tortas_wait", new String[]{
+                    "Ya salen, ya salen.",
+                    "Esperate que se doren un poquito mas."}),
+            Map.entry("tortas_end", new String[]{
+                    "Tortas fritas pa' todos!",
+                    "Salieron tortas fritas! Con mate son otra cosa."}),
+            // Cocinar en general.
+            Map.entry("cook_not_here", new String[]{
+                    "Aca no puedo cocinar, che. Bajame a tierra firme."}),
+            Map.entry("cook_danger", new String[]{
+                    "Con bichos cerca? Primero los sacamos."}),
+            Map.entry("cook_already", new String[]{
+                    "Ya estoy en eso, eh!"}),
+            Map.entry("cook_other", new String[]{
+                    "Una cosa a la vez. Termino esto y despues vemos."}),
+            Map.entry("cook_stop", new String[]{
+                    "Listo, apago todo.",
+                    "Bueno, guardo las cosas."}),
+            Map.entry("cook_not_cooking", new String[]{
+                    "Si no estoy cocinando nada."}),
+
+            // El truco.
+            Map.entry("truco_invite", new String[]{
+                    "Un truquito? Dale! A ver quien se suma.",
+                    "Truco? Ya saco la mesa. Quien se prende?"}),
+            Map.entry("truco_start", new String[]{
+                    "Saco la mesa y las sillas. Preparense para perder!",
+                    "Mesa servida. Que empiece el partido."}),
+            Map.entry("truco_not_here", new String[]{
+                    "Aca no se puede armar la mesa, che."}),
+            Map.entry("truco_already", new String[]{
+                    "Ya estamos jugando!"}),
+            Map.entry("truco_no_room", new String[]{
+                    "Aca no entra la mesa... vamos a un lugar mas abierto."}),
+            Map.entry("truco_cancel", new String[]{
+                    "Bueno, otro dia jugamos.",
+                    "Guardo las cartas. Cuando quieras, eh."}),
+            Map.entry("truco_call", new String[]{
+                    "Truco!",
+                    "Truuuco, che!",
+                    "A ver si te animas... truco!"}),
+            Map.entry("truco_bluff", new String[]{
+                    "Truco! (y te miro a los ojos)",
+                    "Truco. Y no me tiembla la hoja."}),
+            Map.entry("truco_quiero", new String[]{
+                    "Quiero!",
+                    "Quiero, y quiero ver esas cartas."}),
+            Map.entry("truco_no_quiero", new String[]{
+                    "No quiero, anda nomas.",
+                    "Esta te la regalo..."}),
+            Map.entry("truco_envido", new String[]{
+                    "Envido.",
+                    "Mmm... envido."}),
+            Map.entry("truco_falta", new String[]{
+                    "Falta envido! A todo o nada."}),
+            Map.entry("truco_flor", new String[]{
+                    "Flor! Me salio de la cabeza... literal.",
+                    "Flor, y perfumada."}),
+            Map.entry("truco_tanto", new String[]{
+                    "Tengo {n}."}),
+            Map.entry("truco_son_buenas", new String[]{
+                    "Son buenas."}),
+            Map.entry("truco_mazo", new String[]{
+                    "Me voy al mazo. Esta no es mia."}),
+            Map.entry("truco_trick_win", new String[]{
+                    "Esa es mia!",
+                    "Viste? Asi se juega, señores."}),
+            Map.entry("truco_hand_lost", new String[]{
+                    "Me la llevaron...",
+                    "Ya vas a ver la proxima."}),
+            Map.entry("truco_mate_offer", new String[]{
+                    "Un matecito entre mano y mano?",
+                    "Toma, que esta justo."}),
+            Map.entry("truco_mate_good", new String[]{
+                    "Ahh... asi si se juega."}),
+            Map.entry("truco_game_win", new String[]{
+                    "Ganamos! Se van con los porotos en la mano!",
+                    "Gracias, gracias. Otro dia les doy revancha."}),
+            Map.entry("truco_game_lost", new String[]{
+                    "Bien jugado... la proxima les gano.",
+                    "Que partido! Ganaron limpito."}),
+            Map.entry("truco_game_referee", new String[]{
+                    "Partido terminado! Buen truco, gente."}),
+            Map.entry("truco_abandon", new String[]{
+                    "Bueno... otro dia la terminamos."}),
+            Map.entry("truco_danger", new String[]{
+                    "Paren todo, que viene un bicho!",
+                    "Guardo las cartas, hay peligro cerca."}),
             Map.entry("low_health", new String[]{
                     "Ay... me quedan pocas hojitas."}),
             Map.entry("immortal_knock", new String[]{

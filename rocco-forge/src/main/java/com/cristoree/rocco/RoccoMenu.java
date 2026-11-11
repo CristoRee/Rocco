@@ -52,7 +52,7 @@ public final class RoccoMenu
         if (pose == RoccoPose.SITTING || pose == RoccoPose.SITTING_DOWN) flags |= SITTING;
         if (pose.isAsleep()) flags |= SLEEPING;
         if (tending) flags |= TENDING;
-        if (!tending && (errand != null || rocco.isWorking() || rocco.isSharingMate() || rocco.getActiveTask() != RoccoTask.NONE)) flags |= BUSY;
+        if (!tending && (errand != null || rocco.isWorking() || rocco.isSharingMate() || rocco.inScene() || rocco.getActiveTask() != RoccoTask.NONE)) flags |= BUSY;
         if (rocco.brain().isQuiet()) flags |= QUIET;
         if (rocco.isTravelling()) flags |= TRAVELLING;
         int targets = rocco.attackTargets();
@@ -169,6 +169,14 @@ public final class RoccoMenu
         if (rocco.isSharingMate())
         {
             return "Tomando mate con vos";
+        }
+        if (rocco.truco() != null)
+        {
+            return "Jugando al truco";
+        }
+        if (rocco.cooking().active())
+        {
+            return rocco.cooking().kind() == com.cristoree.rocco.entity.RoccoCooking.Kind.ASADO ? "Haciendo un asado" : "Haciendo tortas fritas";
         }
         switch (rocco.getActiveTask())
         {

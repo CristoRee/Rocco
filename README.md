@@ -46,6 +46,8 @@ Se le habla por el chat (o por micrófono). Algunos ejemplos:
 | "criá las vacas", "dales de comer a los animales", "esquilá las ovejas" | Les da de comer de a pares para que tengan crías, y esquila las ovejas (si no tiene tijeras, se las hace con 2 de hierro). |
 | "quedate cuidando la casa", "cuidá los animales" | Se queda en tu casa mientras explorás. Ver **Cuidar la casa** abajo. |
 | "andá a pescar", "comprale pan al aldeano" | Pesca con su caña (con boya y todo) y comercia con los aldeanos. |
+| "hacé un asado", "haceme tortas fritas" | Saca su parrilla o su olla y cocina. Ver **Asado y tortas fritas** abajo. |
+| "¿jugamos un truco?" | Arma la mesa y juega con vos y los que se sumen. Ver **Truco** abajo. |
 
 Clic derecho sobre Rocco abre su tapa: un inventario de 27 lugares, que crece con las **mochilas**. En modo Chill, adentro de su cabeza hay un jardincito con flores en vez de la carne (se cambia en **Config > General > Adentro de su tapa**).
 
@@ -122,6 +124,35 @@ Su gaseosa favorita. Pedile "tomate una Roco Cola" (si le decís "coca", te corr
 
 Decile **"dame una Roco Cola"** y te da una a vos (una cada 5 minutos). Tiene 2 tragos: llena, a la mitad y botella vacía. Cada trago refresca (rapidez y prisa, 20 segundos) y a los 2,5 segundos sale un **eructo gigante**: un ventarrón con hojas que empuja a los mobs que tenés adelante, sin hacerles daño. Rocco tiene algo para decir al respecto.
 
+La **botella vacía** que queda se puede tirar (se rompe donde pega y hace medio corazón) o, agachado y con clic derecho al piso, romper en tu mano: queda la **botella rota**, un arma corta de 3 de daño que dura 40 golpes. Rocco también la usa: si va a pelear sin arma, a veces saca una Roco Cola vacía de la cabeza, la revienta contra el piso y pelea con el pico roto (se ajusta en **Config > Vida y rutina > Pelea**).
+
+### Asado y tortas fritas
+
+- **Asado:** "hacé un asado" (o "prendé la parrilla"). Necesita carne cruda de vaca, cerdo u oveja y carbón (o carbón vegetal) en su inventario; si falta algo, te lo dice. Asa de a una pieza, igual de rápido que un ahumador, y cada carbón le alcanza para 16. Salen **asado de tira**, **bondiola a la parrilla** y **costillitas de cordero**, que van a su inventario. Clic derecho a la parrilla y te pasa una de las que tiene al costado.
+- **Tortas fritas:** "haceme tortas fritas". Usa el trigo de su inventario o el que tengas en la mano (se lo pasa). Un trigo, una torta frita; mientras amasa y fríe se toma unos mates. Clic derecho al pote y te da una.
+- Mientras cocina se queda quieto en su lugar. "Pará de cocinar" lo termina tranquilo; un golpe, un bicho cerca o una orden nueva lo cortan en el momento. Lo que ya cocinó queda en su inventario.
+
+### Truco
+
+"¿Jugamos un truco?" y se abre el menú de la partida. El que invita elige:
+
+| Opción | Valores |
+|---|---|
+| Variante | Uruguayo (con muestra y piezas) o argentino |
+| Puntos | 15 o 30 |
+| Flor | Sí o no (en el uruguayo, siempre sí) |
+| Rocco | Tranqui, normal o pícaro |
+| Mate | Entre manos o nunca |
+| Equipos | Por orden de llegada o mezclados |
+| Con 2 jugadores | De a tres (el mano juega solo) o mano a mano (Rocco ceba y arbitra) |
+
+Los que estén a 12 bloques o menos reciben un botón **[Sumarme]** en el chat durante 30 segundos (o `/rocco truco unirme`), hasta 7 jugadores. Al tocar **Empezar**, Rocco busca un lugar plano, saca de la cabeza una mesa y una silla para cada uno, y se sientan todos. Con 1, 3, 5 o 7 jugadores Rocco juega; con 4 o 6 arbitra y ceba.
+
+- **La pantalla de la mesa:** abajo tus cartas (clic para jugarlas), a la derecha lo que podés cantar, arriba el tanteador con fósforos, la muestra y de quién es el turno. Atrás se ve la mesa con las cartas jugadas.
+- **Mirar alrededor:** la tecla **R** (se cambia en **Controles > Rocco**) cierra la pantalla y la vuelve a abrir.
+- **Mate:** si juega mano a mano, entre mano y mano te ceba uno; con más jugadores ceba en ronda. Clic en **Tomar mate** (o se toma solo a los 8 segundos).
+- **Levantarse:** agachado en la silla, Rocco pregunta si querés abandonar; la partida termina sin ganador. Si alguien se desconecta o un bicho ataca a la mesa, también se termina.
+
 ### Regalos y sorpresas
 
 - **Al volver:** si estuviste desconectado al menos una hora, Rocco te deja en su tapa lo que juntó mientras no estabas (si no le entra, te tira lo que sobra). Cuanto más tiempo, más y mejor: a la hora, un poco de carbón o hierro; al día, diamantes, manzanas doradas o perlas; a la semana (lo máximo), netherita, oro, diamantes, botellas de experiencia y más.
@@ -171,6 +202,9 @@ Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. Las �
 | `/rocco personalidad reset` | Escribe la personalidad actual en tu archivo, para editarla. |
 | `/rocco setup` | Abre la pantalla de bienvenida. |
 | `/rocco tutorial` | Abre la guía rápida de Rocco. |
+| `/rocco truco unirme` | Te suma a la mesa de truco que se está armando cerca. |
+| `/rocco truco abandonar` | Te levanta de la mesa y termina la partida sin ganador. |
+| `/rocco truco seguir` | Vuelve a abrir la pantalla de la mesa. |
 
 ## Personalidad
 
@@ -219,6 +253,6 @@ Minecraft es marca de Mojang AB. Rocco no está afiliado a Mojang ni a Microsoft
 
 ### English
 
-Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms (planting the seeds he has or finds in your chests), crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate (and shares one with you if you ask), remembers places, breeds animals, looks after your home (crops and animals, even while you are far away), fishes, trades with villagers, sorts your chests, brings you gifts when you come back after being away, has a sneak + right-click menu, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He wears armor (with a cute style per material) and 3D weapons, fights by your side (you choose who he may attack), wears up to 6 backpacks that grow his inventory (up to 216 slots, in pages), rides in front of you on your horse, gives you Roco Cola (mind the burp), plays music from links (audio files and internet radios) and sings and dances to it, heals with sunlight, comes back buried next to your respawn point if he dies, keeps his items forever if he eats an ender chest, and loves Roco Cola. He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.
+Rocco is an AI adventure companion for Minecraft 1.20.1 (Forge + GeckoLib). He follows you, farms (planting the seeds he has or finds in your chests), crafts using real recipes (and tells you exactly what's missing), cooks, enchants your gear once a day, drinks mate (and shares one with you if you ask), remembers places, breeds animals, looks after your home (crops and animals, even while you are far away), fishes, trades with villagers, sorts your chests, grills an asado and fries tortas fritas, plays truco with you and your friends (with its own table, chairs and mate), brings you gifts when you come back after being away, has a sneak + right-click menu, and can talk out loud (Fish Audio) and listen through your microphone (Deepgram). He wears armor (with a cute style per material) and 3D weapons, fights by your side (you choose who he may attack), wears up to 6 backpacks that grow his inventory (up to 216 slots, in pages), rides in front of you on your horse, gives you Roco Cola (mind the burp), plays music from links (audio files and internet radios) and sings and dances to it, heals with sunlight, comes back buried next to your respawn point if he dies, keeps his items forever if he eats an ender chest, and loves Roco Cola. He speaks Spanish and works without any API key thanks to built-in lines; a free key from Groq, Gemini or OpenRouter (or a local Ollama) makes him chat for real.
 
 **External services:** without keys, Rocco connects to nothing (except the site of a music link someone gives him, which your game opens to play it). Only if you add a key does it talk to that service (your messages go to the AI provider you chose, the spoken text to Fish Audio, your microphone audio to Deepgram). Nothing is collected or sent anywhere else.

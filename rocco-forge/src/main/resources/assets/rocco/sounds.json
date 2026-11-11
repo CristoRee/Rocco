@@ -431,9 +431,182 @@
   "dance_music": {
     "subtitle": "subtitles.rocco.dance_music",
     "sounds": [
-      { "name": "rocco:dance_music_1", "stream": true },
-      { "name": "rocco:dance_music_2", "stream": true },
-      { "name": "rocco:dance_music_3", "stream": true }
+      {
+        "name": "rocco:dance_music_1",
+        "stream": true
+      },
+      {
+        "name": "rocco:dance_music_2",
+        "stream": true
+      },
+      {
+        "name": "rocco:dance_music_3",
+        "stream": true
+      }
+    ]
+  },
+  "tongs_clack": {
+    "subtitle": "subtitles.rocco.tongs_clack",
+    "sounds": [
+      "rocco:tongs_clack1",
+      "rocco:tongs_clack2"
+    ]
+  },
+  "asado_place": {
+    "subtitle": "subtitles.rocco.asado_place",
+    "sounds": [
+      "rocco:asado_place1",
+      "rocco:asado_place2"
+    ]
+  },
+  "asado_flip": {
+    "subtitle": "subtitles.rocco.asado_flip",
+    "sounds": [
+      "rocco:asado_flip1",
+      "rocco:asado_flip2"
+    ]
+  },
+  "asado_plate": {
+    "subtitle": "subtitles.rocco.asado_plate",
+    "sounds": [
+      "rocco:asado_plate1"
+    ]
+  },
+  "grill_lid_open": {
+    "subtitle": "subtitles.rocco.grill_lid_open",
+    "sounds": [
+      "rocco:grill_lid_open1"
+    ]
+  },
+  "grill_lid_close": {
+    "subtitle": "subtitles.rocco.grill_lid_close",
+    "sounds": [
+      "rocco:grill_lid_close1"
+    ]
+  },
+  "fire_whoosh": {
+    "subtitle": "subtitles.rocco.fire_whoosh",
+    "sounds": [
+      "rocco:fire_whoosh1"
+    ]
+  },
+  "apron_on": {
+    "subtitle": "subtitles.rocco.apron_on",
+    "sounds": [
+      "rocco:apron_on1"
+    ]
+  },
+  "dough_squish": {
+    "subtitle": "subtitles.rocco.dough_squish",
+    "sounds": [
+      "rocco:dough_squish1",
+      "rocco:dough_squish2",
+      "rocco:dough_squish3"
+    ]
+  },
+  "dough_slap": {
+    "subtitle": "subtitles.rocco.dough_slap",
+    "sounds": [
+      "rocco:dough_slap1",
+      "rocco:dough_slap2"
+    ]
+  },
+  "flour_pat": {
+    "subtitle": "subtitles.rocco.flour_pat",
+    "sounds": [
+      "rocco:flour_pat1"
+    ]
+  },
+  "oil_drop": {
+    "subtitle": "subtitles.rocco.oil_drop",
+    "sounds": [
+      "rocco:oil_drop1"
+    ]
+  },
+  "skimmer_clink": {
+    "subtitle": "subtitles.rocco.skimmer_clink",
+    "sounds": [
+      "rocco:skimmer_clink1"
+    ]
+  },
+  "torta_bowl": {
+    "subtitle": "subtitles.rocco.torta_bowl",
+    "sounds": [
+      "rocco:torta_bowl1"
+    ]
+  },
+  "blow_out": {
+    "subtitle": "subtitles.rocco.blow_out",
+    "sounds": [
+      "rocco:blow_out1"
+    ]
+  },
+  "table_slam": {
+    "subtitle": "subtitles.rocco.table_slam",
+    "sounds": [
+      "rocco:table_slam1"
+    ]
+  },
+  "table_knock": {
+    "subtitle": "subtitles.rocco.table_knock",
+    "sounds": [
+      "rocco:table_knock1"
+    ]
+  },
+  "card_tap": {
+    "subtitle": "subtitles.rocco.card_tap",
+    "sounds": [
+      "rocco:card_tap1"
+    ]
+  },
+  "card_pick": {
+    "subtitle": "subtitles.rocco.card_pick",
+    "sounds": [
+      "rocco:card_pick1"
+    ]
+  },
+  "card_slap": {
+    "subtitle": "subtitles.rocco.card_slap",
+    "sounds": [
+      "rocco:card_slap1",
+      "rocco:card_slap2"
+    ]
+  },
+  "card_sweep": {
+    "subtitle": "subtitles.rocco.card_sweep",
+    "sounds": [
+      "rocco:card_sweep1"
+    ]
+  },
+  "card_riffle": {
+    "subtitle": "subtitles.rocco.card_riffle",
+    "sounds": [
+      "rocco:card_riffle1"
+    ]
+  },
+  "card_flick": {
+    "subtitle": "subtitles.rocco.card_flick",
+    "sounds": [
+      "rocco:card_flick1",
+      "rocco:card_flick2"
+    ]
+  },
+  "asado_sizzle_loop": {
+    "subtitle": "subtitles.rocco.asado_sizzle_loop",
+    "sounds": [
+      {
+        "name": "rocco:asado_sizzle_loop",
+        "stream": false
+      }
+    ]
+  },
+  "oil_fry_loop": {
+    "subtitle": "subtitles.rocco.oil_fry_loop",
+    "sounds": [
+      {
+        "name": "rocco:oil_fry_loop",
+        "stream": false
+      }
     ]
   }
 }

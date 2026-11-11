@@ -103,6 +103,34 @@ public final class ModSounds
     // Las cancioncitas del baile pedido: un evento con tres, el juego elige una cada vez.
     public static final RegistryObject<SoundEvent> DANCE_MUSIC = register("dance_music");
 
+    // La v14: la parrilla, las tortas fritas y el truco. Las animaciones los piden por su nombre
+    // (sound_effects); los dos ultimos suenan en bucle mientras cocina.
+    public static final RegistryObject<SoundEvent> TONGS_CLACK = register("tongs_clack");
+    public static final RegistryObject<SoundEvent> ASADO_PLACE = register("asado_place");
+    public static final RegistryObject<SoundEvent> ASADO_FLIP = register("asado_flip");
+    public static final RegistryObject<SoundEvent> ASADO_PLATE = register("asado_plate");
+    public static final RegistryObject<SoundEvent> GRILL_LID_OPEN = register("grill_lid_open");
+    public static final RegistryObject<SoundEvent> GRILL_LID_CLOSE = register("grill_lid_close");
+    public static final RegistryObject<SoundEvent> FIRE_WHOOSH = register("fire_whoosh");
+    public static final RegistryObject<SoundEvent> APRON_ON = register("apron_on");
+    public static final RegistryObject<SoundEvent> DOUGH_SQUISH = register("dough_squish");
+    public static final RegistryObject<SoundEvent> DOUGH_SLAP = register("dough_slap");
+    public static final RegistryObject<SoundEvent> FLOUR_PAT = register("flour_pat");
+    public static final RegistryObject<SoundEvent> OIL_DROP = register("oil_drop");
+    public static final RegistryObject<SoundEvent> SKIMMER_CLINK = register("skimmer_clink");
+    public static final RegistryObject<SoundEvent> TORTA_BOWL = register("torta_bowl");
+    public static final RegistryObject<SoundEvent> BLOW_OUT = register("blow_out");
+    public static final RegistryObject<SoundEvent> TABLE_SLAM = register("table_slam");
+    public static final RegistryObject<SoundEvent> TABLE_KNOCK = register("table_knock");
+    public static final RegistryObject<SoundEvent> CARD_TAP = register("card_tap");
+    public static final RegistryObject<SoundEvent> CARD_PICK = register("card_pick");
+    public static final RegistryObject<SoundEvent> CARD_SLAP = register("card_slap");
+    public static final RegistryObject<SoundEvent> CARD_SWEEP = register("card_sweep");
+    public static final RegistryObject<SoundEvent> CARD_RIFFLE = register("card_riffle");
+    public static final RegistryObject<SoundEvent> CARD_FLICK = register("card_flick");
+    public static final RegistryObject<SoundEvent> ASADO_SIZZLE_LOOP = register("asado_sizzle_loop");
+    public static final RegistryObject<SoundEvent> OIL_FRY_LOOP = register("oil_fry_loop");
+
     public static void register(IEventBus modEventBus)
     {
         SOUNDS.register(modEventBus);

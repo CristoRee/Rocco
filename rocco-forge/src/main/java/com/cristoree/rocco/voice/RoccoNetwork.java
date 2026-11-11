@@ -25,7 +25,8 @@ public final class RoccoNetwork
     // 3: se agrego VoiceLines (las frases grabadas). 4: el menu de Rocco (OpenMenu y MenuAction).
     // 5: CallRocco (traerlo desde la config o con su tecla). 6: la musica desde links.
     // 7: el eructo de la Roco Cola. 8: la guia de Rocco. 9: la cara que va con cada frase.
-    private static final String PROTOCOL = "9";
+    // 10: el truco (TrucoNetwork, desde el 20).
+    private static final String PROTOCOL = "10";
     public static final int CHUNK_BYTES = 30_000;
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -330,6 +331,7 @@ public final class RoccoNetwork
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         CHANNEL.registerMessage(11, MusicVolume.class, MusicVolume::encode, MusicVolume::decode,
                 RoccoNetwork::onMusicVolume, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        com.cristoree.rocco.truco.TrucoNetwork.register(CHANNEL, 20);
     }
 
     public static void sendMusicResolve(ServerPlayer player, MusicResolve msg)

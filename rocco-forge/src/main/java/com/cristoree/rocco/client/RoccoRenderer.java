@@ -114,7 +114,10 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
                     case "item_left" -> heldFor(animatable, animatable.getOffhandItem(), RoccoGear.shieldLook(animatable.getOffhandItem()));
                     // El cofre de ender que se traga o que absorbe, flotando entre las manitos.
                     case "grab" -> consuming ? ItemStack.EMPTY : animatable.grabbedItem();
-                    case "held" -> consuming ? animatable.grabbedItem() : ItemStack.EMPTY;
+                    // Cantando flor en el truco saca una flor de la cabeza.
+                    case "held" -> consuming ? animatable.grabbedItem()
+                            : RoccoModel.playingAnimation(animatable).equals("animation.rocco.truco_call_flor")
+                            ? new ItemStack(net.minecraft.world.item.Items.POPPY) : ItemStack.EMPTY;
                     default -> ItemStack.EMPTY;
                 };
             }

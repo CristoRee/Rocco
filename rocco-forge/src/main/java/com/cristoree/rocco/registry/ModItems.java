@@ -41,14 +41,29 @@ public final class ModItems
             () -> new RoccoGiftItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant(), true,
                     "tooltip.rocco.flor_amistad", "tooltip.rocco.flor_amistad_2"));
 
+    // Vacia: se tira, o agachado contra el piso se rompe y queda la botella rota.
     public static final RegistryObject<Item> ROCO_COLA_EMPTY = ITEMS.register("roco_cola_empty",
-            () -> new RoccoGiftItem(new Item.Properties().stacksTo(16), false, "tooltip.rocco.roco_cola_empty"));
+            () -> new com.cristoree.rocco.item.EmptyColaItem(new Item.Properties().stacksTo(16)));
     public static final RegistryObject<Item> ROCO_COLA_HALF = ITEMS.register("roco_cola_half",
             () -> new RocoColaItem(new Item.Properties().stacksTo(16), ROCO_COLA_EMPTY,
                     "tooltip.rocco.roco_cola_flavor", "tooltip.rocco.roco_cola_half"));
     public static final RegistryObject<Item> ROCO_COLA = ITEMS.register("roco_cola",
             () -> new RocoColaItem(new Item.Properties().stacksTo(16), ROCO_COLA_HALF,
                     "tooltip.rocco.roco_cola_flavor", "tooltip.rocco.roco_cola"));
+
+    // La botella rota: un arma corta de vidrio (3 de daño, 40 golpes).
+    public static final RegistryObject<Item> BOTELLA_ROTA = ITEMS.register("botella_rota",
+            () -> new com.cristoree.rocco.item.BrokenBottleItem(new Item.Properties()));
+
+    // Lo que cocina Rocco: la torta frita y lo que sale de su parrilla.
+    public static final RegistryObject<Item> TORTA_FRITA = ITEMS.register("torta_frita",
+            () -> new com.cristoree.rocco.item.RoccoFoodItem(4, 0.5F, false, "tooltip.rocco.torta_frita"));
+    public static final RegistryObject<Item> ASADO_DE_TIRA = ITEMS.register("asado_de_tira",
+            () -> new com.cristoree.rocco.item.RoccoFoodItem(10, 0.8F, true, "tooltip.rocco.asado"));
+    public static final RegistryObject<Item> BONDIOLA_ASADA = ITEMS.register("bondiola_asada",
+            () -> new com.cristoree.rocco.item.RoccoFoodItem(10, 0.8F, true, "tooltip.rocco.asado"));
+    public static final RegistryObject<Item> COSTILLITAS_DE_CORDERO = ITEMS.register("costillitas_de_cordero",
+            () -> new com.cristoree.rocco.item.RoccoFoodItem(8, 0.8F, true, "tooltip.rocco.asado"));
 
     public static final DeferredRegister<RecipeSerializer<?>> RECIPES =
             DeferredRegister.create(ForgeRegistries.RECIPE_SERIALIZERS, RoccoMod.MODID);

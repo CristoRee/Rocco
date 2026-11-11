@@ -120,7 +120,7 @@ public final class RoccoActions
             "comprar", "vender", "ordenar", "teletransportarse", "abrir", "comer", "seguir", "esperar",
             "sentarse", "dormir", "levantarse", "parar", "tomar_roco_cola", "equipar", "desequipar", "comer_cofre_ender",
             "tomar_pocion", "atacar", "poner_musica", "parar_musica", "pausar_musica", "seguir_musica", "volumen",
-            "dar_cola", "quitar_mochila", "montar_lobo", "bajar");
+            "dar_cola", "quitar_mochila", "montar_lobo", "bajar", "asado", "tortas_fritas", "parar_cocina", "jugar_truco");
 
     private static final java.util.Set<String> UNDOCUMENTED_WARNED = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
@@ -152,7 +152,7 @@ public final class RoccoActions
     }
 
     private static final java.util.Set<String> KNOWN_VERBS = java.util.Set.of(
-            "mate", "tomar_mate", "cebar_mate", "compartir_mate", "aplaudir", "festejar", "bailar", "encantar", "recordar_lugar", "recordar", "olvidar_lugar", "olvidar", "ir_a", "llevar",
+            "mate", "tomar_mate", "cebar_mate", "compartir_mate", "asado", "hacer_asado", "tortas_fritas", "parar_cocina", "jugar_truco", "truco", "aplaudir", "festejar", "bailar", "encantar", "recordar_lugar", "recordar", "olvidar_lugar", "olvidar", "ir_a", "llevar",
             "criar", "alimentar", "alimentar_animales", "esquilar", "pescar", "comprar", "comerciar", "vender", "ordenar",
             "teletransportarse", "venir", "aparecer",
             "plantar", "sembrar", "cosechar", "cuidar_huerta", "cuidar", "cuidar_animales", "cuidar_casa", "cuidar_todo", "arar", "cofre_cosecha", "craftear", "fabricar",
@@ -188,9 +188,13 @@ public final class RoccoActions
 
         // Una orden nueva corta el mate, el encantamiento o el baile que estuviera haciendo.
         boolean mateVerb = verb.equals("cebar_mate") || verb.equals("compartir_mate");
+        // Cocinando, "para" lo termina tranquilo y pedir otra vez lo mismo no lo reinicia: eso lo
+        // deciden sus propias acciones.
+        boolean cookingVerb = rocco.cooking().active() && (verb.equals("parar_cocina") || verb.equals("parar")
+                || verb.equals("cancelar") || verb.equals("asado") || verb.equals("hacer_asado") || verb.equals("tortas_fritas"));
         // El volumen no corta nada: sigue cantando.
         if ((!verb.equals("mate") || rocco.getActiveTask() != RoccoTask.MATE) && !(mateVerb && rocco.isSharingMate())
-                && !verb.equals("volumen"))
+                && !verb.equals("volumen") && !cookingVerb)
         {
             rocco.interruptActivity();
         }
@@ -199,6 +203,10 @@ public final class RoccoActions
         {
             case "mate", "tomar_mate" -> mate(rocco);
             case "cebar_mate", "compartir_mate" -> shareMate(rocco, player);
+            case "asado", "hacer_asado" -> { if (player != null) { rocco.cooking().startAsado(player); } yield SAID; }
+            case "tortas_fritas" -> { if (player != null) { rocco.cooking().startTortas(player); } yield SAID; }
+            case "parar_cocina" -> stopCooking(rocco);
+            case "jugar_truco", "truco" -> truco(rocco, player);
             case "aplaudir" -> celebrate(rocco, player, RoccoTask.CLAPPING);
             case "festejar" -> celebrate(rocco, player, RoccoTask.CELEBRATING);
             case "bailar" -> dance(rocco, player);
@@ -1313,8 +1321,37 @@ public final class RoccoActions
         return follow(rocco, true);
     }
 
+    // "Para de cocinar": termina la pieza que tiene en la mano y guarda todo.
+    private static Outcome stopCooking(RoccoEntity rocco)
+    {
+        if (!rocco.cooking().requestStop())
+        {
+            rocco.sayLine(com.cristoree.rocco.entity.RoccoExpression.BORED, "cook_not_cooking");
+            return SAID;
+        }
+        rocco.sayLine(com.cristoree.rocco.entity.RoccoExpression.HAPPY, "cook_stop");
+        return SAID;
+    }
+
+    // "Jugamos un truco?": abre el menu de la partida. Si ya estan jugando, no hace nada.
+    private static Outcome truco(RoccoEntity rocco, @Nullable ServerPlayer player)
+    {
+        if (player == null || com.cristoree.rocco.truco.TrucoSession.of(player) != null)
+        {
+            return SAID;
+        }
+        com.cristoree.rocco.truco.TrucoLobby.open(rocco, player);
+        return SAID;
+    }
+
     private static Outcome stop(RoccoEntity rocco)
     {
+        // Cocinando, "para" termina tranquilo con lo que tiene en la parrilla.
+        if (rocco.cooking().requestStop())
+        {
+            rocco.sayLine(com.cristoree.rocco.entity.RoccoExpression.HAPPY, "cook_stop");
+            return SAID;
+        }
         rocco.cancelErrand();
         rocco.getNavigation().stop();
         return OK;

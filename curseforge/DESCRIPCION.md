@@ -16,6 +16,8 @@ He works **without any account or key**: he comes with hundreds of built-in line
 - **Works:** farms and harvests, crafts with the real recipes (and tells you what's missing), cooks, chops trees and replants them, lights up areas, sorts and stores things in your chests, fishes, breeds animals and trades with villagers.
 - **Enchants your gear** once a day, like an enchanting table.
 - **Mate:** he drinks mate and shares one with you if you ask.
+- **Truco:** "¿jugamos un truco?" and he brings out a table and a chair for everyone (up to 7 players). Uruguayan with muestra or Argentine, flor, envido and all the calls, mate between hands, and his own way of playing.
+- **Asado and tortas fritas:** he grills the raw meat you give him on his little grill and fries tortas fritas while sipping mate. Right-click the grill or the bowl to take one.
 - **3D armor and weapons:** each material with its own style (a little gold crown, a diamond unicorn horn, netherite cat ears...), plus swords, axes, trident, bow, crossbow and shield with their own models.
 - **Fights by your side:** defends you, attacks what you attack and fights when you ask him ("atacá a ese zombie"). You choose who he can attack.
 - **If he dies, he comes back:** after 15 seconds he reappears buried near you. With an ender chest he gains the power to never lose his things.
@@ -23,7 +25,7 @@ He works **without any account or key**: he comes with hundreds of built-in line
 - **Plays music:** give him a link to an audio file or an internet radio and it plays from him while he sings and dances to the beat. And if a jukebox plays nearby, he dances.
 - **Backpacks:** 6 backpacks crafted in order that grow his inventory up to 216 slots. The first starts with a gift from him when you become friends; the last one, with another gift that only comes after the great adventures. You can also open them with right-click in your hand, and choose how they look on Rocco.
 - **On horseback:** he rides in front of you. And on your wolf, if you let him.
-- **Roco Cola:** his favorite soda (and don't call it Coca Cola). He shares one with you, and what comes after pushes mobs away.
+- **Roco Cola:** his favorite soda (and don't call it Coca Cola). He shares one with you, and what comes after pushes mobs away. The empty bottle can be thrown or broken into a broken bottle, and sometimes he fights with one.
 - **Gifts:** if you leave for a while, when you come back he has left you things he collected. And every now and then he gives you something rare.
 - **Voice and microphone (optional):** talks out loud with Fish Audio, imitates character voices and listens with Deepgram. Without a Fish Audio key he talks in text. On a server, the key and the voice are those of whoever hosts it.
 
@@ -78,6 +80,8 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, entien
 - **Trabaja:** cultiva y cosecha, craftea con las recetas reales (y te dice qué falta), cocina, tala y replanta, ilumina, ordena y guarda en tus cofres, pesca, cría animales y comercia con aldeanos.
 - **Encanta tus cosas** una vez por día, como una mesa de encantamientos.
 - **Mate:** se toma unos mates y te ceba uno si se lo pedís.
+- **Truco:** "¿jugamos un truco?" y saca una mesa y una silla para cada uno (hasta 7 jugadores). Uruguayo con muestra o argentino, flor, envido y todos los cantos, mate entre manos y su propia forma de jugar.
+- **Asado y tortas fritas:** asa en su parrillita la carne cruda que le des y fríe tortas fritas tomando mate. Clic derecho a la parrilla o al pote y te pasa una.
 - **Armadura y armas 3D:** cada material con su estilo (coronita de oro, cuerno de unicornio de diamante, orejitas de gato de netherite...), espadas, hachas, tridente, arco, ballesta y escudo con modelo propio.
 - **Pelea a tu lado:** te defiende, ataca lo que vos atacás y pelea cuando se lo pedís ("atacá a ese zombie"). Vos elegís a quién puede atacar.
 - **Si se muere, vuelve:** a los 15 segundos reaparece enterradito cerca tuyo. Con un cofre de ender gana el poder de no perder nunca sus cosas.
@@ -85,7 +89,7 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, entien
 - **Pone música:** pasale el link de un archivo de audio o de una radio por internet y suena desde él mientras la canta y la baila al ritmo. Y si suena un tocadiscos cerca, va a bailar.
 - **Mochilas:** 6 mochilas que se fabrican en orden y le agrandan el inventario hasta 216 lugares. La primera empieza con un regalo suyo cuando se hacen amigos; la última, con otro que solo llega después de las grandes aventuras. También se abren con clic derecho en tu mano, y podés elegir cómo se ven en Rocco.
 - **A caballo:** se sube adelante tuyo. Y en tu lobo, si le das permiso.
-- **Roco Cola:** su gaseosa favorita (y no le digas Coca Cola). Te convida una, y lo que viene después empuja a los mobs.
+- **Roco Cola:** su gaseosa favorita (y no le digas Coca Cola). Te convida una, y lo que viene después empuja a los mobs. La botella vacía se tira o se rompe para usarla de arma, y a veces él pelea con una.
 - **Regalos:** si te vas un rato, cuando volvés te dejó cosas que juntó. Y de vez en cuando te regala alguna rareza.
 - **Voz y micrófono (opcional):** habla en voz alta con Fish Audio, imita voces de personajes y te escucha con Deepgram. Sin clave de Fish Audio habla por escrito. En un servidor, la clave y la voz son las de quien lo hospeda.
 
@@ -101,7 +105,7 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, entien
 
 ## 🇧🇷 Português
 
-**Rocco é um companheiro de aventuras com IA que brota da terra ao seu lado.** Ele conversa com personalidade própria, te segue para todo lado (voando, nadando e no seu barquinho), planta, cuida da casa e dos animais enquanto você explora, crafta com as receitas reais, cozinha, encanta suas ferramentas uma vez por dia, toma chimarrão, usa armadura, armas 3D e até 6 mochilas que aumentam o inventário dele, sobe na frente no seu cavalo, luta ao seu lado, volta enterradinho perto de você se morrer, toca música a partir de links (arquivos de áudio e rádios) cantando e dançando, e pode falar em voz alta (Fish Audio) e te ouvir pelo microfone (Deepgram).
+**Rocco é um companheiro de aventuras com IA que brota da terra ao seu lado.** Ele conversa com personalidade própria, te segue para todo lado (voando, nadando e no seu barquinho), planta, cuida da casa e dos animais enquanto você explora, crafta com as receitas reais, cozinha, encanta suas ferramentas uma vez por dia, toma chimarrão, faz churrasco e tortas fritas, joga truco com você e seus amigos (com mesa, cadeiras e chimarrão), usa armadura, armas 3D e até 6 mochilas que aumentam o inventário dele, sobe na frente no seu cavalo, luta ao seu lado, volta enterradinho perto de você se morrer, toca música a partir de links (arquivos de áudio e rádios) cantando e dançando, e pode falar em voz alta (Fish Audio) e te ouvir pelo microfone (Deepgram).
 
 Ele fala **espanhol** e funciona **sem nenhuma conta ou chave**, com centenas de falas próprias. Com uma chave de IA gratuita (Groq, Gemini, OpenRouter ou um Ollama local) ele conversa de verdade, e pode responder em português: no menu dele (agachado + clique direito) abra **Personalidad** e coloque **Dialect** em **Automatic**: ele segue o idioma do seu jogo. Os menus, as falas prontas e as ordens sem IA são em espanhol.
 

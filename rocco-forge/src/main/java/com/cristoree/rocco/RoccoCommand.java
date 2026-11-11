@@ -77,7 +77,18 @@ public final class RoccoCommand
                             return resetPersonality(context.getSource());
                         })))
                 .then(Commands.literal("setup").executes(context -> openSetup(context.getSource())))
-                .then(Commands.literal("tutorial").executes(context -> openTutorial(context.getSource())));
+                .then(Commands.literal("tutorial").executes(context -> openTutorial(context.getSource())))
+                // El truco: sumarse a la mesa que arma Rocco, o pararse de ella.
+                .then(Commands.literal("truco")
+                        .then(Commands.literal("unirme").executes(context ->
+                                context.getSource().getEntity() instanceof ServerPlayer player
+                                        && com.cristoree.rocco.truco.TrucoLobby.joinNearest(player) ? 1 : 0))
+                        .then(Commands.literal("abandonar").executes(context ->
+                                context.getSource().getEntity() instanceof ServerPlayer player
+                                        && com.cristoree.rocco.truco.TrucoSession.leave(player) ? 1 : 0))
+                        .then(Commands.literal("seguir").executes(context ->
+                                context.getSource().getEntity() instanceof ServerPlayer player
+                                        && com.cristoree.rocco.truco.TrucoSession.resume(player) ? 1 : 0)));
 
         event.getDispatcher().register(root);
     }

@@ -98,6 +98,14 @@ public class RoccoMod
                 event.accept(ModItems.ROCO_COLA);
                 event.accept(ModItems.ROCO_COLA_HALF);
                 event.accept(ModItems.ROCO_COLA_EMPTY);
+                event.accept(ModItems.TORTA_FRITA);
+                event.accept(ModItems.ASADO_DE_TIRA);
+                event.accept(ModItems.BONDIOLA_ASADA);
+                event.accept(ModItems.COSTILLITAS_DE_CORDERO);
+            }
+            else if (event.getTabKey() == CreativeModeTabs.COMBAT)
+            {
+                event.accept(ModItems.BOTELLA_ROTA);
             }
         }
     }
@@ -109,6 +117,10 @@ public class RoccoMod
         static void onRegisterRenderers(final EntityRenderersEvent.RegisterRenderers event)
         {
             event.registerEntityRenderer(ModEntities.ROCCO.get(), RoccoRenderer::new);
+            event.registerEntityRenderer(ModEntities.BOTELLA_LANZADA.get(), com.cristoree.rocco.client.ThrownColaRenderer::new);
+            event.registerEntityRenderer(ModEntities.CLICK_COCINA.get(), net.minecraft.client.renderer.entity.NoopRenderer::new);
+            event.registerEntityRenderer(ModEntities.TRUCO_MESA.get(), com.cristoree.rocco.client.truco.TrucoTableRenderer::new);
+            event.registerEntityRenderer(ModEntities.TRUCO_SILLA.get(), com.cristoree.rocco.client.truco.TrucoChairRenderer::new);
         }
 
         @SubscribeEvent
@@ -172,6 +184,16 @@ public class RoccoMod
             tuned(event, ModParticles.HEART_POP.get(), Look.HEART_POP);
             tuned(event, ModParticles.JOY_TEAR.get(), Look.JOY_TEAR);
             tuned(event, ModParticles.SEED_POP.get(), Look.SEED_POP);
+            tuned(event, ModParticles.GRILL_SMOKE.get(), Look.GRILL_SMOKE);
+            tuned(event, ModParticles.HEAT_WAVE.get(), Look.HEAT_WAVE);
+            tuned(event, ModParticles.EMBER.get(), Look.EMBER);
+            tuned(event, ModParticles.FAT_SIZZLE.get(), Look.FAT_SIZZLE);
+            tuned(event, ModParticles.FLAME_BURST.get(), Look.FLAME_BURST);
+            tuned(event, ModParticles.OIL_BUBBLE.get(), Look.OIL_BUBBLE);
+            tuned(event, ModParticles.OIL_SPLASH.get(), Look.OIL_SPLASH);
+            tuned(event, ModParticles.OIL_DRIP.get(), Look.OIL_DRIP);
+            tuned(event, ModParticles.FLOUR_PUFF.get(), Look.FLOUR_PUFF);
+            event.registerSpriteSet(ModParticles.GLASS_SHARD.get(), com.cristoree.rocco.client.RoccoParticles.GlassShardProvider::new);
         }
 
         private static void tuned(net.minecraftforge.client.event.RegisterParticleProvidersEvent event,
@@ -186,6 +208,7 @@ public class RoccoMod
         {
             event.register(com.cristoree.rocco.client.voice.RoccoKeys.TALK);
             event.register(com.cristoree.rocco.client.voice.RoccoKeys.CALL);
+            event.register(com.cristoree.rocco.client.truco.TrucoClient.LOOK);
         }
 
         @SubscribeEvent

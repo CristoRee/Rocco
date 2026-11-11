@@ -5,6 +5,7 @@ import com.cristoree.rocco.entity.RoccoEntity;
 import com.cristoree.rocco.config.RoccoClientConfig;
 import com.cristoree.rocco.entity.RoccoExpression;
 import com.cristoree.rocco.entity.RoccoGear;
+import com.cristoree.rocco.entity.RoccoScene;
 import com.cristoree.rocco.entity.RoccoTask;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -93,8 +94,10 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         hide("plant", !rocco.isPlantVisible());
         // La mochila que lleva puesta (o la apariencia elegida), una sola. No se ve plantado, dormido, en la tumba, en el
         // barquito ni en el caballo (ahi chocaria con tu pecho).
+        // Sentado en la silla del truco tampoco: el respaldo la atravesaria.
         boolean carries = !rocco.isPlantVisible() && !rocco.getRoccoState().isInert() && !rocco.getRoccoPose().isAsleep()
-                && rocco.getMotion().kind() != com.cristoree.rocco.entity.RoccoMotion.Kind.BOAT && !rocco.getMotion().onHorse();
+                && rocco.getMotion().kind() != com.cristoree.rocco.entity.RoccoMotion.Kind.BOAT && !rocco.getMotion().onHorse()
+                && !(rocco.getVehicle() instanceof com.cristoree.rocco.truco.TrucoChairEntity);
         for (int tier = 1; tier <= com.cristoree.rocco.item.BackpackItem.MAX_TIER; tier++)
         {
             hide(BACKPACKS[tier - 1], !carries || rocco.shownBackpack() != tier);
@@ -117,17 +120,24 @@ public class RoccoModel extends GeoModel<RoccoEntity>
         // que esta en esa tarea: antes dependia solo de lo segundo, y si ese dato llegaba tarde
         // (o no llegaba) Rocco hacia todo el mate con las manos vacias.
         String playing = playingAnimation(rocco, instanceId);
-        boolean mate = rocco.getActiveTask() == RoccoTask.MATE || rocco.isSharingMate() || playing.startsWith("animation.rocco.mate");
+        // Las escenas: cada una con sus cosas, y solo mientras se ve su animacion.
+        boolean asado = playing.startsWith("animation.rocco.asado");
+        boolean tortas = playing.startsWith("animation.rocco.tortas");
+        boolean truco = playing.startsWith("animation.rocco.truco");
+        // En las tortas fritas toma mate, y en el truco el mate y el termo estan en la mesa.
+        boolean mate = rocco.getActiveTask() == RoccoTask.MATE || rocco.isSharingMate() || playing.startsWith("animation.rocco.mate")
+                || tortas || truco;
         boolean magic = rocco.getActiveTask() == RoccoTask.ENCHANTING || playing.startsWith("animation.rocco.enchant");
         for (String bone : MATE_BONES)
         {
             hide(bone, !mate);
         }
         // La botella, la tapita y el microfono, igual: solo en su animacion.
-        boolean cola = playing.equals("animation.rocco.cola_drink");
+        boolean cola = playing.equals("animation.rocco.cola_drink") || playing.equals("animation.rocco.bottle_smash");
         hide("cola", !cola);
         hide("cola_cap", !cola);
         hide("mic", !playing.equals("animation.rocco.sing_groove") && !playing.equals("animation.rocco.sing_rap"));
+        sceneBones(rocco, asado, tortas, truco);
 
         // Con el casco de oro (una coronita) se esconden las hojitas de la cabeza, para que se vea.
         boolean crown = RoccoClientConfig.SHOW_ARMOR.get() && !rocco.isPlantVisible()
@@ -154,6 +164,66 @@ public class RoccoModel extends GeoModel<RoccoEntity>
             aimHeadAtWork(rocco);
         }
     }
+
+    // La parrilla, la olla y las cartas viven a los costados del modelo: se tapan fuera de su escena.
+    // Adentro, lo que depende de como va (que carne, cuanta masa, cuantas tortas, cuantas cartas) sale
+    // de los datos de la escena.
+    private void sceneBones(RoccoEntity rocco, boolean asado, boolean tortas, boolean truco)
+    {
+        for (String bone : ASADO_BONES)
+        {
+            hide(bone, !asado);
+        }
+        for (String bone : TORTAS_BONES)
+        {
+            hide(bone, !tortas);
+        }
+        for (String bone : TRUCO_BONES)
+        {
+            hide(bone, !truco);
+        }
+        int bits = rocco.sceneBones();
+        if (asado)
+        {
+            int cook = RoccoScene.cookMeat(bits);
+            int next = RoccoScene.nextMeat(bits);
+            for (int meat = 1; meat <= 3; meat++)
+            {
+                hide("meat_cook_" + MEATS[meat], cook != meat);
+                hide("raw_next_" + MEATS[meat], next != meat);
+                for (int slot = 0; slot < 4; slot++)
+                {
+                    hide("warm_" + (slot + 1) + "_" + MEATS[meat], RoccoScene.warmMeat(bits, slot) != meat);
+                }
+            }
+        }
+        if (tortas)
+        {
+            int dough = RoccoScene.dough(bits);
+            for (int size = 1; size <= 3; size++)
+            {
+                hide("dough_" + size, dough != size);
+            }
+            int bowl = RoccoScene.bowl(bits);
+            for (int level = 1; level <= 4; level++)
+            {
+                hide("bowl_fill_" + level, level > bowl);
+            }
+        }
+        if (truco)
+        {
+            int fan = RoccoScene.fan(bits);
+            for (int card = 1; card <= 3; card++)
+            {
+                hide("card_fan_" + card, card > fan);
+            }
+        }
+    }
+
+    private static final String[] MEATS = {"", "beef", "pork", "lamb"};
+    private static final String[] ASADO_BONES = {"grill", "meat_cook", "tongs", "apron_grill"};
+    private static final String[] TORTAS_BONES = {"fritura", "apron_cook", "dough_ball", "torta", "skimmer"};
+    private static final String[] TRUCO_BONES = {"cards_fan", "card_throw", "deal_card", "deck"};
 
     private static boolean isPerformance(RoccoTask task)
     {
@@ -217,7 +287,8 @@ public class RoccoModel extends GeoModel<RoccoEntity>
     public static final String[] LOCATORS = {"fx_head", "fx_mate", "fx_spout", "fx_magic_right", "fx_magic_left",
             "fx_wing_right", "fx_wing_left", "fx_tear_right", "fx_tear_left", "fx_snorkel", "fx_ring", "fx_boat",
             "fx_paddle_right", "fx_paddle_left", "fx_garden",
-            "fx_cola", "fx_mic", "fx_belly", "fx_body", "fx_grave", "fx_soil", "item_right", "fx_held", "fx_backpack"};
+            "fx_cola", "fx_mic", "fx_belly", "fx_body", "fx_grave", "fx_soil", "item_right", "fx_held", "fx_backpack",
+            "fx_coals", "fx_grill_smoke", "fx_meat", "fx_oil", "fx_fire", "fx_table"};
 
     public static String playingAnimation(RoccoEntity rocco)
     {

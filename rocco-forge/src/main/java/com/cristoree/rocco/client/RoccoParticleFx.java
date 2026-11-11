@@ -33,6 +33,8 @@ public final class RoccoParticleFx
         RoccoEntity.VOICE_FACE_HOOK = rocco -> com.cristoree.rocco.client.voice.VoicePlayback.spokenFace(rocco.getId());
         RoccoEntity.BEAT_HOOK = rocco -> com.cristoree.rocco.client.music.RoccoMusicClient.bpm(rocco.getId());
         RoccoEntity.DANCE_SONG_HOOK = com.cristoree.rocco.client.music.RoccoDanceMusic::start;
+        // La parrilla y el aceite suenan en bucle mientras cocina.
+        RoccoEntity.SCENE_SOUND_HOOK = RoccoSceneSound::update;
     }
 
     static void rememberLocator(RoccoEntity rocco, String name, Vec3 position)
@@ -287,6 +289,64 @@ public final class RoccoParticleFx
                     add(level, ModParticles.PETAL.get(), at, new Vec3(spread(random, 0.04D), 0.05D + random.nextDouble() * 0.04D, spread(random, 0.04D)));
                 }
             }
+
+            // La parrilla, la olla y la botella rota (v14).
+            case "rocco:grill_smoke" ->
+            {
+                int count = 1 + random.nextInt(2);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.GRILL_SMOKE.get(), at.add(spread(random, 0.12D), 0.0D, spread(random, 0.12D)), new Vec3(spread(random, 0.008D), 0.03D, spread(random, 0.008D)));
+                }
+            }
+            case "rocco:heat_wave" -> add(level, ModParticles.HEAT_WAVE.get(), at.add(spread(random, 0.1D), 0.0D, spread(random, 0.1D)), new Vec3(0.0D, 0.06D, 0.0D));
+            case "rocco:ember" ->
+            {
+                int count = 1 + random.nextInt(2);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.EMBER.get(), at.add(spread(random, 0.1D), 0.0D, spread(random, 0.1D)), new Vec3(spread(random, 0.02D), 0.05D, spread(random, 0.02D)));
+                }
+            }
+            case "rocco:fat_sizzle" ->
+            {
+                int count = 2 + random.nextInt(2);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.FAT_SIZZLE.get(), at.add(spread(random, 0.08D), 0.0D, spread(random, 0.08D)), new Vec3(spread(random, 0.05D), 0.1D + random.nextDouble() * 0.05D, spread(random, 0.05D)));
+                }
+            }
+            case "rocco:flame_burst" -> add(level, ModParticles.FLAME_BURST.get(), at, Vec3.ZERO);
+            case "rocco:oil_bubble" ->
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    add(level, ModParticles.OIL_BUBBLE.get(), at.add(spread(random, 0.1D), 0.0D, spread(random, 0.1D)), new Vec3(0.0D, 0.008D, 0.0D));
+                }
+            }
+            case "rocco:oil_splash" ->
+            {
+                int count = 2 + random.nextInt(2);
+                for (int i = 0; i < count; i++)
+                {
+                    add(level, ModParticles.OIL_SPLASH.get(), at, new Vec3(spread(random, 0.07D), 0.1D + random.nextDouble() * 0.05D, spread(random, 0.07D)));
+                }
+            }
+            case "rocco:oil_drip" -> add(level, ModParticles.OIL_DRIP.get(), at, Vec3.ZERO);
+            case "rocco:flour_puff" ->
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    add(level, ModParticles.FLOUR_PUFF.get(), at.add(spread(random, 0.08D), 0.0D, spread(random, 0.08D)), new Vec3(spread(random, 0.01D), 0.01D, spread(random, 0.01D)));
+                }
+            }
+            case "rocco:glass_shard" ->
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    add(level, ModParticles.GLASS_SHARD.get(), at, new Vec3(spread(random, 0.15D), 0.05D + random.nextDouble() * 0.15D, spread(random, 0.15D)));
+                }
+            }
             default -> { }
         }
     }
@@ -347,6 +407,10 @@ public final class RoccoParticleFx
             case "fx_backpack" -> { side = 0.0D; up = 0.55D; ahead = -0.35D; }
             case "fx_grave", "fx_soil" -> { side = 0.0D; up = 0.1D; ahead = 0.0D; }
             case "item_right" -> { side = -0.35D; up = 0.45D; ahead = 0.35D; }
+            // Las escenas de la v14: la parrilla queda adelante de el, la olla a su derecha y la mesa a su izquierda.
+            case "fx_coals", "fx_grill_smoke", "fx_meat" -> { side = 0.0D; up = 0.35D; ahead = 0.47D; }
+            case "fx_oil", "fx_fire" -> { side = -0.45D; up = 0.3D; ahead = 0.2D; }
+            case "fx_table" -> { side = 0.56D; up = 0.45D; ahead = -0.1D; }
             default -> { side = 0.0D; up = 0.6D; ahead = 0.2D; }
         }
 

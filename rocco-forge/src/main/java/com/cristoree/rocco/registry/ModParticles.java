@@ -64,6 +64,18 @@ public final class ModParticles
     public static final RegistryObject<SimpleParticleType> JOY_TEAR = register("joy_tear");
     public static final RegistryObject<SimpleParticleType> SEED_POP = register("seed_pop");
 
+    // La parrilla, la olla de las tortas fritas y el vidrio de la botella (v14).
+    public static final RegistryObject<SimpleParticleType> GRILL_SMOKE = register("grill_smoke");
+    public static final RegistryObject<SimpleParticleType> HEAT_WAVE = register("heat_wave");
+    public static final RegistryObject<SimpleParticleType> EMBER = register("ember");
+    public static final RegistryObject<SimpleParticleType> FAT_SIZZLE = register("fat_sizzle");
+    public static final RegistryObject<SimpleParticleType> FLAME_BURST = register("flame_burst");
+    public static final RegistryObject<SimpleParticleType> OIL_BUBBLE = register("oil_bubble");
+    public static final RegistryObject<SimpleParticleType> OIL_SPLASH = register("oil_splash");
+    public static final RegistryObject<SimpleParticleType> OIL_DRIP = register("oil_drip");
+    public static final RegistryObject<SimpleParticleType> FLOUR_PUFF = register("flour_puff");
+    public static final RegistryObject<SimpleParticleType> GLASS_SHARD = register("glass_shard");
+
     public static void register(IEventBus modEventBus)
     {
         PARTICLES.register(modEventBus);

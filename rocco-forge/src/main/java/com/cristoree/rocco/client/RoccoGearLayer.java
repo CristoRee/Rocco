@@ -200,6 +200,13 @@ public class RoccoGearLayer extends GeoRenderLayer<RoccoEntity>
         {
             return true;
         }
+        // Cocinando o con las cartas en la mano: el arma queda guardada.
+        com.cristoree.rocco.entity.RoccoScene scene = rocco.getScene();
+        if (scene.cooking() || scene.truco() || playing.startsWith("animation.rocco.asado")
+                || playing.startsWith("animation.rocco.tortas") || playing.startsWith("animation.rocco.truco"))
+        {
+            return true;
+        }
         RoccoTask task = rocco.getActiveTask();
         return switch (task)
         {
