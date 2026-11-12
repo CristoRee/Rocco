@@ -13,6 +13,7 @@
 
 **Fixed**
 - Rocco's head no longer spins when a dance is cut short.
+- Rocco no longer stays on guard forever if what he was attacking vanishes mid-swing.
 
 ---
 
@@ -31,3 +32,4 @@
 
 **Arreglado**
 - La cabeza de Rocco ya no da una vuelta entera al cortar un baile.
+- Rocco ya no se queda en guardia para siempre si lo que atacaba desaparece a mitad de un golpe.

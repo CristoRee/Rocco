@@ -15,6 +15,7 @@
 
 ### Arreglado
 - Al cortar un baile a la mitad, la cabeza de Rocco ya no da una vuelta entera.
+- Si lo que Rocco estaba atacando desaparecía justo en medio de un golpe, se quedaba en guardia para siempre. Ahora baja la guardia como siempre.
 
 ## 1.5.0
 

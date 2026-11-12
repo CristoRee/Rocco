@@ -324,18 +324,26 @@ public final class RoccoCombat
         public void tick()
         {
             LivingEntity target = this.rocco.getTarget();
+            // La botella se termina de romper aunque el otro ya no este.
+            if (this.smashTicks >= 0)
+            {
+                if (target != null)
+                {
+                    this.rocco.getLookControl().setLookAt(target, 30.0F, 30.0F);
+                }
+                tickSmash(target);
+                return;
+            }
             if (target == null)
             {
+                // Se fue a mitad de un golpe (murio, desaparecio): el golpe no termina nunca y la
+                // pelea quedaba abierta, con Rocco en guardia para siempre.
+                this.swingTicks = -1;
+                this.drawTicks = -1;
                 return;
             }
             this.rocco.getLookControl().setLookAt(target, 30.0F, 30.0F);
             this.rocco.enterCombat();
-
-            if (this.smashTicks >= 0)
-            {
-                tickSmash(target);
-                return;
-            }
 
             // La espera entre golpes corre tambien durante la animacion (si no, pegaba la mitad de seguido).
             if (this.cooldown > 0)
@@ -403,11 +411,11 @@ public final class RoccoCombat
         }
 
         // Quieto mirando al otro; en el tick 23 la revienta y le queda el pico en la mano.
-        private void tickSmash(LivingEntity target)
+        private void tickSmash(@Nullable LivingEntity target)
         {
             this.smashTicks++;
-            double dx = target.getX() - this.rocco.getX();
-            double dz = target.getZ() - this.rocco.getZ();
+            double dx = target == null ? 0.0D : target.getX() - this.rocco.getX();
+            double dz = target == null ? 0.0D : target.getZ() - this.rocco.getZ();
             float yaw = dx * dx + dz * dz < 0.01D ? this.rocco.getYRot()
                     : (float) (Math.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
             this.rocco.holdStill(yaw);

@@ -40,6 +40,8 @@ public final class TrucoScreen extends Screen
     private int shownBanner = -1;
     private int bannerTicks;
     private int ticks;
+    // Donde termina el tanteador (cambia con el idioma): el estado de arriba se centra sin pisarlo.
+    private int scoreRight = 126;
 
     public TrucoScreen()
     {
@@ -129,8 +131,12 @@ public final class TrucoScreen extends Screen
     {
         int x = 6;
         int y = 6;
-        int w = 120;
+        // Cada columna con lugar para "Nosotros 30" sin pisar la otra.
+        int column = Math.max(56, Math.max(this.font.width(Component.translatable("gui.rocco.truco.us").getString() + " 30"),
+                this.font.width(Component.translatable("gui.rocco.truco.them").getString() + " 30")) + 6);
+        int w = Math.max(120, column * 2 + 12);
         int h = 78;
+        this.scoreRight = x + w;
         panel(graphics, x, y, w, h);
         if (state.manoSolo())
         {
@@ -149,10 +155,13 @@ public final class TrucoScreen extends Screen
         int theirs = teamScore(state, 1 - myTeam);
         Component us = Component.translatable("gui.rocco.truco.us").append(" " + ours);
         Component them = Component.translatable("gui.rocco.truco.them").append(" " + theirs);
-        graphics.drawString(this.font, us, x + 8, y + 6, 0x2E6B1F, false);
-        graphics.drawString(this.font, them, x + w / 2 + 4, y + 6, 0x8A2B22, false);
-        matches(graphics, x + 14, y + 18, ours, state.target());
-        matches(graphics, x + w / 2 + 10, y + 18, theirs, state.target());
+        // Cada nombre centrado sobre sus fosforos.
+        int left = x + 6 + column / 2;
+        int right = x + w - 6 - column / 2;
+        graphics.drawString(this.font, us, left - this.font.width(us) / 2, y + 6, 0x2E6B1F, false);
+        graphics.drawString(this.font, them, right - this.font.width(them) / 2, y + 6, 0x8A2B22, false);
+        matches(graphics, left - 4, y + 18, ours, state.target());
+        matches(graphics, right - 4, y + 18, theirs, state.target());
         // La linea entre las malas y las buenas.
         if (state.target() == 30)
         {
@@ -195,13 +204,19 @@ public final class TrucoScreen extends Screen
     {
         int y = 90;
         int max = Math.max(60, this.width / 2 - 30);
+        // Las lineas largas se parten en dos; si son muchas, quedan las ultimas.
+        java.util.List<net.minecraft.util.FormattedCharSequence> lines = new java.util.ArrayList<>();
         for (Component line : state.log())
         {
-            Component shown = this.font.width(line) <= max ? line
-                    : Component.literal(this.font.plainSubstrByWidth(line.getString(), max - 8) + "…").withStyle(line.getStyle());
-            int w = this.font.width(shown);
+            lines.addAll(this.font.split(line, max));
+        }
+        int room = Math.max(1, (this.height - 72 - y) / 12);
+        for (int i = Math.max(0, lines.size() - room); i < lines.size(); i++)
+        {
+            net.minecraft.util.FormattedCharSequence line = lines.get(i);
+            int w = this.font.width(line);
             graphics.fill(4, y - 2, 10 + w, y + 9, 0x66000000);
-            graphics.drawString(this.font, shown, 7, y, 0xFFFFFF, true);
+            graphics.drawString(this.font, line, 7, y, 0xFFFFFF, true);
             y += 12;
         }
     }
@@ -227,14 +242,36 @@ public final class TrucoScreen extends Screen
     private void drawStatus(GuiGraphics graphics, TrucoNetwork.TableState state, int myTeam)
     {
         Component status = status(state);
-        graphics.pose().pushPose();
-        graphics.pose().translate(this.width / 2.0F, 8.0F, 0.0F);
-        graphics.pose().scale(1.5F, 1.5F, 1.0F);
-        graphics.drawCenteredString(this.font, status, 0, 0, 0xFFFFFF);
-        graphics.pose().popPose();
-        // Los tres puntitos de las bazas.
-        int x = this.width / 2 - 26;
-        int y = 24;
+        // En el lugar libre entre el tanteador y la muestra: grande si entra; si no, en renglones.
+        int left = this.scoreRight + 6;
+        int right = this.width - 52;
+        int room = Math.max(60, right - left);
+        int center = (left + right) / 2;
+        float scale = Math.min(1.5F, room / (float) Math.max(1, this.font.width(status)));
+        java.util.List<net.minecraft.util.FormattedCharSequence> lines;
+        if (scale >= 1.0F)
+        {
+            lines = java.util.List.of(status.getVisualOrderText());
+        }
+        else
+        {
+            scale = 1.0F;
+            lines = this.font.split(status, room);
+        }
+        // Debajo de la fila de avisos del juego ("nuevas recetas"...), que se dibujan encima de todo.
+        int lineY = 36;
+        for (net.minecraft.util.FormattedCharSequence line : lines)
+        {
+            graphics.pose().pushPose();
+            graphics.pose().translate(center, lineY, 0.0F);
+            graphics.pose().scale(scale, scale, 1.0F);
+            graphics.drawCenteredString(this.font, line, 0, 0, 0xFFFFFF);
+            graphics.pose().popPose();
+            lineY += (int) Math.ceil(10 * scale);
+        }
+        // Los tres puntitos de las bazas, debajo.
+        int x = center - 26;
+        int y = lineY + 2;
         for (int trick = 0; trick < 3; trick++)
         {
             int result = trick < state.tricks().length ? state.tricks()[trick] : -2;
@@ -335,10 +372,21 @@ public final class TrucoScreen extends Screen
 
     private void drawButtons(GuiGraphics graphics, TrucoNetwork.TableState state, int mouseX, int mouseY)
     {
-        int x = this.width - BUTTON_W - 8;
-        int y = this.height - 30;
         int[] legal = state.legal();
         Action.Type[] types = Action.Type.values();
+        // Todos los botones del ancho del texto mas largo (sin cortar), sin pasar de un tercio de pantalla.
+        int widest = BUTTON_W;
+        for (int i = 0; i + 1 < legal.length; i += 2)
+        {
+            if (legal[i] >= 0 && legal[i] < types.length && types[legal[i]] != Action.Type.PLAY && types[legal[i]] != Action.Type.DISCARD)
+            {
+                Component label = Component.translatable("truco.rocco.action." + types[legal[i]].name().toLowerCase(Locale.ROOT));
+                widest = Math.max(widest, this.font.width(label) + 14);
+            }
+        }
+        int buttonWidth = Math.min(widest, Math.max(BUTTON_W, this.width / 3));
+        int x = this.width - buttonWidth - 8;
+        int y = this.height - 30;
         for (int i = 0; i + 1 < legal.length; i += 2)
         {
             int ordinal = legal[i];
@@ -354,7 +402,7 @@ public final class TrucoScreen extends Screen
             boolean red = type == Action.Type.NO_QUIERO || type == Action.Type.MAZO || type == Action.Type.CON_FLOR_ME_ACHICO;
             Component label = Component.translatable("truco.rocco.action." + type.name().toLowerCase(Locale.ROOT));
             boolean enabled = !state.blocked();
-            button(graphics, x, y, BUTTON_W, label, red, enabled, mouseX, mouseY, () -> send(type, -1));
+            button(graphics, x, y, buttonWidth, label, red, enabled, mouseX, mouseY, () -> send(type, -1));
             y -= 22;
         }
         // Tomar el mate que te pasaron.
@@ -388,8 +436,14 @@ public final class TrucoScreen extends Screen
         float alpha = Math.min(1.0F, this.bannerTicks / 8.0F);
         int a = Mth.clamp((int) (alpha * 255.0F), 8, 255);
         graphics.pose().pushPose();
-        graphics.pose().translate(this.width / 2.0F, this.height / 2.0F - 30.0F, 0.0F);
-        graphics.pose().scale(2.5F, 2.5F, 1.0F);
+        float scale = Math.max(1.0F, Math.min(2.5F, (this.width - 24) / (float) Math.max(1, this.font.width(banner))));
+        // Una franja oscura detras, para que se lea sobre la mesa y el registro.
+        int textWidth = (int) (this.font.width(banner) * scale);
+        int bannerY = this.height / 2 - 24;
+        graphics.fill(this.width / 2 - textWidth / 2 - 10, bannerY - 5, this.width / 2 + textWidth / 2 + 10,
+                bannerY + (int) (8 * scale) + 5, ((int) (a * 0.6F) << 24));
+        graphics.pose().translate(this.width / 2.0F, bannerY, 0.0F);
+        graphics.pose().scale(scale, scale, 1.0F);
         graphics.drawCenteredString(this.font, banner, 0, 0, (a << 24) | color);
         graphics.pose().popPose();
     }
