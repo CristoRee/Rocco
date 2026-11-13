@@ -24,8 +24,12 @@ public final class OpenAiCompatClient
     // Lo que piensan algunos modelos (Qwen, DeepSeek) llega entre estas etiquetas.
     private static final Pattern THINK_BLOCK = Pattern.compile("(?is)<think>.*?</think>");
 
-    private static final int MAX_TOKENS_CEILING = 4096;
+    // Los planes gratis (Groq: 8000 tokens por minuto) cuentan tambien los tokens de salida que se
+    // piden: mas que esto no ayuda a charlar y hace que la consulta no entre.
+    private static final int MAX_TOKENS_CEILING = 1600;
     private static final int MAX_ADAPTATIONS = 4;
+    // Si el cupo por minuto se libera en un ratito, se espera en vez de pasar a otra IA.
+    private static final int MAX_WAIT_SECONDS = 8;
 
     // Parametros que cada proveedor+modelo rechazo: se dejan de mandar en esta sesion.
     private static final Map<String, Set<String>> DROPPED_PARAMS = new ConcurrentHashMap<>();
@@ -68,6 +72,32 @@ public final class OpenAiCompatClient
             if (response.status() == 400 && depth < MAX_ADAPTATIONS && adaptToRejectedParam(provider, model, detail))
             {
                 return chat(provider, model, systemPrompt, history, question, maxTokens, depth + 1);
+            }
+
+            // Mas larga que el cupo por minuto del plan gratis: se manda con menos charla de antes.
+            if (tooLarge(response.status(), detail) && depth < MAX_ADAPTATIONS && (!history.isEmpty() || maxTokens > 400))
+            {
+                List<ChatTurn> shorter = history.size() <= 2 ? List.of() : history.subList(history.size() / 2, history.size());
+                RoccoMod.LOGGER.info("[Rocco] {} ({}): la consulta no entra en el cupo; reintento con {} mensajes de charla.",
+                        provider.label(), model, shorter.size());
+                return chat(provider, model, systemPrompt, shorter, question, Math.min(maxTokens, 400), depth + 1);
+            }
+
+            // Cupo por minuto lleno, pero se libera enseguida: se espera y se reintenta una vez.
+            int wait = response.retryAfterSeconds() > 0 ? response.retryAfterSeconds() : secondsToWait(detail);
+            if (response.status() == 429 && wait > 0 && wait <= MAX_WAIT_SECONDS && depth < MAX_ADAPTATIONS)
+            {
+                RoccoMod.LOGGER.info("[Rocco] {} ({}): cupo por minuto lleno, espero {} s.", provider.label(), model, wait);
+                try
+                {
+                    Thread.sleep(wait * 1000L);
+                }
+                catch (InterruptedException e)
+                {
+                    Thread.currentThread().interrupt();
+                    return classifyError(provider, model, response.status(), detail);
+                }
+                return chat(provider, model, systemPrompt, history, question, maxTokens, MAX_ADAPTATIONS);
             }
 
             return classifyError(provider, model, response.status(), detail);
@@ -299,6 +329,11 @@ public final class OpenAiCompatClient
             return ChatReply.fail(ChatReply.Failure.RATE_LIMIT, label + " no tiene credito para este modelo (HTTP 402).",
                     label, model);
         }
+        if (tooLarge(status, detail))
+        {
+            return ChatReply.fail(ChatReply.Failure.RATE_LIMIT, "la charla es mas larga de lo que permite el cupo gratis de "
+                    + label + " por minuto.", label, model);
+        }
         if (status == 429 || lower.contains("rate limit") || lower.contains("quota"))
         {
             return ChatReply.fail(ChatReply.Failure.RATE_LIMIT, "se acabo el cupo de " + label + " por ahora.", label, model);
@@ -321,6 +356,34 @@ public final class OpenAiCompatClient
         }
         return ChatReply.fail(ChatReply.Failure.BAD_REQUEST, label + " rechazo la consulta (HTTP " + status + "): "
                 + detail, label, model);
+    }
+
+    // Groq: "Request too large for model ... on tokens per minute (TPM): Limit 8000, Requested 9184".
+    static boolean tooLarge(int status, String detail)
+    {
+        String lower = detail.toLowerCase(Locale.ROOT);
+        return status == 413 || lower.contains("request too large") || lower.contains("reduce your message size");
+    }
+
+    private static final Pattern TRY_AGAIN = Pattern.compile("try again in (?:(\\d+)m)?([\\d.]+)s");
+
+    // "Please try again in 6.42s" (o "1m2.5s"): los segundos a esperar, redondeados para arriba.
+    static int secondsToWait(String detail)
+    {
+        java.util.regex.Matcher matcher = TRY_AGAIN.matcher(detail.toLowerCase(Locale.ROOT));
+        if (!matcher.find())
+        {
+            return 0;
+        }
+        try
+        {
+            int minutes = matcher.group(1) == null ? 0 : Integer.parseInt(matcher.group(1));
+            return minutes * 60 + (int) Math.ceil(Double.parseDouble(matcher.group(2)));
+        }
+        catch (NumberFormatException e)
+        {
+            return 0;
+        }
     }
 
     // Si el 400 dice que un parametro no se acepta, se deja de mandar y se reintenta.

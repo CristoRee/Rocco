@@ -51,7 +51,7 @@ Se le habla por el chat (o por micrófono). Algunos ejemplos:
 
 Clic derecho sobre Rocco abre su tapa: un inventario de 27 lugares, que crece con las **mochilas**. En modo Chill, adentro de su cabeza hay un jardincito con flores en vez de la carne (se cambia en **Config > General > Adentro de su tapa**).
 
-**Agachado + clic derecho** abre su menú: qué está haciendo, qué tan amigos son y si tiene la magia lista, con botones para lo de todos los días (seguir o dejar de seguir, vení, sentate, a dormir, subirse al lobo o bajarse, su inventario, guardar todo, ordenar cofres, cuidar la casa, quitarle la mochila, cebarte un mate, darte una Roco Cola, baile, callarse un rato), sus lugares guardados (llevame, guardar uno nuevo, olvidar) y accesos a la personalidad y la configuración. En multijugador, el menú es solo del dueño.
+**Agachado + clic derecho** abre su menú: qué está haciendo, qué tan amigos son y si tiene la magia lista, con botones en tres columnas: **Con vos** (seguir o dejar de seguir, vení, subirse al lobo o bajarse, sus lugares guardados y callarse un rato; si está sentado o dormido, el primero lo levanta), **Tareas** (su inventario, su equipo, guardar todo, ordenar cofres y cuidar la casa) y **Planes** (cebarte un mate, truco, asado, tortas fritas y darte una Roco Cola), a quién puede atacar y accesos a la personalidad y la configuración. En multijugador, el menú es solo del dueño.
 
 ### Armadura, armas y pelea
 
@@ -83,7 +83,7 @@ Rocco arranca con 27 lugares (3 filas). Cada mochila le suma filas, y las cosas 
 | Mochila de la amistad | 6 filas (una página entera) | 216 | Mochila del héroe, Flor de la Amistad, fragmentos de eco, caparazones de shulker y estrella del Nether |
 
 - **Ponérsela:** clic derecho a Rocco con la mochila en la mano. Se la prueba y se muestra.
-- **Sacársela:** el botón **Quitar mochila** de su menú, o "sacate la mochila". Te la da con lo que lleva adentro.
+- **Sacársela:** el botón **Quitar mochila**, abajo del panel de apariencia en **Equipo**, o "sacate la mochila". Te la da con lo que lleva adentro.
 - **Mejorarla:** en la mesa de crafteo, con la mochila anterior. Lo que lleva adentro se conserva.
 - **Páginas:** cada página tiene hasta 6x9 lugares. Si hay más de una, arriba de la ventana aparecen los botones para pasar de una a otra, sin soltar lo que tengas en el cursor.
 - **Si se muere:** la mochila la sigue teniendo puesta, aunque lo que llevaba cae al piso (salvo con el poder del cofre de ender).
@@ -222,7 +222,7 @@ También imita voces de personajes y famosos si se lo pedís ("hablá como Veget
 
 ## Guía rápida
 
-La primera vez que nace un Rocco tuyo aparece una guía de 7 páginas con lo más importante, con Rocco moviéndose al lado. Se vuelve a ver con `/rocco tutorial`, con el botón **?** de su menú o con una tecla (**Controles > Rocco**, sin asignar de fábrica).
+En cada mundo, la primera vez que te nace un Rocco aparece una guía de 7 páginas con lo más importante, con Rocco moviéndose al lado. Se vuelve a ver con `/rocco tutorial`, con el botón **?** de su menú o con una tecla (**Controles > Rocco**, sin asignar de fábrica).
 
 ## Bienvenida
 

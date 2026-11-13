@@ -92,9 +92,13 @@ public final class RoccoContextBuilder
         }
         facts.put("Your inventory (carried in your lid/backpack, NOT worn: you can store or give any of it)", inventoryOf(rocco));
         facts.put("Your backpack", rocco.backpackTier() == 0
-                ? "none (" + rocco.inventory().getContainerSize() + " slots in your lid; the player can craft you one once they have the seed you give them when you become friends)"
+                ? "none (" + rocco.inventory().getContainerSize() + " slots in your lid)"
                 : "number " + rocco.backpackTier() + " of 6 (" + rocco.inventory().getContainerSize() + " slots in total)");
-        facts.put("Wolves you may ride", rocco.anyWolfAllowed() ? "yes, the player gave you permission" : "none yet");
+        // Lo que no hay no se dice: cada linea viaja en cada pedido a la IA.
+        if (rocco.anyWolfAllowed())
+        {
+            facts.put("Wolves you may ride", "yes, the player gave you permission");
+        }
         facts.put("Free farmland nearby", String.valueOf(freeFarmland(level, rocco)));
         facts.put("Ripe crops nearby", String.valueOf(Crops.findRipe(level, rocco.blockPosition(), 8, 64).size()));
         facts.put("Chests nearby", chestsNear(level, rocco, player));
@@ -104,9 +108,10 @@ public final class RoccoContextBuilder
                 entity -> entity instanceof AbstractFurnaceBlockEntity).isEmpty() ? "no" : "yes");
 
         BlockPos harvestChest = rocco.getHarvestChest();
-        facts.put("Harvest chest", harvestChest == null
-                ? "none chosen yet"
-                : harvestChest.getX() + ", " + harvestChest.getY() + ", " + harvestChest.getZ());
+        if (harvestChest != null)
+        {
+            facts.put("Harvest chest", harvestChest.getX() + ", " + harvestChest.getY() + ", " + harvestChest.getZ());
+        }
 
         String looking = lookingAt(level, player);
         if (looking != null)
@@ -121,9 +126,11 @@ public final class RoccoContextBuilder
 
         facts.put("Places you remember", placesOf(rocco, player));
         var stored = rocco.lastStored();
-        facts.put("What you last stored in chests", stored == null ? "nothing yet"
-                : stored.items() + ", " + rocco.describeStoredPlace(stored) + " ("
-                + Math.max(1, (level.getGameTime() - stored.tick()) / 1200) + " minutes ago)");
+        if (stored != null)
+        {
+            facts.put("What you last stored in chests", stored.items() + ", " + rocco.describeStoredPlace(stored) + " ("
+                    + Math.max(1, (level.getGameTime() - stored.tick()) / 1200) + " minutes ago)");
+        }
 
         String animals = breedable(level, rocco);
         if (!animals.isEmpty())
@@ -136,8 +143,11 @@ public final class RoccoContextBuilder
             facts.put("Villagers nearby", villagers);
         }
 
-        facts.put("Doors or trapdoors nearby",
-                String.valueOf(RoccoWork.findOpenables(level, rocco.blockPosition(), 8).size()));
+        int doors = RoccoWork.findOpenables(level, rocco.blockPosition(), 8).size();
+        if (doors > 0)
+        {
+            facts.put("Doors or trapdoors nearby", String.valueOf(doors));
+        }
         facts.put("You are following the player", rocco.staysForWork() ? "no, you are looking after the place (see what you are doing)"
                 : rocco.isFollowing() ? "yes" : "no, they asked you to wait");
         facts.put("Home care", "up to " + RoccoCommonConfig.HOME_ANIMAL_CAP.get() + " animals per species"
@@ -151,11 +161,13 @@ public final class RoccoContextBuilder
         facts.put("You may attack", targetsOf(rocco));
         facts.put("Your ender chest power", rocco.life().hasEnderPocket()
                 ? "yes: you keep everything if you die"
-                : "no: if you die you drop everything (an ender chest would give you the power)");
+                : "no (an ender chest would give it to you)");
         facts.put("Your posture", postureOf(rocco));
         var music = rocco.music();
-        facts.put("Music you are playing", music == null ? "none"
-                : (music.paused() ? "paused: " : "playing: ") + music.title());
+        if (music != null)
+        {
+            facts.put("Music you are playing", (music.paused() ? "paused: " : "playing: ") + music.title());
+        }
 
         // Si el jugador pregunta donde murio, Rocco tiene el dato a mano.
         BlockPos death = rocco.getLastDeathPos();

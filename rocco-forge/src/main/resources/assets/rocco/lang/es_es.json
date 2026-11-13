@@ -830,5 +830,16 @@
   "truco.rocco.call.no_quiero": "no quiero",
   "truco.rocco.call.mazo": "me voy al mazo",
   "truco.rocco.call.play": "juega",
-  "truco.rocco.call.discard": "descarta"
+  "truco.rocco.call.discard": "descarta",
+  "subtitles.rocco.bottle_smash": "Se rompe una botella",
+  "Con vos": "Con vos",
+  "Planes": "Planes",
+  "Su equipo": "Su equipo",
+  "Su armadura, su arma, su escudo y la mochila. Arrastrá las cosas desde tu inventario.": "Su armadura, su arma, su escudo y la mochila. Arrastrá las cosas desde tu inventario.",
+  "Truco": "Truco",
+  "Arma la mesa del truco: elegís las reglas y los que estén cerca se pueden sumar.": "Arma la mesa del truco: elegís las reglas y los que estén cerca se pueden sumar.",
+  "Asado": "Asado",
+  "Prende la parrilla y hace un asado. Necesita carbón y carne cruda en su inventario.": "Prende la parrilla y hace un asado. Necesita carbón y carne cruda en su inventario.",
+  "Tortas fritas": "Tortas fritas",
+  "Amasa y fríe tortas fritas. Necesita trigo en su inventario (o en tu mano).": "Amasa y fríe tortas fritas. Necesita trigo en su inventario (o en tu mano)."
 }

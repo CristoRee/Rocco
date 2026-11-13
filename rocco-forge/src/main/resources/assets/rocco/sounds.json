@@ -608,5 +608,11 @@
         "stream": false
       }
     ]
+  },
+  "bottle_smash": {
+    "subtitle": "subtitles.rocco.bottle_smash",
+    "sounds": [
+      "rocco:bottle_smash1"
+    ]
   }
 }

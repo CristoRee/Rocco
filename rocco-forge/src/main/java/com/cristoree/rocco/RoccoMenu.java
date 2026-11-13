@@ -99,6 +99,9 @@ public final class RoccoMenu
             case "mate" -> order(player, rocco, "Tomate un mate.", "mate", "", "mate_ack");
             case "cebar_mate" -> order(player, rocco, "Cebame un mate.", "cebar_mate", "", "mate_share_ack");
             case "bailar" -> order(player, rocco, "Baila.", "bailar", "", "dance_ack");
+            case "truco" -> order(player, rocco, "Juguemos al truco.", "jugar_truco", "", "");
+            case "asado" -> order(player, rocco, "Hacete un asado.", "asado", "", "");
+            case "tortas" -> order(player, rocco, "Hacete unas tortas fritas.", "tortas_fritas", "", "");
             case "dar_cola" -> order(player, rocco, "Dame una Roco Cola.", "dar_cola", "", rocco.colaReady() ? "cola_give" : "");
             case "quitar_mochila" -> order(player, rocco, "Sacate la mochila.", "quitar_mochila", "", "");
             case "montar_lobo" -> order(player, rocco, "Subite al lobo.", "montar_lobo", "", "");

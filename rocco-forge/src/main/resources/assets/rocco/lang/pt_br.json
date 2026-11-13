@@ -981,5 +981,16 @@
   "truco.rocco.call.no_quiero": "não quero",
   "truco.rocco.call.mazo": "vou ao baralho",
   "truco.rocco.call.play": "joga",
-  "truco.rocco.call.discard": "descarta"
+  "truco.rocco.call.discard": "descarta",
+  "subtitles.rocco.bottle_smash": "Uma garrafa se quebra",
+  "Con vos": "Com você",
+  "Planes": "Programas",
+  "Su equipo": "Equipamento",
+  "Su armadura, su arma, su escudo y la mochila. Arrastrá las cosas desde tu inventario.": "A armadura, a arma, o escudo e a mochila dele. Arraste as coisas do seu inventário.",
+  "Truco": "Truco",
+  "Arma la mesa del truco: elegís las reglas y los que estén cerca se pueden sumar.": "Monta a mesa do truco: você escolhe as regras e quem estiver perto pode entrar.",
+  "Asado": "Churrasco",
+  "Prende la parrilla y hace un asado. Necesita carbón y carne cruda en su inventario.": "Acende a churrasqueira e faz um churrasco. Precisa de carvão e carne crua no inventário dele.",
+  "Tortas fritas": "Tortas fritas",
+  "Amasa y fríe tortas fritas. Necesita trigo en su inventario (o en tu mano).": "Sova e frita tortas fritas. Precisa de trigo no inventário dele (ou na sua mão)."
 }

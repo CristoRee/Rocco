@@ -166,8 +166,14 @@ public final class PersonalityPromptBuilder
         return first + "\n" + (full ? PersonalityTexts.impressions() : compactImpressions());
     }
 
+    // Sin la guia de estilo: el formato de la etiqueta y las reglas, en pocas lineas.
     static String compactImpressions()
     {
+        String compact = PersonalityTexts.trait("impressions.compact");
+        if (!compact.isEmpty())
+        {
+            return compact;
+        }
         StringBuilder out = new StringBuilder();
         boolean inGuide = false;
         for (String line : PersonalityTexts.impressions().split("\n"))

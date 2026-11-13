@@ -47,6 +47,9 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
     private static final int LOOK_TOP = 18;
     private static final int LOOK_FOOT = 24;
     private static final int LOOK_PAD = 5;
+    // El boton de quitarse la mochila, abajo de todo.
+    private static final int REMOVE_HEIGHT = 16;
+    private static final int REMOVE_FOOT = REMOVE_HEIGHT + 6;
     private boolean lookOpen;
     private boolean swallowRelease;
     private int lookX;
@@ -89,8 +92,9 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
         {
             textWidth = Math.max(textWidth, this.font.width(lookStack(tier).getHoverName()));
         }
-        this.lookWidth = Math.max(textWidth + 19 + 12 + 2 * LOOK_PAD,this.font.width(Tr.t("Apariencia de la mochila")) + 2 * LOOK_PAD + 2);
-        this.lookHeight = LOOK_TOP + (BackpackItem.MAX_TIER + 1) * LOOK_ROW + LOOK_FOOT;
+        this.lookWidth = Math.max(textWidth + 19 + 12 + 2 * LOOK_PAD, this.font.width(Tr.t("Apariencia de la mochila")) + 2 * LOOK_PAD + 2);
+        this.lookWidth = Math.max(this.lookWidth, this.font.width(Tr.t("Quitar mochila")) + 2 * LOOK_PAD + 12);
+        this.lookHeight = LOOK_TOP + (BackpackItem.MAX_TIER + 1) * LOOK_ROW + LOOK_FOOT + REMOVE_FOOT;
         if (this.lookOpen && this.leftPos + this.imageWidth + 3 + this.lookWidth + 2 > this.width)
         {
             this.leftPos = Math.max(2, (this.width - this.imageWidth - 3 - this.lookWidth) / 2);
@@ -129,6 +133,34 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
         return row >= 0 && row <= BackpackItem.MAX_TIER ? row : -1;
     }
 
+    // El boton de abajo del panel.
+    private boolean overRemove(double mouseX, double mouseY)
+    {
+        int top = this.lookY + this.lookHeight - REMOVE_FOOT + 1;
+        return this.lookOpen && mouseX >= this.lookX + LOOK_PAD - 1 && mouseX < this.lookX + this.lookWidth - LOOK_PAD + 1
+                && mouseY >= top && mouseY < top + REMOVE_HEIGHT;
+    }
+
+    private boolean canRemove()
+    {
+        RoccoEntity rocco = this.menu.rocco();
+        return rocco != null && rocco.backpackTier() > 0;
+    }
+
+    // Te la devuelve con lo que lleva adentro: es la misma orden que decirselo.
+    private void removeBackpack()
+    {
+        RoccoEntity rocco = this.menu.rocco();
+        if (rocco == null)
+        {
+            return;
+        }
+        this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+        com.cristoree.rocco.voice.RoccoNetwork.sendMenuAction(
+                new com.cristoree.rocco.voice.RoccoNetwork.MenuAction(rocco.getId(), "quitar_mochila", ""));
+        onClose();
+    }
+
     // Rocco todavia no se puso esa mochila en este mundo.
     private boolean lookLocked(int look)
     {
@@ -154,6 +186,12 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
             if (row >= 0 && button == 0 && !lookLocked(row))
             {
                 pickLook(row);
+            }
+            else if (button == 0 && overRemove(mouseX, mouseY) && canRemove())
+            {
+                this.swallowRelease = true;
+                removeBackpack();
+                return true;
             }
             this.swallowRelease = true;
             return true;
@@ -259,13 +297,29 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
                 : real > 0 ? "Solo cambia cómo se ve, no su capacidad."
                 : "Se va a ver cuando se ponga una mochila.");
         List<FormattedCharSequence> lines = this.font.split(note, this.lookWidth - 2 * LOOK_PAD);
-        int noteY = y + this.lookHeight - LOOK_FOOT + 3;
+        int noteY = y + this.lookHeight - REMOVE_FOOT - LOOK_FOOT + 3;
         for (int i = 0; i < Math.min(2, lines.size()); i++)
         {
             graphics.drawString(this.font, lines.get(i), x + LOOK_PAD, noteY + i * 10, 0x555555, false);
         }
+        // Quitar mochila, con la pinta de los botones del juego.
+        boolean removable = canRemove();
+        boolean overButton = overRemove(mouseX, mouseY);
+        int buttonX = x + LOOK_PAD - 1;
+        int buttonY = y + this.lookHeight - REMOVE_FOOT + 1;
+        int buttonWidth = this.lookWidth - 2 * LOOK_PAD + 2;
+        graphics.blitNineSliced(net.minecraft.client.gui.components.AbstractWidget.WIDGETS_LOCATION, buttonX, buttonY,
+                buttonWidth, REMOVE_HEIGHT, 20, 4, 200, 20, 0, !removable ? 46 : overButton ? 86 : 66);
+        graphics.drawCenteredString(this.font, Tr.t("Quitar mochila"), buttonX + buttonWidth / 2, buttonY + 4,
+                removable ? 0xFFFFFF : 0xA0A0A0);
         // Por encima del panel, que ya esta bastante arriba.
-        if (hover >= 0 && lookLocked(hover))
+        if (overButton)
+        {
+            graphics.renderTooltip(this.font, this.font.split(Tr.t(removable
+                    ? "Te la devuelve con lo que lleva adentro. Lo que va en sus lugares viaja con ella."
+                    : "No tiene ninguna puesta."), 170), mouseX, mouseY);
+        }
+        else if (hover >= 0 && lookLocked(hover))
         {
             graphics.renderTooltip(this.font, this.font.split(
                     Tr.t("Bloqueada: se desbloquea la primera vez que Rocco se ponga esta mochila."), 170), mouseX, mouseY);

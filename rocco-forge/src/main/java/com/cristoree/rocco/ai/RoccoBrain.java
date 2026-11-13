@@ -642,7 +642,8 @@ public class RoccoBrain
         boolean voiceTags = voiceEmotions();
 
         String rightNow = RoccoContextBuilder.build(this.rocco, player)
-                + extraLines(player, profile, mode, stage, permissions, danger, now);
+                + extraLines(player, profile, mode, stage, permissions, danger, now)
+                + (spontaneous ? "" : RoccoActions.topicNotes(question));
         PersonalityPromptBuilder.Dynamic dynamic = new PersonalityPromptBuilder.Dynamic(
                 RoccoActions.describeForAi(),
                 PersonalityPromptBuilder.faces(profile),

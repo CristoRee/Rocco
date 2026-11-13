@@ -981,5 +981,16 @@
   "truco.rocco.call.no_quiero": "no quiero (refused)",
   "truco.rocco.call.mazo": "I fold",
   "truco.rocco.call.play": "plays",
-  "truco.rocco.call.discard": "discards"
+  "truco.rocco.call.discard": "discards",
+  "subtitles.rocco.bottle_smash": "Bottle smashes",
+  "Con vos": "With you",
+  "Planes": "Plans",
+  "Su equipo": "His gear",
+  "Su armadura, su arma, su escudo y la mochila. Arrastrá las cosas desde tu inventario.": "His armor, weapon, shield and backpack. Drag things over from your inventory.",
+  "Truco": "Truco",
+  "Arma la mesa del truco: elegís las reglas y los que estén cerca se pueden sumar.": "Sets up the truco table: you pick the rules and anyone nearby can join.",
+  "Asado": "Asado (BBQ)",
+  "Prende la parrilla y hace un asado. Necesita carbón y carne cruda en su inventario.": "Lights the grill and makes an asado. Needs coal and raw meat in his inventory.",
+  "Tortas fritas": "Tortas fritas",
+  "Amasa y fríe tortas fritas. Necesita trigo en su inventario (o en tu mano).": "Kneads and fries tortas fritas. Needs wheat in his inventory (or in your hand)."
 }

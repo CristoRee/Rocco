@@ -3607,13 +3607,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
                     talkFor(80);
                     greet(nearest);
                 }
-                // Al dueño le aparece la guia (una sola vez, la primera vez que le nace uno).
+                // Al dueño le aparece la guia: la primera vez que le nace uno en este mundo.
                 ServerPlayer guided = trueOwner();
                 if (guided == null && nearest instanceof ServerPlayer closest)
                 {
                     guided = closest;
                 }
-                if (guided != null)
+                if (guided != null && RoccoTutorialSeen.firstTime(guided.server, guided.getUUID()))
                 {
                     com.cristoree.rocco.voice.RoccoNetwork.sendTutorial(guided, getId(), true);
                 }

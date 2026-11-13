@@ -10,10 +10,17 @@
 
 **Changed**
 - Redesigned backpacks, now in 3D in hand, on the ground and in item frames.
+- Rocco's menu is reorganized into three columns: With you, Tasks and Plans (mate, truco, asado, tortas fritas and Roco Cola). Sitting, sleeping and dancing are asked for in chat.
+- "Remove backpack" is now at the bottom of the backpack look panel in Gear.
+- The guide shows up in every new world, the first time each player hatches a Rocco.
+- Faster replies: what Rocco sends to the AI is a third shorter, with the same personality and abilities. It now fits Groq's free tier, and when the per-minute quota fills up he waits a few seconds instead of switching AI.
+- Smaller broken bottle, in Rocco's hand and yours. The empty bottle waits one second after drinking before it can be thrown.
+- Tweaked grill, tortas fritas, truco and bottle animations, plus new sounds.
 
 **Fixed**
 - Rocco's head no longer spins when a dance is cut short.
 - Rocco no longer stays on guard forever if what he was attacking vanishes mid-swing.
+- The underside of the grill lid, the tortas fritas in the bowl and other scene props no longer flicker.
 
 ---
 
@@ -29,7 +36,14 @@
 
 **Cambiado**
 - Mochilas rediseñadas, ahora en 3D en la mano, en el piso y en los marcos.
+- El menú de Rocco, en tres columnas: Con vos, Tareas y Planes (mate, truco, asado, tortas fritas y Roco Cola). Sentarse, dormir y bailar se piden por chat.
+- "Quitar mochila" ahora está abajo de todo en el panel de apariencia de la mochila, en Equipo.
+- La guía aparece en cada mundo nuevo, la primera vez que a cada jugador le nace un Rocco.
+- Contesta más rápido: lo que se le manda a la IA es un tercio más corto, con la misma forma de ser y lo mismo que sabe hacer. Ya entra en el cupo gratis de Groq, y si el cupo del minuto se llena espera unos segundos en vez de cambiar de IA.
+- Botella rota más chica, en la mano de Rocco y en la tuya. La botella vacía espera un segundo después de tomarla antes de poder tirarse.
+- Animaciones de la parrilla, las tortas fritas, el truco y la botella ajustadas, y sonidos nuevos.
 
 **Arreglado**
 - La cabeza de Rocco ya no da una vuelta entera al cortar un baile.
 - Rocco ya no se queda en guardia para siempre si lo que atacaba desaparece a mitad de un golpe.
+- La parte de abajo de la tapa de la parrilla, las tortas fritas en el pote y otros objetos de las escenas ya no titilan.

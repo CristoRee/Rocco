@@ -12,10 +12,18 @@
 
 ### Cambiado
 - **Mochilas nuevas:** las 6 están rediseñadas y ahora se ven en 3D en la mano, en el piso y en los marcos.
+- **Menú de Rocco reordenado:** tres columnas, **Con vos** (seguir, venir, lobo, lugares y callarse), **Tareas** (inventario, equipo, guardar, ordenar y cuidar la casa) y **Planes** (mate, truco, asado, tortas fritas y Roco Cola). Si está sentado o dormido, el primer botón lo levanta. Sentarse, dormir y bailar se le piden por chat.
+- **Quitar mochila** ahora está abajo de todo en el panel de apariencia de la mochila, en **Equipo**.
+- **La guía** aparece en cada mundo nuevo, la primera vez que a cada jugador le nace un Rocco.
+- **Rocco contesta más rápido:** lo que se le manda a la IA es un tercio más corto, sin perder nada de su forma de ser ni de lo que sabe hacer. Con Groq gratis ya entra en el cupo (antes Groq lo rechazaba siempre y Rocco quedaba esperando a otra IA), y si el cupo del minuto se llena espera unos segundos en vez de cambiar de IA.
+- **Botella rota** más chica, en la mano de Rocco y en la tuya.
+- **Botella vacía:** al terminar la Roco Cola hay que esperar un segundo para poder tirarla, así no sale volando sola.
+- Animaciones de la parrilla, las tortas fritas, el truco y la botella ajustadas, sonidos nuevos y el ruido de la botella al romperse.
 
 ### Arreglado
 - Al cortar un baile a la mitad, la cabeza de Rocco ya no da una vuelta entera.
 - Si lo que Rocco estaba atacando desaparecía justo en medio de un golpe, se quedaba en guardia para siempre. Ahora baja la guardia como siempre.
+- La parte de abajo de la tapa de la parrilla y las tortas fritas en el pote ya no titilan, y tampoco el resto de la parrilla, la olla, el mate, el termo, la botella ni la mesa y las sillas del truco.
 
 ## 1.5.0
 

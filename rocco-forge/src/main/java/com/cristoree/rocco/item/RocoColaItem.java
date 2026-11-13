@@ -31,6 +31,8 @@ public final class RocoColaItem extends Item
 {
     private static final int USE_TICKS = 32;
     private static final int REFRESHED_TICKS = 20 * 20;
+    // Un segundo antes de poder tirar la botella vacia.
+    private static final int EMPTY_THROW_DELAY = 20;
 
     private final Supplier<Item> next;
     private final String[] tips;
@@ -77,6 +79,11 @@ public final class RocoColaItem extends Item
             return stack;
         }
         ItemStack after = new ItemStack(this.next.get());
+        // Recien vaciada no sale volando: el clic que se sigue apretando la tiraba enseguida.
+        if (drinker instanceof Player player && after.getItem() instanceof EmptyColaItem)
+        {
+            player.getCooldowns().addCooldown(after.getItem(), EMPTY_THROW_DELAY);
+        }
         stack.shrink(1);
         if (stack.isEmpty())
         {

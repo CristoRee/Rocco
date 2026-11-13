@@ -124,6 +124,26 @@ public final class RoccoActions
 
     private static final java.util.Set<String> UNDOCUMENTED_WARNED = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
+    // Cuando la charla toca su vida, su equipo, la muerte, las mochilas o los lobos, va el detalle
+    // "about_self" (al final del prompt, para que la parte fija no cambie y el proveedor la reutilice).
+    private static final java.util.regex.Pattern SELF_TOPICS = java.util.regex.Pattern.compile(
+            "\\b(mochila|backpack|muer|mori|murio|morir|morr|die|died|dead|death|tumba|grave|tumulo|enterr|reviv|resuc"
+            + "|vida|corazon|heart|health|cura|heal|herid|armadura|armor|espada|sword|arma\\b|weapon|escudo|shield"
+            + "|equip|gear|ataca|attack|lobo|wolf|caballo|cavalo|horse|monta|ride|semilla|seed|semente|flor\\b|flower"
+            + "|ender|pocion|potion|pocao|manzana|apple|capacidad|espacio|slot)");
+
+    // Lo que se suma a RIGHT NOW segun lo que dijo el jugador ("" si nada aplica).
+    public static String topicNotes(String question)
+    {
+        if (question == null || question.isBlank()
+                || !SELF_TOPICS.matcher(com.cristoree.rocco.util.Text.normalize(question)).find())
+        {
+            return "";
+        }
+        String notes = com.cristoree.rocco.ai.personality.PersonalityTexts.actionSection("about_self");
+        return notes.isEmpty() ? "" : notes + "\n";
+    }
+
     // El bloque YOUR ACTIONS del prompt: formato, cada verbo con su explicacion y las reglas.
     public static String describeForAi()
     {
