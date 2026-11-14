@@ -531,7 +531,7 @@ public class RoccoBrain
                             systemPrompt.length(), systemPrompt.length() / 4, mode,
                             fullImpressions ? ", con la guia de imitaciones completa" : "");
                 }
-                reply = AiRouter.ask(systemPrompt, snapshot, turn.prompt());
+                reply = AiRouter.ask(systemPrompt, snapshot, turn.prompt(), !spontaneous);
             }
             catch (Throwable e)
             {
@@ -1201,11 +1201,10 @@ public class RoccoBrain
         return this.rocco.level().getGameTime();
     }
 
-    // Las etiquetas de emocion solo sirven si hay voz y el modelo de Fish Audio las entiende (s1).
+    // Las etiquetas de emocion solo sirven si hay voz y el modelo de Fish Audio las entiende (s1, s2).
     private static boolean voiceEmotions()
     {
-        return RoccoConfig.voiceReady()
-                && RoccoCommonConfig.FISH_MODEL.get().trim().toLowerCase(Locale.ROOT).startsWith("s1");
+        return RoccoConfig.voiceReady() && com.cristoree.rocco.voice.FishAudio.emotionsFor(com.cristoree.rocco.voice.FishAudio.model());
     }
 
     private boolean inDanger(ServerPlayer player)

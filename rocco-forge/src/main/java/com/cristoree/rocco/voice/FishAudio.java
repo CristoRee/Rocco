@@ -21,7 +21,86 @@ import java.util.stream.Stream;
 // Las frases ya habladas quedan en config/rocco/voz_cache para no pagarlas dos veces.
 public final class FishAudio
 {
-    public record Result(Wav.Pcm pcm, String error, boolean fatal) {}
+    // notice: algo para avisarle al jugador una vez aunque la voz haya salido (null = nada).
+    public record Result(Wav.Pcm pcm, String error, boolean fatal, @org.jetbrains.annotations.Nullable String notice)
+    {
+        Result(Wav.Pcm pcm, String error, boolean fatal)
+        {
+            this(pcm, error, fatal, null);
+        }
+    }
+
+    // El modelo gratis de Fish Audio: anda con saldo de API en cero.
+    public static final String FREE_MODEL = "s2.1-pro-free";
+    // Si el modelo elegido dio 402 (sin credito de API para ese modelo), en esta sesion se usa el gratis.
+    private static volatile String fallbackFor = null;
+
+    // Las etiquetas que pide el prompt -> marcadores de emocion de Fish Audio. Los s2 entienden la
+    // etiqueta tal cual, entre corchetes; s1 (viejo) tiene su lista fija, entre parentesis.
+    private static final Map<String, String> S1_EMOTIONS = Map.ofEntries(
+            Map.entry("deadpan", "indifferent"),
+            Map.entry("sarcastic", "sarcastic"),
+            Map.entry("calm", "relaxed"),
+            Map.entry("relaxed", "relaxed"),
+            Map.entry("whispering", "whispering"),
+            Map.entry("sighing", "sighing"),
+            Map.entry("laughing", "laughing"),
+            Map.entry("evil laugh", "chuckling"),
+            Map.entry("teasing", "amused"),
+            Map.entry("playful", "amused"),
+            Map.entry("proud", "proud"),
+            Map.entry("scared", "scared"),
+            Map.entry("worried", "worried"),
+            Map.entry("low voice", "soft tone"),
+            Map.entry("shouting", "shouting"),
+            Map.entry("excited", "excited"),
+            Map.entry("warm", "sincere"),
+            Map.entry("offended", "upset"),
+            Map.entry("angry", "angry"),
+            Map.entry("sad", "sad"),
+            Map.entry("suspicious", "disapproving"),
+            Map.entry("serious", "serious"),
+            Map.entry("confused", "confused"),
+            Map.entry("happy", "joyful"),
+            Map.entry("surprised", "surprised"),
+            Map.entry("nervous", "nervous"));
+    private static final java.util.regex.Pattern MARK = java.util.regex.Pattern.compile("\\{([a-z ]{2,24})}");
+
+    // Una etiqueta que la voz sabe decir.
+    public static boolean knowsEmotion(String tag)
+    {
+        return S1_EMOTIONS.containsKey(tag);
+    }
+
+    // El modelo que se va a usar de verdad (el de la config, o el gratis si ese se quedo sin credito).
+    public static String model()
+    {
+        String configured = RoccoCommonConfig.FISH_MODEL.get().trim();
+        return configured.equals(fallbackFor) ? FREE_MODEL : configured;
+    }
+
+    // Los modelos que entienden marcadores de emocion.
+    public static boolean emotionsFor(String model)
+    {
+        String m = model.toLowerCase(Locale.ROOT);
+        return m.startsWith("s1") || m.startsWith("s2") || m.startsWith("drama");
+    }
+
+    // Las marcas {emocion} del texto, en el formato de ese modelo (o afuera si no las entiende).
+    static String withEmotions(String text, String model)
+    {
+        String m = model.toLowerCase(Locale.ROOT);
+        java.util.regex.Matcher matcher = MARK.matcher(text);
+        StringBuilder out = new StringBuilder();
+        while (matcher.find())
+        {
+            String tag = matcher.group(1);
+            String marker = !emotionsFor(m) ? null : m.startsWith("s1") ? "(" + S1_EMOTIONS.get(tag) + ")" : "[" + tag + "]";
+            matcher.appendReplacement(out, java.util.regex.Matcher.quoteReplacement(marker == null || marker.contains("null") ? " " : " " + marker + " "));
+        }
+        matcher.appendTail(out);
+        return out.toString().replaceAll("\\s+", " ").trim();
+    }
 
     public static Result synthesize(String text)
     {
@@ -41,7 +120,26 @@ public final class FishAudio
         }
 
         int sampleRate = closestSampleRate(RoccoCommonConfig.VOICE_SAMPLE_RATE.get());
-        String model = RoccoCommonConfig.FISH_MODEL.get().trim();
+        Result result = synthesize(withEmotions(text, model()), key, voice, model(), sampleRate);
+        // 402 = sin credito de API para ESE modelo (el credito del plan de la app no cuenta). Con el
+        // gratis anda igual: se pasa a ese en vez de quedarse mudo, y se avisa una vez.
+        String configured = RoccoCommonConfig.FISH_MODEL.get().trim();
+        if (result.pcm() == null && result.fatal() && result.error().startsWith(NO_CREDIT) && !model().equals(FREE_MODEL))
+        {
+            fallbackFor = configured;
+            RoccoMod.LOGGER.warn("[Rocco] Fish Audio: sin credito de API para el modelo '{}'; uso '{}'.", configured, FREE_MODEL);
+            Result free = synthesize(withEmotions(text, FREE_MODEL), key, voice, FREE_MODEL, sampleRate);
+            return free.pcm() == null ? free : new Result(free.pcm(), null, false,
+                    "tu cuenta de Fish Audio no tiene credito de API para el modelo '" + (configured.isEmpty() ? "por defecto" : configured)
+                            + "' (el credito del plan de la app es aparte), asi que hablo con el modelo gratis " + FREE_MODEL + ".");
+        }
+        return result;
+    }
+
+    private static final String NO_CREDIT = "Fish Audio no tiene credito";
+
+    private static Result synthesize(String text, String key, String voice, String model, int sampleRate)
+    {
         String cacheKey = String.join("|", model, voice, String.valueOf(sampleRate),
                 String.valueOf(RoccoCommonConfig.VOICE_SPEED.get()), String.valueOf(RoccoCommonConfig.VOICE_LOUDNESS.get()),
                 RoccoCommonConfig.VOICE_LATENCY_MODE.get().name(), text);
@@ -86,7 +184,8 @@ public final class FishAudio
             }
             if (response.status() == 402)
             {
-                return new Result(null, "la cuenta de Fish Audio se quedo sin credito", true);
+                return new Result(null, NO_CREDIT + " de API para el modelo '" + model + "' (" + VoiceHttp.errorText(response)
+                        + "). El credito de API se carga aparte del plan de la app, o usa el modelo " + FREE_MODEL, true);
             }
             if (response.status() >= 400)
             {

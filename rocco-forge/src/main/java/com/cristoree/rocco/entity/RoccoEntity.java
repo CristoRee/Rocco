@@ -505,6 +505,13 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     // Cuanto dura una cara elegida por la IA antes de que el animo automatico pueda cambiarla.
     private static final int AI_FACE_TICKS = 600;
     private int aiFaceTicks;
+    // Lo que le queda por sentir (despues de un golpe: llora, se enoja, se pone serio y se le pasa).
+    private record MoodStep(RoccoExpression face, int ticks) {}
+    private final java.util.ArrayDeque<MoodStep> moodSteps = new java.util.ArrayDeque<>();
+    private int moodTicks;
+    // Tranquilo, cada tanto pone su carita tierna un ratito (en segundos: el animo se mira una vez por segundo).
+    private int cuteSeconds;
+    private int cuteCooldown = 20;
 
     // Golpes recientes: uno da pena, varios dan bronca.
     private int recentHits;
@@ -1143,10 +1150,43 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     }
 
     // La usa la IA: su eleccion manda un rato antes de que el animo automatico pueda cambiarla.
+    // Si todavia esta dolido por un golpe, una cara triste o enojada no corta lo que siente (la frase
+    // igual se dice con su cara); una alegre si: se le paso.
     public void setExpressionFromAi(RoccoExpression expression)
     {
+        if (feelingSomething())
+        {
+            if (!cheerful(expression))
+            {
+                return;
+            }
+            this.moodSteps.clear();
+            this.moodTicks = 0;
+        }
         setExpression(expression);
         this.aiFaceTicks = AI_FACE_TICKS;
+    }
+
+    private boolean feelingSomething()
+    {
+        return this.moodTicks > 0 || !this.moodSteps.isEmpty();
+    }
+
+    private static boolean cheerful(RoccoExpression face)
+    {
+        return face == RoccoExpression.HAPPY || face == RoccoExpression.CHEER || face == RoccoExpression.WOW
+                || face == RoccoExpression.SMUG;
+    }
+
+    // Despues de un golpe: un rato llorando, despues enojado, despues serio, y se le pasa.
+    private void hurtMood()
+    {
+        this.moodSteps.clear();
+        this.moodSteps.add(new MoodStep(RoccoExpression.SAD, 400 + getRandom().nextInt(201)));
+        this.moodSteps.add(new MoodStep(RoccoExpression.ANGRY, 300 + getRandom().nextInt(101)));
+        this.moodSteps.add(new MoodStep(RoccoExpression.SERIOUS, 200));
+        this.moodTicks = 0;
+        this.aiFaceTicks = 0;
     }
 
     // Cara automatica por un rato (golpe, sueño). Guarda la que tenia para devolverla despues.
@@ -2907,12 +2947,24 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             restoreFace();
 
-            // Despues del golpe queda dolido: pena la primera vez, bronca si insisten.
+            // Despues del golpe queda dolido un rato, y se le va pasando.
             if (this.recentHits > 0)
             {
-                setExpression(this.recentHits >= 3 ? RoccoExpression.ANGRY : RoccoExpression.SAD);
-                this.aiFaceTicks = 300;
+                hurtMood();
             }
+        }
+
+        // Lo que siente, paso a paso. Si una animacion o un golpe nuevo ponen su cara, espera.
+        if (this.moodTicks > 0)
+        {
+            this.moodTicks--;
+        }
+        if (this.moodTicks == 0 && !this.moodSteps.isEmpty() && this.faceOverrideTicks <= 0
+                && getRoccoState() == RoccoState.ACTIVE && !getRoccoPose().isAsleep())
+        {
+            MoodStep next = this.moodSteps.poll();
+            setExpression(next.face());
+            this.moodTicks = next.ticks();
         }
 
         if (this.hitDecayTicks > 0 && --this.hitDecayTicks == 0)
@@ -2920,9 +2972,14 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             this.recentHits = 0;
         }
 
-        if (this.aiFaceTicks > 0)
+        if (this.aiFaceTicks > 0 && --this.aiFaceTicks == 0 && !feelingSomething())
         {
-            this.aiFaceTicks--;
+            // Se le pasa: si habia quedado enojado, antes de volver a contento se pone serio un rato.
+            RoccoExpression face = getExpression();
+            if (face == RoccoExpression.ANGRY || face == RoccoExpression.PSYCHO)
+            {
+                this.moodSteps.add(new MoodStep(RoccoExpression.SERIOUS, 200));
+            }
         }
 
         // El animo se revisa una vez por segundo: no hace falta mas y evita parpadeos. No pisa las
@@ -2930,6 +2987,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         if (this.tickCount % 20 != 0
                 || this.faceOverrideTicks > 0
                 || this.aiFaceTicks > 0
+                || feelingSomething()
                 || getRoccoState() != RoccoState.ACTIVE
                 || getRoccoPose().isAsleep()
                 || getRoccoPose() == RoccoPose.WAKING_UP
@@ -2982,12 +3040,25 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             this.boredTicks = 0;
         }
 
-        if (this.boredTicks > 120)
+        // Mucho rato quieto: se aburre de a ratos (20 segundos cada minuto y medio), no para siempre.
+        if (this.boredTicks > 120 && (this.boredTicks - 121) % 90 < 20)
         {
             return RoccoExpression.BORED;
         }
 
-        return this.boredTicks == 0 ? RoccoExpression.HAPPY : null;
+        // Tranquilo: contento, y cada tanto su carita tierna unos segundos.
+        if (this.cuteSeconds > 0)
+        {
+            this.cuteSeconds--;
+            return RoccoExpression.CHEER;
+        }
+        if (--this.cuteCooldown <= 0)
+        {
+            this.cuteCooldown = 25 + getRandom().nextInt(36);
+            this.cuteSeconds = 2 + getRandom().nextInt(3);
+            return RoccoExpression.CHEER;
+        }
+        return RoccoExpression.HAPPY;
     }
 
     public boolean hostileNearby()

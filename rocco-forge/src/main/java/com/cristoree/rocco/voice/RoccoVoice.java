@@ -124,6 +124,13 @@ public final class RoccoVoice
                     problem(level, result.error(), recordedFinal != null);
                     return;
                 }
+                if (result.notice() != null)
+                {
+                    RoccoMod.LOGGER.warn("[Rocco] Voz: {}", result.notice());
+                    Component note = Component.literal("[Rocco] " + Character.toUpperCase(result.notice().charAt(0))
+                            + result.notice().substring(1)).withStyle(ChatFormatting.GRAY);
+                    level.players().forEach(player -> player.sendSystemMessage(note));
+                }
                 if (level.getEntity(entityId) instanceof RoccoEntity speaker && speaker.isAlive())
                 {
                     send(level, speaker, result.pcm(), faceId);

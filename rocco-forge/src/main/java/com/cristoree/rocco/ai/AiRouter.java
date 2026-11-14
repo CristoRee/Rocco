@@ -13,7 +13,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 // Elige con que IA contestar. Prueba los proveedores configurados en orden y, si uno falla
 // (sin cupo, clave mala, caido, modelo retirado), pasa al siguiente. Ningun proveedor gratis es
-// confiable solo: entre varios, Rocco casi siempre tiene con quien pensar.
+// confiable solo: entre varios, Rocco casi siempre tiene con quien pensar. Si el primero tarda
+// (los gratis a veces demoran 20 segundos sin fallar), se le pregunta tambien al siguiente y se
+// usa la respuesta que llegue primero.
 public final class AiRouter
 {
     // Para las pruebas: permite reemplazar la llamada real por una simulada.
@@ -28,6 +30,17 @@ public final class AiRouter
     private static final Map<AiProvider, Long> PAUSED_UNTIL = new ConcurrentHashMap<>();
     private static final Map<AiProvider, String> LAST_ERROR = new ConcurrentHashMap<>();
     private static volatile AiProvider lastUsed;
+
+    // Cuanto se espera al que va primero antes de preguntarle tambien al siguiente.
+    private static final long HEDGE_AFTER_MS = 5_000L;
+    private static final java.util.concurrent.ExecutorService POOL = java.util.concurrent.Executors.newCachedThreadPool(runnable ->
+    {
+        Thread thread = new Thread(runnable, "Rocco-IA-pedido");
+        thread.setDaemon(true);
+        return thread;
+    });
+
+    private record Done(AiProvider provider, ChatReply reply) {}
 
     // Proveedores que se van a probar, en orden.
     public static List<AiProvider> candidates()
@@ -64,6 +77,12 @@ public final class AiRouter
 
     public static ChatReply ask(String systemPrompt, List<ChatTurn> history, String question)
     {
+        return ask(systemPrompt, history, question, true);
+    }
+
+    // hurry: alguien espera la respuesta (si no, un comentario espontaneo: no se gasta cupo de mas).
+    public static ChatReply ask(String systemPrompt, List<ChatTurn> history, String question, boolean hurry)
+    {
         List<AiProvider> providers = candidates();
         if (providers.isEmpty())
         {
@@ -71,42 +90,80 @@ public final class AiRouter
                     "no hay ninguna IA configurada", null, null);
         }
 
+        // Se saltean los que estan en pausa. Si estaban todos en pausa, se prueban igual: mejor un
+        // intento que no contestar nada.
+        List<AiProvider> order = providers.stream().filter(provider -> !isPaused(provider)).toList();
+        if (order.isEmpty())
+        {
+            order = providers;
+        }
+
         List<String> problems = new ArrayList<>();
         ChatReply last = null;
-        Set<AiProvider> tried = new LinkedHashSet<>();
+        java.util.concurrent.CompletionService<Done> pending = new java.util.concurrent.ExecutorCompletionService<>(POOL);
+        int next = 0;
+        int running = 0;
+        pending.submit(task(order.get(next++), systemPrompt, history, question));
+        running++;
 
-        // Primera pasada: se saltean los que estan en pausa. Si estaban todos en pausa, se
-        // prueban igual: mejor un intento que no contestar nada.
-        for (int pass = 0; pass < 2; pass++)
+        while (running > 0)
         {
-            for (AiProvider provider : providers)
+            Done done;
+            try
             {
-                if (tried.contains(provider) || (pass == 0 && isPaused(provider)))
+                java.util.concurrent.Future<Done> finished = hurry && next < order.size()
+                        ? pending.poll(HEDGE_AFTER_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+                        : pending.take();
+                if (finished == null)
                 {
+                    // El que va primero tarda: se le pregunta tambien al siguiente.
+                    AiProvider extra = order.get(next++);
+                    RoccoMod.LOGGER.info("[Rocco] La IA tarda; le pregunto tambien a {}.", extra.label());
+                    pending.submit(task(extra, systemPrompt, history, question));
+                    running++;
                     continue;
                 }
-
-                tried.add(provider);
-                ChatReply reply = attempt(provider, systemPrompt, history, question);
-
-                if (reply.ok())
+                done = finished.get();
+            }
+            catch (InterruptedException e)
+            {
+                Thread.currentThread().interrupt();
+                return ChatReply.fail(ChatReply.Failure.NETWORK, "se corto la espera de la IA", null, null);
+            }
+            catch (java.util.concurrent.ExecutionException e)
+            {
+                RoccoMod.LOGGER.error("[Rocco] Error inesperado consultando la IA", e.getCause());
+                running--;
+                if (running == 0 && next < order.size())
                 {
-                    lastUsed = provider;
-                    LAST_ERROR.remove(provider);
-                    PAUSED_UNTIL.remove(provider);
-                    return reply;
+                    pending.submit(task(order.get(next++), systemPrompt, history, question));
+                    running++;
                 }
+                continue;
+            }
+            running--;
 
-                last = reply;
-                LAST_ERROR.put(provider, reply.error());
-                pause(provider, reply.failure());
-                problems.add(provider.label() + ": " + reply.error());
-                RoccoMod.LOGGER.warn("[Rocco] {} fallo ({}): {}", provider.label(), reply.failure(), reply.error());
+            AiProvider provider = done.provider();
+            ChatReply reply = done.reply();
+            if (reply.ok())
+            {
+                lastUsed = provider;
+                LAST_ERROR.remove(provider);
+                PAUSED_UNTIL.remove(provider);
+                return reply;
             }
 
-            if (!tried.isEmpty())
+            last = reply;
+            LAST_ERROR.put(provider, reply.error());
+            pause(provider, reply.failure());
+            problems.add(provider.label() + ": " + reply.error());
+            RoccoMod.LOGGER.warn("[Rocco] {} fallo ({}): {}", provider.label(), reply.failure(), reply.error());
+
+            // Fallo: si no queda nadie pensando, al siguiente.
+            if (running == 0 && next < order.size())
             {
-                break;
+                pending.submit(task(order.get(next++), systemPrompt, history, question));
+                running++;
             }
         }
 
@@ -118,6 +175,12 @@ public final class AiRouter
         // Con un solo proveedor, su mensaje ya es claro; con varios, se resumen todos.
         String summary = problems.size() == 1 ? last.error() : String.join(" | ", problems);
         return ChatReply.fail(last.failure(), summary, last.provider(), last.model());
+    }
+
+    private static java.util.concurrent.Callable<Done> task(AiProvider provider, String systemPrompt, List<ChatTurn> history,
+                                                           String question)
+    {
+        return () -> new Done(provider, attempt(provider, systemPrompt, history, question));
     }
 
     private static ChatReply attempt(AiProvider provider, String systemPrompt, List<ChatTurn> history, String question)

@@ -684,7 +684,7 @@
   "rocco.tip.voice.recordedLines": "Sem uma voz do Fish Audio configurada, as frases de sempre (as sem IA e as dos trabalhos) tocam com áudios gravados que vêm no mod, sem chave. Se o Fish Audio funciona, tudo sai com a sua voz e estas não são usadas, a menos que o Fish Audio falhe (sem crédito, sem conexão).",
   "rocco.tip.voice.fishApiKey": "Chave do Fish Audio. Se ficar vazia, usa-se ROCCO_FISH_API_KEY.",
   "rocco.tip.voice.voiceId": "ID da voz do Fish Audio (o 'reference id' do modelo de voz). É a voz com que o Rocco fala.",
-  "rocco.tip.voice.fishModel": "Modelo de síntese do Fish Audio.",
+  "rocco.tip.voice.fishModel": "Modelo de síntese do Fish Audio. s2.1-pro-free é grátis e funciona com saldo de API zerado; os pagos (s2.1-pro, s2-pro, s1) usam crédito de API, que é separado do plano do app. Se o escolhido não tiver crédito, o Rocco passa sozinho para o grátis e avisa.",
   "rocco.tip.audio.voiceVolume": "Volume da voz do Rocco (além do controle \"Voz/Fala\" em Opções > Música e sons).",
   "rocco.tip.audio.spatialAudio": "A voz sai de onde o Rocco está, não do centro.",
   "rocco.tip.voice.speed": "Velocidade da fala. 1.0 é normal.",

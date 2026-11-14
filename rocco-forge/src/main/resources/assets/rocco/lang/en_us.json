@@ -683,7 +683,7 @@
   "rocco.tip.voice.recordedLines": "Without a Fish Audio voice set up, his usual lines (the no-AI ones and the job ones) play with recordings that come with the mod, no key needed. If Fish Audio works, everything uses your voice and these are skipped, unless Fish Audio fails (no credit, no connection).",
   "rocco.tip.voice.fishApiKey": "Fish Audio key. If left empty, ROCCO_FISH_API_KEY is used.",
   "rocco.tip.voice.voiceId": "Fish Audio voice ID (the voice model's 'reference id'). It is the voice Rocco speaks with.",
-  "rocco.tip.voice.fishModel": "Fish Audio synthesis model.",
+  "rocco.tip.voice.fishModel": "Fish Audio synthesis model. s2.1-pro-free is free and works with a zero API balance; paid models (s2.1-pro, s2-pro, s1) use API credit, which is separate from the app plan. If the chosen one has no credit, Rocco switches to the free one and tells you.",
   "rocco.tip.audio.voiceVolume": "Volume of Rocco's voice (on top of the \"Voice/Speech\" control in Options > Music & Sounds).",
   "rocco.tip.audio.spatialAudio": "The voice comes from where Rocco is, not from the center.",
   "rocco.tip.voice.speed": "Speech speed. 1.0 is normal.",

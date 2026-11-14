@@ -4,7 +4,6 @@ import com.cristoree.rocco.entity.RoccoExpression;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,36 +27,6 @@ public final class ReplyTags
     private static final Pattern ANY_FACE = Pattern.compile(
             "(?i)(?:@|\\[)(happy|bored|serious|scared|sad|angry|smug|psycho|dizzy|mewing|cheer|wow)\\]?(?=\\W|$)");
     private static final Pattern VOICE_TAG = Pattern.compile("\\[([a-zA-Z ]{2,24})]");
-
-    // Lo que pide el prompt -> marcadores de emocion de Fish Audio (modelos s1). Los que Fish no
-    // conoce se leerian en voz alta, asi que esos se sacan.
-    private static final Map<String, String> FISH_EMOTIONS = Map.ofEntries(
-            Map.entry("deadpan", "indifferent"),
-            Map.entry("sarcastic", "sarcastic"),
-            Map.entry("calm", "relaxed"),
-            Map.entry("relaxed", "relaxed"),
-            Map.entry("whispering", "whispering"),
-            Map.entry("sighing", "sighing"),
-            Map.entry("laughing", "laughing"),
-            Map.entry("evil laugh", "chuckling"),
-            Map.entry("teasing", "amused"),
-            Map.entry("playful", "amused"),
-            Map.entry("proud", "proud"),
-            Map.entry("scared", "scared"),
-            Map.entry("worried", "worried"),
-            Map.entry("low voice", "soft tone"),
-            Map.entry("shouting", "shouting"),
-            Map.entry("excited", "excited"),
-            Map.entry("warm", "sincere"),
-            Map.entry("offended", "upset"),
-            Map.entry("angry", "angry"),
-            Map.entry("sad", "sad"),
-            Map.entry("suspicious", "disapproving"),
-            Map.entry("serious", "serious"),
-            Map.entry("confused", "confused"),
-            Map.entry("happy", "joyful"),
-            Map.entry("surprised", "surprised"),
-            Map.entry("nervous", "nervous"));
 
     public static Parsed parse(String answer, boolean voiceEmotions)
     {
@@ -145,7 +114,8 @@ public final class ReplyTags
         return null;
     }
 
-    // Las etiquetas que la voz entiende pasan a su formato "(emocion)"; el resto se saca.
+    // Las etiquetas que la voz sabe decir quedan como {emocion}: FishAudio las pasa al formato del
+    // modelo que use de verdad (que puede cambiar si uno se queda sin credito). El resto se saca.
     static String voiceText(String text, boolean emotions)
     {
         Matcher matcher = VOICE_TAG.matcher(text);
@@ -153,8 +123,8 @@ public final class ReplyTags
         while (matcher.find())
         {
             String tag = matcher.group(1).toLowerCase(Locale.ROOT).trim();
-            String marker = emotions ? FISH_EMOTIONS.get(tag) : null;
-            matcher.appendReplacement(out, marker == null ? " " : Matcher.quoteReplacement(" (" + marker + ") "));
+            boolean known = emotions && com.cristoree.rocco.voice.FishAudio.knowsEmotion(tag);
+            matcher.appendReplacement(out, known ? Matcher.quoteReplacement(" {" + tag + "} ") : " ");
         }
         matcher.appendTail(out);
         return out.toString().replaceAll("\\s+", " ").trim();

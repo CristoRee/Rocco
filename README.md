@@ -181,7 +181,7 @@ Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. Las �
 
 ## Voz y micrófono (opcional)
 
-- **Voz:** con tu clave de Fish Audio y el ID de la voz en **Config > Voz**, Rocco dice todo en voz alta con esa voz (lo que inventa la IA y también sus frases de siempre). Sin Fish Audio, Rocco habla por escrito en el chat (sus sonidos y animaciones siguen igual). En un servidor, la clave y la voz son las del que lo hospeda. La voz sale de la boca de Rocco y respeta el volumen "Voz/Habla" del juego.
+- **Voz:** con tu clave de Fish Audio y el ID de la voz en **Config > Voz**, Rocco dice todo en voz alta con esa voz (lo que inventa la IA y también sus frases de siempre). El modelo por defecto es el gratis de Fish Audio (s2.1-pro-free), que anda con el saldo de API en cero; los pagos usan crédito de API, que se carga aparte del plan de la app. Si el elegido no tiene crédito, pasa solo al gratis y avisa. Sin Fish Audio, Rocco habla por escrito en el chat (sus sonidos y animaciones siguen igual). En un servidor, la clave y la voz son las del que lo hospeda. La voz sale de la boca de Rocco y respeta el volumen "Voz/Habla" del juego.
 - **Micrófono (Deepgram):** activalo en **Config > Micrófono** y poné tu clave. La tecla para hablar se cambia en **Config > Teclas** (por defecto, la V). Se puede usar manteniendo la tecla o en modo de detección de voz.
 
 ## Configuración

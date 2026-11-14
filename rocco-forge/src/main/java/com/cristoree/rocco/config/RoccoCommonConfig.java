@@ -394,8 +394,10 @@ public final class RoccoCommonConfig
                          "Es la voz con la que habla Rocco.")
                 .define("voiceId", "");
         FISH_MODEL = b
-                .comment("Modelo de sintesis de Fish Audio.")
-                .define("fishModel", "s1");
+                .comment("Modelo de sintesis de Fish Audio. s2.1-pro-free es gratis y anda con el saldo de API en cero;",
+                         "los pagos (s2.1-pro, s2-pro, s1) usan el credito de API, que es aparte del plan de la app.",
+                         "Si el elegido no tiene credito, Rocco pasa solo al gratis y avisa.")
+                .define("fishModel", "s2.1-pro-free");
         FISH_ENDPOINT = b
                 .comment("URL base de la API de Fish Audio.")
                 .define("fishEndpoint", "https://api.fish.audio");
