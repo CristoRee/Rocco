@@ -66,12 +66,28 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
                 // objeto el giro que el juego le da a la mano del jugador, y quedaba para atras (la botella)
                 // o asomando por detras de la cabeza (el pico). La caña de pescar no: su hilo esta medido
                 // sobre como queda ahora.
+                boolean bottle = isBottle(bone, stack);
                 boolean inHand = bone.getName().equals("item_right") && !(stack.getItem() instanceof FishingRodItem);
-                if (inHand)
+                if (bottle)
+                {
+                    // La botella rota, ubicada a mano (sin el ajuste de "mano derecha" del modelo): la
+                    // boca entre sus dos pezuñas y el pico roto apuntando hacia adelante. Como el brazo
+                    // descansa girado sobre el eje de adelante, la botella igual apunta derecho.
+                    poseStack.pushPose();
+                    float[] g = BOTTLE_GRIP;
+                    poseStack.translate(g[0] / 16.0F, g[1] / 16.0F, g[2] / 16.0F);
+                    poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(g[4]));
+                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(g[3]));
+                    poseStack.scale(g[5], g[5], g[5]);
+                }
+                else if (inHand)
                 {
                     poseStack.pushPose();
-                    float[] p = stack.is(com.cristoree.rocco.registry.ModItems.BOTELLA_ROTA.get()) ? BOTTLE_POSE : ITEM_POSE;
+                    float[] p = ITEM_POSE;
                     poseStack.translate(p[3] / 16.0F, p[4] / 16.0F, p[5] / 16.0F);
+                    // Su brazo descansa abierto 36 grados (el del jugador cuelga derecho): sin esto el
+                    // objeto salia torcido hacia afuera de la pata.
+                    poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(p[10]));
                     poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(p[0]));
                     poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(p[1]));
                     poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(p[2]));
@@ -80,7 +96,7 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
                 }
                 super.renderStackForBone(poseStack, bone, stack, animatable, bufferSource, partialTick, packedLight,
                         packedOverlay);
-                if (grab || inHand)
+                if (grab || bottle || inHand)
                 {
                     poseStack.popPose();
                 }
@@ -142,6 +158,10 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
             protected ItemDisplayContext getTransformTypeForStack(GeoBone bone, ItemStack stack,
                                                                   RoccoEntity animatable)
             {
+                if (isBottle(bone, stack))
+                {
+                    return ItemDisplayContext.NONE;
+                }
                 return switch (bone.getName())
                 {
                     case "item_left" -> ItemDisplayContext.THIRD_PERSON_LEFT_HAND;
@@ -158,12 +178,17 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
         addRenderLayer(new AutoGlowingGeoLayer<>(this));
     }
 
-    // Como queda la botella rota en su mano: el mismo giro que le da el juego al brazo del jugador
-    // (GeckoLib no lo hace), corrida hacia adelante para que el cuello quede en el puño y el pico
-    // roto apunte al frente. Giro en X, Y, Z (grados), corrimiento en X, Y, Z (px) y escala.
-    private static final float[] BOTTLE_POSE = {-100.0F, 180.0F, 0.0F, -1.0F, 2.5F, 0.0F, 0.73F, 0.0F, 0.0F, 0.0F};
     // Los demas objetos (herramientas, comida, lo que te da): el mismo giro del jugador, del tamaño de su patita.
-    private static final float[] ITEM_POSE = {-90.0F, 180.0F, 0.0F, -1.0F, 2.5F, 0.0F, 0.6F, 0.0F, 0.5F, 0.0F};
+    private static final float[] ITEM_POSE = {-90.0F, 180.0F, 0.0F, -1.0F, 2.5F, 0.0F, 0.6F, 0.0F, 0.5F, 0.0F, 0.0F};
+
+    private static boolean isBottle(GeoBone bone, ItemStack stack)
+    {
+        return bone.getName().equals("item_right") && stack.is(com.cristoree.rocco.registry.ModItems.BOTELLA_ROTA.get());
+    }
+
+    // La botella en su pata: corrimiento (px, desde el hueso de la mano), giro en X y en Y, y escala.
+    // La boca del modelo (y = 0,6 px) queda entre las pezuñas (y 6, z -1,3 en el modelo de Rocco).
+    private static final float[] BOTTLE_GRIP = {0.0F, 0.3F, -3.86F, -90.0F, 0.0F, 0.4F};
 
     // Un item de 16 px queda en unos 5,4 px: del tamaño de su patita.
     private static final float HELD_ITEM_SCALE = 0.34F;
