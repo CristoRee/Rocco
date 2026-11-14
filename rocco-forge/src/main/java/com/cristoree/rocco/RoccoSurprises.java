@@ -138,6 +138,8 @@ public final class RoccoSurprises
             {
                 RoccoPresents.hand(rocco, target, List.of(stack));
             }
+            // Ya se lo dio: vuelve a agarrar lo que tenia (su arma, la botella rota).
+            rocco.schedule(12, rocco::doneShowing);
         });
     }
 

@@ -22,7 +22,8 @@
 - "Quiero comer pan, ¿vos querés?" y parecidos ya no los toma como una orden: le contesta la IA. "Matá unas ovejas" busca también cerca tuyo y al que estás mirando.
 - **Truco:** el tanteador muestra los nombres de cada equipo en vez de "Nosotros" y "Ellos".
 - **Voz con Fish Audio:** el modelo por defecto ahora es el gratis (s2.1-pro-free). Si el modelo elegido no tiene crédito de API (que es aparte del plan de la app), Rocco pasa solo al gratis y avisa, en vez de quedarse sin voz. Las emociones de la voz andan también con los modelos s2.
-- **Botella rota:** Rocco la agarra en el puño como el jugador, y en tu mano se ve un poco más grande.
+- **Botella rota:** Rocco la agarra en el puño como el jugador, apuntando hacia adelante, y en tu mano se ve más grande.
+- **Lo que Rocco tiene en la mano** (herramientas, comida, lo que pesca o te da) lo agarra como un jugador y del tamaño de su patita. Antes el pico asomaba por detrás de su cabeza y el pan se veía gigante.
 - **Botella vacía:** al terminar la Roco Cola hay que esperar un segundo para poder tirarla, así no sale volando sola.
 - Animaciones de la parrilla, las tortas fritas, el truco y la botella ajustadas, sonidos nuevos y el ruido de la botella al romperse.
 
@@ -30,6 +31,7 @@
 - Al cortar un baile a la mitad, la cabeza de Rocco ya no da una vuelta entera.
 - Si lo que Rocco estaba atacando desaparecía justo en medio de un golpe, se quedaba en guardia para siempre. Ahora baja la guardia como siempre.
 - Al empezar y al terminar las tortas fritas, la cabeza de Rocco ya no da una vuelta rara.
+- Después de darte un regalo sorpresa (como el "aire puro del bosque"), Rocco vuelve a agarrar su arma o su botella rota en vez de quedarse con el frasco en la mano.
 - Truco: si te parabas de la silla mientras Rocco armaba la mesa (por ejemplo, venías agachado de abrir su menú), la partida se cortaba sola. Ahora te quedás sentado hasta que arranca.
 - La parte de abajo de la tapa de la parrilla y las tortas fritas en el pote ya no titilan, y tampoco el resto de la parrilla, la olla, el mate, el termo, la botella ni la mesa y las sillas del truco.
 

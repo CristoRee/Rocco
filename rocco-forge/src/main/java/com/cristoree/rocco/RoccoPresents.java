@@ -216,6 +216,7 @@ public final class RoccoPresents
             rocco.showInHand(overflow.get(0));
             rocco.triggerAnim("main", "interact");
             hand(rocco, owner, overflow);
+            rocco.schedule(20, rocco::doneShowing);
         }
     }
 

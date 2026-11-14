@@ -2006,6 +2006,30 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     {
         stashWeapon();
         setItemSlot(EquipmentSlot.MAINHAND, stack.copyWithCount(1));
+        this.showTicks = SHOW_TICKS;
+    }
+
+    // Termino de mostrar lo que tenia en la mano (un regalo ya entregado): vuelve a agarrar lo suyo.
+    public void doneShowing()
+    {
+        this.showTicks = 0;
+        if (this.errand == null && this.task == RoccoTask.NONE && this.jobs.isEmpty())
+        {
+            restoreWeapon();
+        }
+    }
+
+    // Lo que muestra en la mano fuera de un trabajo (un regalo, una sorpresa) vuelve a su lugar solo
+    // al rato, aunque nadie lo pida: si no, se quedaba con el frasco del "aire puro" en vez de su arma.
+    private static final int SHOW_TICKS = 60;
+    private int showTicks;
+
+    private void tickShownItem()
+    {
+        if (this.showTicks > 0 && --this.showTicks == 0)
+        {
+            doneShowing();
+        }
     }
 
     // Habla por su cuenta (sin que nadie le pregunte), con una frase de su repertorio.
@@ -3789,6 +3813,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             tickDanceSong();
             tickGifts();
             tickCompanionship();
+            tickShownItem();
             if (this.tickCount % 20 == 0)
             {
                 this.life.tickEnder();

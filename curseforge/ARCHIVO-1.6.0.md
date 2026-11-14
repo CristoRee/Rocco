@@ -19,7 +19,7 @@
 - More natural chat: short messages get short answers, and he comments on his own a bit more often.
 - Truco: the scoreboard shows each team's names instead of "Us" and "Them".
 - Fish Audio voice: the default model is now the free one (s2.1-pro-free). If the chosen model has no API credit (separate from the app plan), Rocco switches to the free one and tells you instead of going silent. Voice emotions also work with s2 models.
-- Rocco holds the broken bottle in his fist like the player does, and it looks a bit bigger in your hand. The empty bottle waits one second after drinking before it can be thrown.
+- Rocco holds the broken bottle in his fist like the player does, and it looks bigger in your hand. Everything he holds (tools, food, what he fishes or gives you) is held like a player would, at the size of his paw. The empty bottle waits one second after drinking before it can be thrown.
 - Tweaked grill, tortas fritas, truco and bottle animations, plus new sounds.
 
 **Fixed**
@@ -27,6 +27,7 @@
 - Rocco no longer stays on guard forever if what he was attacking vanishes mid-swing.
 - Truco: standing up while Rocco was setting up the table ended the game; now you stay seated until it starts.
 - Rocco's head no longer does a weird spin when the tortas fritas start and end.
+- After a surprise gift (like the "fresh forest air"), Rocco goes back to his weapon or broken bottle instead of keeping the empty glass bottle.
 - The underside of the grill lid, the tortas fritas in the bowl and other scene props no longer flicker.
 
 ---
@@ -52,7 +53,7 @@
 - Charla más natural: a los mensajes cortos contesta corto, y comenta por su cuenta un poco más seguido.
 - Truco: el tanteador muestra los nombres de cada equipo en vez de "Nosotros" y "Ellos".
 - Voz con Fish Audio: el modelo por defecto ahora es el gratis (s2.1-pro-free). Si el elegido no tiene crédito de API (que es aparte del plan de la app), pasa solo al gratis y avisa, en vez de quedarse sin voz. Las emociones de la voz andan también con los modelos s2.
-- Rocco agarra la botella rota en el puño como el jugador, y en tu mano se ve un poco más grande. La botella vacía espera un segundo después de tomarla antes de poder tirarse.
+- Rocco agarra la botella rota en el puño como el jugador, y en tu mano se ve más grande. Todo lo que tiene en la mano (herramientas, comida, lo que pesca o te da) lo agarra como un jugador y del tamaño de su patita. La botella vacía espera un segundo después de tomarla antes de poder tirarse.
 - Animaciones de la parrilla, las tortas fritas, el truco y la botella ajustadas, y sonidos nuevos.
 
 **Arreglado**
@@ -60,4 +61,5 @@
 - Rocco ya no se queda en guardia para siempre si lo que atacaba desaparece a mitad de un golpe.
 - Truco: pararse de la silla mientras Rocco armaba la mesa cortaba la partida; ahora te quedás sentado hasta que arranca.
 - La cabeza de Rocco ya no da una vuelta rara al empezar y al terminar las tortas fritas.
+- Después de un regalo sorpresa (como el "aire puro del bosque"), Rocco vuelve a agarrar su arma o la botella rota en vez de quedarse con el frasco.
 - La parte de abajo de la tapa de la parrilla, las tortas fritas en el pote y otros objetos de las escenas ya no titilan.

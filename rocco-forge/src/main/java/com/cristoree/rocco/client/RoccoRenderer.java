@@ -62,22 +62,25 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
                     poseStack.pushPose();
                     poseStack.scale(0.66F, 0.66F, 0.66F);
                 }
-                // La botella rota, agarrada en el puño como la agarra el jugador.
-                boolean bottle = bone.getName().equals("item_right")
-                        && stack.is(com.cristoree.rocco.registry.ModItems.BOTELLA_ROTA.get());
-                if (bottle)
+                // Lo que tiene en la mano derecha, agarrado como lo agarra el jugador: GeckoLib no le da al
+                // objeto el giro que el juego le da a la mano del jugador, y quedaba para atras (la botella)
+                // o asomando por detras de la cabeza (el pico). La caña de pescar no: su hilo esta medido
+                // sobre como queda ahora.
+                boolean inHand = bone.getName().equals("item_right") && !(stack.getItem() instanceof FishingRodItem);
+                if (inHand)
                 {
                     poseStack.pushPose();
-                    float[] p = BOTTLE_POSE;
+                    float[] p = stack.is(com.cristoree.rocco.registry.ModItems.BOTELLA_ROTA.get()) ? BOTTLE_POSE : ITEM_POSE;
                     poseStack.translate(p[3] / 16.0F, p[4] / 16.0F, p[5] / 16.0F);
                     poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(p[0]));
                     poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(p[1]));
                     poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(p[2]));
+                    poseStack.translate(p[7] / 16.0F, p[8] / 16.0F, p[9] / 16.0F);
                     poseStack.scale(p[6], p[6], p[6]);
                 }
                 super.renderStackForBone(poseStack, bone, stack, animatable, bufferSource, partialTick, packedLight,
                         packedOverlay);
-                if (grab || bottle)
+                if (grab || inHand)
                 {
                     poseStack.popPose();
                 }
@@ -158,7 +161,9 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
     // Como queda la botella rota en su mano: el mismo giro que le da el juego al brazo del jugador
     // (GeckoLib no lo hace), corrida hacia adelante para que el cuello quede en el puño y el pico
     // roto apunte al frente. Giro en X, Y, Z (grados), corrimiento en X, Y, Z (px) y escala.
-    private static final float[] BOTTLE_POSE = {-90.0F, 180.0F, 0.0F, 0.0F, 0.0F, 1.5F, 0.85F};
+    private static final float[] BOTTLE_POSE = {-100.0F, 180.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.73F, 1.0F, 2.0F, 0.0F};
+    // Los demas objetos (herramientas, comida, lo que te da): el mismo giro del jugador, del tamaño de su patita.
+    private static final float[] ITEM_POSE = {-90.0F, 180.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.6F, 1.0F, 2.0F, 0.0F};
 
     // Un item de 16 px queda en unos 5,4 px: del tamaño de su patita.
     private static final float HELD_ITEM_SCALE = 0.34F;
