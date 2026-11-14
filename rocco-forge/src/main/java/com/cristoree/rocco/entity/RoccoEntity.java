@@ -1150,22 +1150,30 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
     }
 
     // La usa la IA: su eleccion manda un rato antes de que el animo automatico pueda cambiarla.
-    // Si todavia esta dolido por un golpe, una cara triste o enojada no corta lo que siente (la frase
-    // igual se dice con su cara); una alegre si: se le paso.
+    // Si todavia esta dolido por un golpe, lo que dice se dice con una cara que va con eso: la suya si
+    // es triste, enojada o seria, y seria si la frase es alegre (no llora diciendo algo contento, ni
+    // se pone feliz de golpe). Mientras habla el resto queda en pausa; despues sigue con lo que le
+    // falta del enojo, pero ya sin volver a llorar.
     public void setExpressionFromAi(RoccoExpression expression)
     {
         if (feelingSomething())
         {
-            if (!cheerful(expression))
+            RoccoExpression face = cheerful(expression) ? RoccoExpression.SERIOUS : expression;
+            if (face != RoccoExpression.SAD)
             {
-                return;
+                this.moodSteps.removeIf(step -> step.face() == RoccoExpression.SAD);
+                this.moodTicks = 0;
             }
-            this.moodSteps.clear();
-            this.moodTicks = 0;
+            setExpression(face);
+            this.aiFaceTicks = TALK_FACE_TICKS;
+            return;
         }
         setExpression(expression);
         this.aiFaceTicks = AI_FACE_TICKS;
     }
+
+    // Lo que dura la cara de una frase dicha mientras esta dolido (despues sigue lo que siente).
+    private static final int TALK_FACE_TICKS = 200;
 
     private boolean feelingSomething()
     {
@@ -2959,7 +2967,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         {
             this.moodTicks--;
         }
-        if (this.moodTicks == 0 && !this.moodSteps.isEmpty() && this.faceOverrideTicks <= 0
+        if (this.moodTicks == 0 && !this.moodSteps.isEmpty() && this.faceOverrideTicks <= 0 && this.aiFaceTicks <= 0
                 && getRoccoState() == RoccoState.ACTIVE && !getRoccoPose().isAsleep())
         {
             MoodStep next = this.moodSteps.poll();

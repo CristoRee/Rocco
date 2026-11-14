@@ -7,7 +7,7 @@
 - **Asado:** "hacé un asado" y saca su parrilla de tapa roja, se pone el delantal y asa de a una la carne cruda que tenga (vaca, cerdo y oveja), igual de rápido que un ahumador y con 16 piezas por carbón. Salen asado de tira, bondiola a la parrilla y costillitas de cordero, que van a su inventario; clic derecho a la parrilla y te pasa una. "Pará de cocinar" lo termina tranquilo.
 - **Tortas fritas:** "haceme tortas fritas" y, con trigo (el suyo o el que tengas en la mano), arma la olla y la mesa, amasa, fríe y toma mate. Un trigo, una torta frita; clic derecho al pote y te da una.
 - **Botella vacía de Roco Cola:** se tira y se rompe donde pega (medio corazón). Agachado, con clic derecho al piso, se rompe en tu mano y te queda la **botella rota**: un arma corta de 3 de daño que dura 40 golpes.
-- **Rocco y la botella rota:** si va a pelear sin arma, a veces saca una Roco Cola vacía de la cabeza, la revienta contra el piso y pelea con el pico roto hasta que se le hace pedazos. Se ajusta en **Config > Vida y rutina > Pelea**.
+- **Rocco y la botella rota:** si va a pelear sin arma, a veces saca una Roco Cola vacía de la cabeza, la revienta contra el piso y pelea con el pico roto hasta que se le hace pedazos, tirando alguna frase de barrio ("Ahora vas a ver, gato", "Te regalaste, amigo"). Se ajusta en **Config > Vida y rutina > Pelea**.
 - **Comidas nuevas:** torta frita, asado de tira, bondiola a la parrilla y costillitas de cordero.
 
 ### Cambiado
@@ -16,7 +16,7 @@
 - **Quitar mochila** ahora está abajo de todo en el panel de apariencia de la mochila, en **Equipo**.
 - **La guía** aparece en cada mundo nuevo, la primera vez que a cada jugador le nace un Rocco.
 - **Rocco contesta más rápido:** lo que se le manda a la IA es un tercio más corto, sin perder nada de su forma de ser ni de lo que sabe hacer. Con Groq gratis ya entra en el cupo (antes Groq lo rechazaba siempre y Rocco quedaba esperando a otra IA), y si el cupo del minuto se llena espera unos segundos en vez de cambiar de IA. Con más de una IA configurada, si la primera tarda más de 5 segundos le pregunta también a la siguiente y usa la respuesta que llegue antes.
-- **Sus caras cambian solas:** después de hablar mantiene la cara de lo que dijo unos 30 segundos y vuelve a estar contento (si estaba enojado, pasa antes por serio). Tranquilo, pone su carita tierna cada tanto, y el aburrimiento le viene de a ratos. Si le pegás, llora un rato, después se enoja, se pone serio y se le pasa; si le hablás lindo y te contesta contento, se le pasa antes.
+- **Sus caras cambian solas:** después de hablar mantiene la cara de lo que dijo unos 30 segundos y vuelve a estar contento (si estaba enojado, pasa antes por serio). Tranquilo, pone su carita tierna cada tanto, y el aburrimiento le viene de a ratos. Si le pegás, llora un rato, después se enoja, se pone serio y se le pasa; si en el medio dice algo, lo dice con una cara que va con eso (seria si la frase es alegre) y ya no vuelve a llorar.
 - **Elegir el modelo de la IA desde el menú:** al lado de cada "Modelo" (Gemini, Groq, OpenRouter, Ollama y Fish Audio) hay un botón con los modelos gratis que andan, con una nota de qué es cada uno, y otro que trae los que ofrece hoy tu cuenta. Gemini viene con gemma-4-26b-a4b-it (gratis, rápido y con mucho cupo) y va primero en el orden.
 - **Charla más natural:** a un mensaje corto ("ey", "dale", "jaja") contesta corto, sin discursos; las preguntas que piden explicación siguen con respuesta completa. Comenta por su cuenta un poco más seguido (cada 2 a 4 minutos de silencio).
 - "Quiero comer pan, ¿vos querés?" y parecidos ya no los toma como una orden: le contesta la IA. "Matá unas ovejas" busca también cerca tuyo y al que estás mirando.
@@ -29,6 +29,7 @@
 ### Arreglado
 - Al cortar un baile a la mitad, la cabeza de Rocco ya no da una vuelta entera.
 - Si lo que Rocco estaba atacando desaparecía justo en medio de un golpe, se quedaba en guardia para siempre. Ahora baja la guardia como siempre.
+- Al empezar y al terminar las tortas fritas, la cabeza de Rocco ya no da una vuelta rara.
 - Truco: si te parabas de la silla mientras Rocco armaba la mesa (por ejemplo, venías agachado de abrir su menú), la partida se cortaba sola. Ahora te quedás sentado hasta que arranca.
 - La parte de abajo de la tapa de la parrilla y las tortas fritas en el pote ya no titilan, y tampoco el resto de la parrilla, la olla, el mate, el termo, la botella ni la mesa y las sillas del truco.
 

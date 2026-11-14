@@ -26,6 +26,7 @@
 - Rocco's head no longer spins when a dance is cut short.
 - Rocco no longer stays on guard forever if what he was attacking vanishes mid-swing.
 - Truco: standing up while Rocco was setting up the table ended the game; now you stay seated until it starts.
+- Rocco's head no longer does a weird spin when the tortas fritas start and end.
 - The underside of the grill lid, the tortas fritas in the bowl and other scene props no longer flicker.
 
 ---
@@ -58,4 +59,5 @@
 - La cabeza de Rocco ya no da una vuelta entera al cortar un baile.
 - Rocco ya no se queda en guardia para siempre si lo que atacaba desaparece a mitad de un golpe.
 - Truco: pararse de la silla mientras Rocco armaba la mesa cortaba la partida; ahora te quedás sentado hasta que arranca.
+- La cabeza de Rocco ya no da una vuelta rara al empezar y al terminar las tortas fritas.
 - La parte de abajo de la tapa de la parrilla, las tortas fritas en el pote y otros objetos de las escenas ya no titilan.

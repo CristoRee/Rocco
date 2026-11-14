@@ -1796,7 +1796,13 @@ public final class OfflineRocco
             Map.entry("bottle_smashed", new String[]{
                     "Ahora si, veni que te espero!",
                     "Mira el pico que me quedo. Corta, eh.",
-                    "No lo intenten en sus casas."}),
+                    "No lo intenten en sus casas.",
+                    "Ahora vas a ver, gato.",
+                    "Te voy a hacer pollo.",
+                    "Veni, que hoy sobras seguro.",
+                    "Te regalaste, amigo.",
+                    "Bancatela ahora, campeon.",
+                    "Ahora si, a ver quien es el guapo."}),
             Map.entry("bottle_win", new String[]{
                     "Gracias, Roco Cola. Hasta vacia sirve.",
                     "Reciclaje del bueno.",
