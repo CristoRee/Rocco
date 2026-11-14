@@ -161,9 +161,9 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
     // Como queda la botella rota en su mano: el mismo giro que le da el juego al brazo del jugador
     // (GeckoLib no lo hace), corrida hacia adelante para que el cuello quede en el puño y el pico
     // roto apunte al frente. Giro en X, Y, Z (grados), corrimiento en X, Y, Z (px) y escala.
-    private static final float[] BOTTLE_POSE = {-100.0F, 180.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.73F, 1.0F, 2.0F, 0.0F};
+    private static final float[] BOTTLE_POSE = {-100.0F, 180.0F, 0.0F, -1.0F, 2.5F, 0.0F, 0.73F, 0.0F, 0.0F, 0.0F};
     // Los demas objetos (herramientas, comida, lo que te da): el mismo giro del jugador, del tamaño de su patita.
-    private static final float[] ITEM_POSE = {-90.0F, 180.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.6F, 1.0F, 2.0F, 0.0F};
+    private static final float[] ITEM_POSE = {-90.0F, 180.0F, 0.0F, -1.0F, 2.5F, 0.0F, 0.6F, 0.0F, 0.5F, 0.0F};
 
     // Un item de 16 px queda en unos 5,4 px: del tamaño de su patita.
     private static final float HELD_ITEM_SCALE = 0.34F;
