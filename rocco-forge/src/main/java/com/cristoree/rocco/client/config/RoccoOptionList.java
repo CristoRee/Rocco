@@ -56,6 +56,14 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
             Map.entry("PUSH_TO_TALK", "Mantener tecla"),
             Map.entry("VOICE_ACTIVATION", "Por voz"));
 
+    // Los campos "Modelo" que tienen al lado el boton para elegir de una lista (clave -> proveedor).
+    private static final Map<String, String> PICKERS = Map.of(
+            "geminiModel", "gemini",
+            "groqModel", "groq",
+            "openrouterModel", "openrouter",
+            "ollamaModel", "ollama",
+            "fishModel", "fish");
+
     private final List<WidgetRow> rows = new ArrayList<>();
 
     public RoccoOptionList(Minecraft minecraft, int width, int height, int top, int bottom)
@@ -171,6 +179,12 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         if (type == Integer.class || type == Long.class || type == Double.class)
         {
             return new NumberRow(label, option, spec, value, type);
+        }
+        String key = value.getPath().get(value.getPath().size() - 1);
+        String picker = PICKERS.get(key);
+        if (CharSequence.class.isAssignableFrom(type) && picker != null)
+        {
+            return new ModelRow(label, option, spec, cast(value), picker);
         }
         if (CharSequence.class.isAssignableFrom(type))
         {
@@ -295,6 +309,11 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
 
         protected abstract AbstractWidget widget();
 
+        // Algo mas en el lugar del control (el boton de elegir modelo).
+        protected void renderExtra(GuiGraphics graphics, int x, int y, int mouseX, int mouseY, float partialTick)
+        {
+        }
+
         protected abstract boolean isDefault();
 
         protected abstract void resetToDefault();
@@ -369,6 +388,7 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
             widget.setX(widgetX);
             widget.setY(top + 1);
             widget.render(graphics, mouseX, mouseY, partialTick);
+            renderExtra(graphics, widgetX, top + 1, mouseX, mouseY, partialTick);
 
             this.reset.visible = !this.locked;
             this.reset.active = !isDefault();
@@ -539,16 +559,22 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
 
     public static class TextRow extends WidgetRow
     {
-        private final EditBox box;
+        protected final EditBox box;
         private final ForgeConfigSpec.ConfigValue<String> configValue;
 
         TextRow(Component label, Option option, ForgeConfigSpec.ValueSpec spec,
                 ForgeConfigSpec.ConfigValue<String> configValue, boolean secret)
         {
+            this(label, option, spec, configValue, secret, WIDGET_WIDTH);
+        }
+
+        TextRow(Component label, Option option, ForgeConfigSpec.ValueSpec spec,
+                ForgeConfigSpec.ConfigValue<String> configValue, boolean secret, int width)
+        {
             super(label, option, spec);
             this.configValue = configValue;
 
-            this.box = new EditBox(Minecraft.getInstance().font, 0, 0, WIDGET_WIDTH, 20, label);
+            this.box = new EditBox(Minecraft.getInstance().font, 0, 0, width, 20, label);
             this.box.setMaxLength(option.maxLength());
             this.box.setValue(configValue.get());
 
@@ -603,6 +629,65 @@ public class RoccoOptionList extends ContainerObjectSelectionList<RoccoOptionLis
         public void setValue(Object value)
         {
             this.box.setValue(String.valueOf(value));
+        }
+    }
+
+    // Un modelo: se escribe, o se elige con el boton de al lado (los recomendados y los de tu cuenta).
+    public static class ModelRow extends TextRow
+    {
+        private final Button choose;
+
+        ModelRow(Component label, Option option, ForgeConfigSpec.ValueSpec spec,
+                 ForgeConfigSpec.ConfigValue<String> configValue, String provider)
+        {
+            super(label, option, spec, configValue, false, WIDGET_WIDTH - 22);
+            this.choose = Button.builder(Component.literal("▼"), b -> open(provider))
+                    .bounds(0, 0, 20, 20)
+                    .tooltip(Tooltip.create(com.cristoree.rocco.client.Tr.t("Elegir de una lista")))
+                    .build();
+        }
+
+        private void open(String provider)
+        {
+            Minecraft minecraft = Minecraft.getInstance();
+            net.minecraft.client.gui.screens.Screen parent = minecraft.screen;
+            // Lo que ya tocaste (por ejemplo la clave) se guarda antes, asi la lista de tu cuenta la usa.
+            if (parent instanceof RoccoCategoryScreen category)
+            {
+                category.applyPending();
+            }
+            minecraft.setScreen(new ModelPickerScreen(parent, provider, this.box.getValue().trim(), this::setValue));
+        }
+
+        @Override
+        public void setLocked(boolean locked)
+        {
+            super.setLocked(locked);
+            this.choose.active = !locked;
+        }
+
+        @Override
+        protected void renderExtra(GuiGraphics graphics, int x, int y, int mouseX, int mouseY, float partialTick)
+        {
+            this.choose.setX(x + WIDGET_WIDTH - 20);
+            this.choose.setY(y);
+            this.choose.render(graphics, mouseX, mouseY, partialTick);
+        }
+
+        @Override
+        public List<? extends GuiEventListener> children()
+        {
+            List<GuiEventListener> out = new ArrayList<>(super.children());
+            out.add(this.choose);
+            return out;
+        }
+
+        @Override
+        public List<? extends NarratableEntry> narratables()
+        {
+            List<NarratableEntry> out = new ArrayList<>(super.narratables());
+            out.add(this.choose);
+            return out;
         }
     }
 

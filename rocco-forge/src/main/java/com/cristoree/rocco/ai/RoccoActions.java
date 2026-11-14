@@ -1099,7 +1099,8 @@ public final class RoccoActions
                 .replaceAll("\\s+", " ").trim();
 
         LivingEntity target = null;
-        if (player != null && wanted.isBlank())
+        LivingEntity lookedAt = null;
+        if (player != null)
         {
             net.minecraft.world.phys.Vec3 eye = player.getEyePosition();
             net.minecraft.world.phys.Vec3 end = eye.add(player.getViewVector(1.0F).scale(32.0D));
@@ -1108,11 +1109,24 @@ public final class RoccoActions
                     entity -> entity instanceof LivingEntity && entity.isAlive() && !(entity instanceof RoccoEntity), 32.0D * 32.0D);
             if (hit != null && hit.getEntity() instanceof LivingEntity looked)
             {
-                target = looked;
+                lookedAt = looked;
             }
         }
-        List<LivingEntity> around = level.getEntitiesOfClass(LivingEntity.class, rocco.getBoundingBox().inflate(24.0D),
-                entity -> entity.isAlive() && entity != rocco && entity != player && !(entity instanceof RoccoEntity));
+        // Al que estas mirando: si no dijiste a quien, o si es del tipo que nombraste.
+        if (lookedAt != null && (wanted.isBlank() || matches(lookedAt, wanted)))
+        {
+            target = lookedAt;
+        }
+        // Se busca cerca de Rocco y cerca tuyo ("mata unas ovejas" con el corral a tu lado).
+        java.util.Set<LivingEntity> near = new java.util.LinkedHashSet<>(level.getEntitiesOfClass(LivingEntity.class,
+                rocco.getBoundingBox().inflate(24.0D), entity -> true));
+        if (player != null)
+        {
+            near.addAll(level.getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(16.0D), entity -> true));
+        }
+        List<LivingEntity> around = near.stream()
+                .filter(entity -> entity.isAlive() && entity != rocco && entity != player && !(entity instanceof RoccoEntity))
+                .toList();
         if (target == null && !wanted.isBlank())
         {
             target = around.stream().filter(entity -> matches(entity, wanted))

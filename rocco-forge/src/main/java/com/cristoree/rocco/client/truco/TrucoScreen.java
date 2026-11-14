@@ -131,9 +131,12 @@ public final class TrucoScreen extends Screen
     {
         int x = 6;
         int y = 6;
-        // Cada columna con lugar para "Nosotros 30" sin pisar la otra.
-        int column = Math.max(56, Math.max(this.font.width(Component.translatable("gui.rocco.truco.us").getString() + " 30"),
-                this.font.width(Component.translatable("gui.rocco.truco.them").getString() + " 30")) + 6);
+        // Cada columna con el nombre de los suyos ("CristoRee", "Rocco", "Ana y Rocco") y sus puntos,
+        // sin pisar la otra ni pasar de un tercio de la pantalla.
+        int maxColumn = Math.max(56, (this.width / 3 - 12) / 2);
+        String ourName = state.manoSolo() ? "" : teamName(state, myTeam, maxColumn - this.font.width(" 30") - 6);
+        String theirName = state.manoSolo() ? "" : teamName(state, 1 - myTeam, maxColumn - this.font.width(" 30") - 6);
+        int column = Math.min(maxColumn, Math.max(56, Math.max(this.font.width(ourName + " 30"), this.font.width(theirName + " 30")) + 6));
         int w = Math.max(120, column * 2 + 12);
         int h = 78;
         this.scoreRight = x + w;
@@ -153,8 +156,8 @@ public final class TrucoScreen extends Screen
         }
         int ours = teamScore(state, myTeam);
         int theirs = teamScore(state, 1 - myTeam);
-        Component us = Component.translatable("gui.rocco.truco.us").append(" " + ours);
-        Component them = Component.translatable("gui.rocco.truco.them").append(" " + theirs);
+        Component us = Component.literal(ourName + " " + ours);
+        Component them = Component.literal(theirName + " " + theirs);
         // Cada nombre centrado sobre sus fosforos.
         int left = x + 6 + column / 2;
         int right = x + w - 6 - column / 2;
@@ -168,6 +171,43 @@ public final class TrucoScreen extends Screen
             int line = y + 18 + 3 * 9 + 1;
             graphics.fill(x + 8, line, x + w - 8, line + 1, 0x88553311);
         }
+    }
+
+    // Los de un equipo por su nombre: "Rocco", "Ana y Rocco", "Ana, Juan y Rocco". Si no entra, el
+    // primero y cuantos mas ("Ana +2"); y si tampoco, "Nosotros" o "Ellos".
+    private String teamName(TrucoNetwork.TableState state, int team, int room)
+    {
+        List<String> names = new ArrayList<>();
+        // Primero vos, en tu equipo.
+        if (state.mySeat() >= 0 && state.mySeat() < state.n() && state.teams()[state.mySeat()] == team)
+        {
+            names.add(state.names().get(state.mySeat()));
+        }
+        for (int seat = 0; seat < state.n(); seat++)
+        {
+            if (state.teams()[seat] == team && seat != state.mySeat())
+            {
+                names.add(state.names().get(seat));
+            }
+        }
+        if (names.isEmpty())
+        {
+            return Component.translatable(team == 0 ? "gui.rocco.truco.us" : "gui.rocco.truco.them").getString();
+        }
+        String and = " " + Component.translatable("gui.rocco.truco.and").getString() + " ";
+        String all = names.size() == 1 ? names.get(0)
+                : String.join(", ", names.subList(0, names.size() - 1)) + and + names.get(names.size() - 1);
+        if (this.font.width(all) <= room)
+        {
+            return all;
+        }
+        String first = names.get(0);
+        String more = names.size() > 1 ? " +" + (names.size() - 1) : "";
+        if (this.font.width(first + more) <= room)
+        {
+            return first + more;
+        }
+        return this.font.plainSubstrByWidth(first, Math.max(10, room - this.font.width(more + "…"))) + "…" + more;
     }
 
     // Los fosforos: cada 5 puntos un cuadradito, de arriba hacia abajo.

@@ -63,6 +63,16 @@ public class RoccoCategoryScreen extends Screen
         }
     }
 
+    // Escribe en la config lo tocado hasta ahora (sin salir de la pantalla).
+    public void applyPending()
+    {
+        if (this.list != null)
+        {
+            this.list.applyAll();
+            RoccoConfigScreen.saveAll();
+        }
+    }
+
     // Graba 4 segundos y muestra lo que entendio. En segundo plano: no congela el juego.
     private void testMic()
     {

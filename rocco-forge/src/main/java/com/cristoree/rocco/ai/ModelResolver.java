@@ -86,6 +86,27 @@ public final class ModelResolver
         }
     }
 
+    // Los modelos para charlar que ofrece hoy la cuenta del jugador (para elegir desde el menu).
+    // En Gemini tambien entran los gemma; en OpenRouter solo los gratis.
+    public static List<String> chatModels(AiProvider provider) throws IOException
+    {
+        List<String> all = catalog.list(provider);
+        java.util.stream.Stream<String> models = all.stream().map(String::trim).filter(id -> !id.isEmpty());
+        if (provider == AiProvider.GEMINI)
+        {
+            models = models.filter(id -> GeminiClient.usableForChat(id));
+        }
+        else
+        {
+            models = models.filter(OpenAiCompatClient::usableForChat);
+            if (provider == AiProvider.OPENROUTER)
+            {
+                models = models.filter(id -> id.endsWith(":free") || id.equals("openrouter/free"));
+            }
+        }
+        return models.distinct().sorted().toList();
+    }
+
     // Lo ultimo que se uso, para mostrar en /rocco ia sin hacer consultas.
     public static String lastKnown(AiProvider provider)
     {

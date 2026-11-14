@@ -62,9 +62,22 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
                     poseStack.pushPose();
                     poseStack.scale(0.66F, 0.66F, 0.66F);
                 }
+                // La botella rota, agarrada en el puño como la agarra el jugador.
+                boolean bottle = bone.getName().equals("item_right")
+                        && stack.is(com.cristoree.rocco.registry.ModItems.BOTELLA_ROTA.get());
+                if (bottle)
+                {
+                    poseStack.pushPose();
+                    float[] p = BOTTLE_POSE;
+                    poseStack.translate(p[3] / 16.0F, p[4] / 16.0F, p[5] / 16.0F);
+                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(p[0]));
+                    poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(p[1]));
+                    poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(p[2]));
+                    poseStack.scale(p[6], p[6], p[6]);
+                }
                 super.renderStackForBone(poseStack, bone, stack, animatable, bufferSource, partialTick, packedLight,
                         packedOverlay);
-                if (grab)
+                if (grab || bottle)
                 {
                     poseStack.popPose();
                 }
@@ -141,6 +154,11 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
         // Las esferitas de magia brillan en la oscuridad: rocco_glowmask.png marca solo esas partes.
         addRenderLayer(new AutoGlowingGeoLayer<>(this));
     }
+
+    // Como queda la botella rota en su mano: el mismo giro que le da el juego al brazo del jugador
+    // (GeckoLib no lo hace), corrida hacia adelante para que el cuello quede en el puño y el pico
+    // roto apunte al frente. Giro en X, Y, Z (grados), corrimiento en X, Y, Z (px) y escala.
+    private static final float[] BOTTLE_POSE = {-90.0F, 180.0F, 0.0F, 0.0F, 0.0F, 1.5F, 0.85F};
 
     // Un item de 16 px queda en unos 5,4 px: del tamaño de su patita.
     private static final float HELD_ITEM_SCALE = 0.34F;

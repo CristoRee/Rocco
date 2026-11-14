@@ -585,6 +585,13 @@ public final class TrucoSession
             }
             ServerPlayer player = player(seat);
             TrucoChairEntity chair = this.chairs.get(this.seatPlace[seat]);
+            // Recien arrancada, si quedo parado al lado de su silla, se lo vuelve a sentar.
+            if (player != null && player.isAlive() && player.level() == this.level && chair != null && player.getVehicle() != chair
+                    && this.stageTicks < 60 && player.distanceToSqr(chair) < 9.0D)
+            {
+                player.stopRiding();
+                player.startRiding(chair, true);
+            }
             if (player == null || !player.isAlive() || player.level() != this.level || chair == null || player.getVehicle() != chair)
             {
                 if (this.gameOverTicks < 0)
@@ -1065,7 +1072,7 @@ public final class TrucoSession
                 int points = e.value();
                 String why = e.text();
                 addLog(seat -> Component.translatable("gui.rocco.truco.points", points, teamName(seat, team), reason(why))
-                        .withStyle(ChatFormatting.GREEN));
+                        .withStyle(ours(seat, team) ? ChatFormatting.GREEN : ChatFormatting.RED));
             }
             case MAZO ->
             {
@@ -1081,7 +1088,7 @@ public final class TrucoSession
                 int team = e.team();
                 int points = e.value();
                 addLog(seat -> Component.translatable("gui.rocco.truco.hand_won", teamName(seat, team), points)
-                        .withStyle(ChatFormatting.DARK_GREEN));
+                        .withStyle(ours(seat, team) ? ChatFormatting.DARK_GREEN : ChatFormatting.DARK_RED));
                 this.handOverTicks = 0;
                 this.ruedaCooldown = Math.max(this.ruedaCooldown, 100);
                 if (this.roccoSeat >= 0)
@@ -1590,6 +1597,7 @@ public final class TrucoSession
         return player == null ? Component.literal("?") : Component.literal(player.getGameProfile().getName());
     }
 
+    // Los de un equipo por su nombre ("Rocco", "Ana y Rocco"), con el que mira primero si es de ese equipo.
     private Component teamName(int viewer, int team)
     {
         TrucoGame game = this.game;
@@ -1597,11 +1605,39 @@ public final class TrucoSession
         {
             return team == 0 ? name(game.mano()) : Component.translatable("gui.rocco.truco.others");
         }
-        if (game != null && viewer >= 0 && viewer < game.n && game.team(viewer) == team)
+        if (game == null)
         {
-            return Component.translatable("gui.rocco.truco.us");
+            return Component.translatable(team == 0 ? "gui.rocco.truco.us" : "gui.rocco.truco.them");
         }
-        return Component.translatable("gui.rocco.truco.them");
+        List<Component> names = new ArrayList<>();
+        if (viewer >= 0 && viewer < game.n && game.team(viewer) == team)
+        {
+            names.add(name(viewer));
+        }
+        for (int seat = 0; seat < game.n; seat++)
+        {
+            if (seat != viewer && game.team(seat) == team)
+            {
+                names.add(name(seat));
+            }
+        }
+        if (names.isEmpty())
+        {
+            return Component.translatable("gui.rocco.truco.them");
+        }
+        MutableComponent out = names.get(0).copy();
+        for (int i = 1; i < names.size(); i++)
+        {
+            out.append(i == names.size() - 1 ? Component.literal(" ").append(Component.translatable("gui.rocco.truco.and")).append(" ")
+                    : Component.literal(", ")).append(names.get(i));
+        }
+        return out;
+    }
+
+    private boolean ours(int viewer, int team)
+    {
+        TrucoGame game = this.game;
+        return game != null && viewer >= 0 && viewer < game.n && game.team(viewer) == team;
     }
 
     private static Component callName(Action.Type type)
@@ -1758,7 +1794,9 @@ public final class TrucoSession
         if (event.getEntityMounting() instanceof ServerPlayer player)
         {
             TrucoSession session = of(player);
-            if (session != null && session.askToLeave(player))
+            // Mientras se arma la mesa no se levanta (venia agachado de abrir el menu de Rocco y
+            // la partida arrancaba sin el). Despues, se le pregunta si quiere abandonar.
+            if (session != null && (session.stage == Stage.SUMMON || session.stage == Stage.SETTLE || session.askToLeave(player)))
             {
                 event.setCanceled(true);
             }

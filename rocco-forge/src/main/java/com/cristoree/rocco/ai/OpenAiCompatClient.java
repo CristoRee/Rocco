@@ -118,6 +118,11 @@ public final class OpenAiCompatClient
         return reply;
     }
 
+    public static boolean usableForChat(String model)
+    {
+        return !containsAny(model.toLowerCase(Locale.ROOT), NOT_FOR_CHAT);
+    }
+
     public static List<String> listModels(AiProvider provider) throws IOException
     {
         AiHttp.Response response = AiHttp.get(provider.baseUrl() + "/models", headers(provider));

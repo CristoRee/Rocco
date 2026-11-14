@@ -340,6 +340,13 @@ public final class OfflineRocco
     // Preguntas sobre si sabe o puede: eso es charla, no una orden ("sabes cocinar?").
     private static final Pattern ABILITY_QUESTION = Pattern.compile("^(sabes|sabias|como|que|por que|cuando|donde|cual|te gusta)\\b");
 
+    // El jugador habla de si mismo ("quiero comer pan", "voy a minar") o le pide opinion ("vos queres?",
+    // "te parece?"): es charla, no una orden para Rocco.
+    private static final Pattern ABOUT_PLAYER = Pattern.compile(
+            "^(yo\\s+)?(quiero|voy a|me voy a|tengo que|necesito|me gustaria|tengo ganas de)\\s+[a-z]+(ar|er|ir)\\b");
+    private static final Pattern ASKS_OPINION = Pattern.compile(
+            "\\b(queres|quieres|te parece|te gusta|te copa|y vos|vos que|que opinas|que decis)\\b");
+
     // Una orden corta y clara que Rocco hace solo, sin preguntarle a la IA. null si conviene que la
     // conteste la IA (charla, preguntas, frases largas o con matices).
     public static Answer localOrder(RoccoEntity rocco, String message)
@@ -354,6 +361,7 @@ public final class OfflineRocco
         String text = LEADING_FILLER.matcher(normalize(message).replaceFirst("^[¿¡\\s]+", "")).replaceFirst("").trim();
         if (text.isEmpty() || text.split("\\s+").length > 10 || ABILITY_QUESTION.matcher(text).find()
                 || PAST_QUESTION.matcher(text).find()
+                || ABOUT_PLAYER.matcher(text).find() || ASKS_OPINION.matcher(text).find()
                 || !COMMAND_START.matcher(text).find())
         {
             return null;
@@ -915,7 +923,8 @@ public final class OfflineRocco
             return act("follow", RoccoExpression.HAPPY, "seguir", "");
         }
         Matcher eat = EAT.matcher(text);
-        if (eat.find())
+        // "Quiero comer pan, vos queres?" es el jugador hablando de el, no una orden.
+        if (eat.find() && !ABOUT_PLAYER.matcher(text).find() && !ASKS_OPINION.matcher(text).find())
         {
             return act("eat", RoccoExpression.HAPPY, "comer", eatTarget(eat.group(2)));
         }

@@ -15,13 +15,17 @@
 - The guide shows up in every new world, the first time each player hatches a Rocco.
 - Faster replies: what Rocco sends to the AI is a third shorter, with the same personality and abilities. It now fits Groq's free tier, and when the per-minute quota fills up he waits a few seconds instead of switching AI. With more than one AI set up, if the first one takes over 5 seconds he also asks the next one and uses whichever answers first.
 - His face changes on its own: after talking he keeps that expression for about 30 seconds and then goes back to happy, with his cute face now and then. If you hit him he cries for a while, then gets angry, then serious, and gets over it.
+- Pick the AI model from the menu: next to each "Model" there is a button with the free models that work (with a note on each one) and another that lists what your account offers today. Gemini defaults to gemma-4-26b-a4b-it and goes first.
+- More natural chat: short messages get short answers, and he comments on his own a bit more often.
+- Truco: the scoreboard shows each team's names instead of "Us" and "Them".
 - Fish Audio voice: the default model is now the free one (s2.1-pro-free). If the chosen model has no API credit (separate from the app plan), Rocco switches to the free one and tells you instead of going silent. Voice emotions also work with s2 models.
-- Smaller broken bottle, in Rocco's hand and yours. The empty bottle waits one second after drinking before it can be thrown.
+- Rocco holds the broken bottle in his fist like the player does, and it looks a bit bigger in your hand. The empty bottle waits one second after drinking before it can be thrown.
 - Tweaked grill, tortas fritas, truco and bottle animations, plus new sounds.
 
 **Fixed**
 - Rocco's head no longer spins when a dance is cut short.
 - Rocco no longer stays on guard forever if what he was attacking vanishes mid-swing.
+- Truco: standing up while Rocco was setting up the table ended the game; now you stay seated until it starts.
 - The underside of the grill lid, the tortas fritas in the bowl and other scene props no longer flicker.
 
 ---
@@ -43,11 +47,15 @@
 - La guía aparece en cada mundo nuevo, la primera vez que a cada jugador le nace un Rocco.
 - Contesta más rápido: lo que se le manda a la IA es un tercio más corto, con la misma forma de ser y lo mismo que sabe hacer. Ya entra en el cupo gratis de Groq, y si el cupo del minuto se llena espera unos segundos en vez de cambiar de IA. Con más de una IA, si la primera tarda más de 5 segundos le pregunta también a la siguiente y usa la que conteste antes.
 - Sus caras cambian solas: después de hablar mantiene la cara unos 30 segundos y vuelve a estar contento, con su carita tierna cada tanto. Si le pegás, llora un rato, se enoja, se pone serio y se le pasa.
+- Elegir el modelo de la IA desde el menú: al lado de cada "Modelo" hay un botón con los modelos gratis que andan (con una nota de cada uno) y otro con los que ofrece hoy tu cuenta. Gemini viene con gemma-4-26b-a4b-it y va primero.
+- Charla más natural: a los mensajes cortos contesta corto, y comenta por su cuenta un poco más seguido.
+- Truco: el tanteador muestra los nombres de cada equipo en vez de "Nosotros" y "Ellos".
 - Voz con Fish Audio: el modelo por defecto ahora es el gratis (s2.1-pro-free). Si el elegido no tiene crédito de API (que es aparte del plan de la app), pasa solo al gratis y avisa, en vez de quedarse sin voz. Las emociones de la voz andan también con los modelos s2.
-- Botella rota más chica, en la mano de Rocco y en la tuya. La botella vacía espera un segundo después de tomarla antes de poder tirarse.
+- Rocco agarra la botella rota en el puño como el jugador, y en tu mano se ve un poco más grande. La botella vacía espera un segundo después de tomarla antes de poder tirarse.
 - Animaciones de la parrilla, las tortas fritas, el truco y la botella ajustadas, y sonidos nuevos.
 
 **Arreglado**
 - La cabeza de Rocco ya no da una vuelta entera al cortar un baile.
 - Rocco ya no se queda en guardia para siempre si lo que atacaba desaparece a mitad de un golpe.
+- Truco: pararse de la silla mientras Rocco armaba la mesa cortaba la partida; ahora te quedás sentado hasta que arranca.
 - La parte de abajo de la tapa de la parrilla, las tortas fritas en el pote y otros objetos de las escenas ya no titilan.

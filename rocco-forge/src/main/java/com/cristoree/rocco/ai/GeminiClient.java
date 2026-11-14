@@ -66,6 +66,14 @@ public final class GeminiClient
         return parse(response.body(), model);
     }
 
+    // Sirve para charlar (gemini o gemma de texto). Para elegirlo a mano: el automatico no usa gemma.
+    public static boolean usableForChat(String model)
+    {
+        String name = model.toLowerCase(Locale.ROOT);
+        return (name.startsWith("gemini-") || name.startsWith("gemma-"))
+                && !containsAny(name, java.util.Arrays.stream(NOT_FOR_CHAT).filter(word -> !word.equals("gemma")).toArray(String[]::new));
+    }
+
     // Modelos que Google ofrece hoy a esta clave y sirven para charlar.
     public static List<String> listModels(String apiKey) throws IOException
     {

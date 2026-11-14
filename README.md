@@ -177,7 +177,9 @@ En **Mods > Rocco > Config > IA (cerebro)** se puede poner una clave gratuita de
 - **OpenRouter**: https://openrouter.ai/keys
 - **Ollama** (IA local en tu PC, sin internet): https://ollama.com/download
 
-Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente. Las órdenes simples ("seguime", "guardá todo", "crafteame un pico") las resuelve sin preguntarle a la IA, para no gastar pedidos; se puede apagar con **Ahorrar IA en órdenes simples**. También se puede usar cualquier IA paga compatible con el formato de OpenAI (grupo *Proveedor propio*). `/rocco ia` muestra el estado de cada una.
+El modelo se elige con el botón ▼ al lado de cada **Modelo**: muestra los gratis que andan, con una nota de cada uno, y los que ofrece hoy tu cuenta. Gemini viene con gemma-4-26b-a4b-it, gratis, rápido y con mucho cupo por día.
+
+Con más de una, si una se queda sin cupo, Rocco pasa sola a la siguiente, y si la primera tarda más de 5 segundos le pregunta también a la siguiente. Las órdenes simples ("seguime", "guardá todo", "crafteame un pico") las resuelve sin preguntarle a la IA, para no gastar pedidos; se puede apagar con **Ahorrar IA en órdenes simples**. También se puede usar cualquier IA paga compatible con el formato de OpenAI (grupo *Proveedor propio*). `/rocco ia` muestra el estado de cada una.
 
 ## Voz y micrófono (opcional)
 

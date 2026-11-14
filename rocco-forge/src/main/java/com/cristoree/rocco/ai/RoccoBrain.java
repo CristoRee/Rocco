@@ -643,7 +643,8 @@ public class RoccoBrain
 
         String rightNow = RoccoContextBuilder.build(this.rocco, player)
                 + extraLines(player, profile, mode, stage, permissions, danger, now)
-                + (spontaneous ? "" : RoccoActions.topicNotes(question));
+                + (spontaneous ? "" : RoccoActions.topicNotes(question))
+                + lengthHint(question, spontaneous);
         PersonalityPromptBuilder.Dynamic dynamic = new PersonalityPromptBuilder.Dynamic(
                 RoccoActions.describeForAi(),
                 PersonalityPromptBuilder.faces(profile),
@@ -667,6 +668,37 @@ public class RoccoBrain
         this.pendingNote = note;
         this.lastMode = last;
         return prompt;
+    }
+
+    // Que tan largo contestar, al final del prompt (lo ultimo que lee el modelo pesa mas): a un
+    // mensaje de pocas palabras, una frase corta. Algunos modelos (gemma) si no se lo recuerdan
+    // contestan "ey" con un parrafo. Las preguntas que piden explicacion quedan libres.
+    private static final Pattern WANTS_DETAIL = Pattern.compile(
+            "\\b(explica|explicame|explicar|como se|como hago|como hacer|por que|porque|para que|contame|cuentame|que es|que son|"
+            + "receta|diferencia|how|why|explain|tell me|what is|como funciona|como anda)\\b");
+
+    static String lengthHint(String question, boolean spontaneous)
+    {
+        if (spontaneous)
+        {
+            return "- Reply length now: one or two short sentences.\n";
+        }
+        String text = Text.normalize(question);
+        if (text.isEmpty() || WANTS_DETAIL.matcher(text).find())
+        {
+            return "";
+        }
+        int words = text.split(" ").length;
+        if (words <= 6)
+        {
+            return "- Reply length now: the player wrote only " + words + (words == 1 ? " word" : " words")
+                    + ". Answer like a friend would: one short sentence (two at most, under 25 words). No speeches, no lists of complaints.\n";
+        }
+        if (words <= 15)
+        {
+            return "- Reply length now: a short message. One or two sentences.\n";
+        }
+        return "";
     }
 
     // Lo que se le suma al bloque RIGHT NOW: el modo, la relacion, lo que recuerda, los permisos.
@@ -925,7 +957,7 @@ public class RoccoBrain
         if (turn.spontaneous())
         {
             // Si nadie le pregunto nada, mejor callado que explicando por que no pudo.
-            RoccoMod.LOGGER.debug("[Rocco] El comentario espontaneo no salio: {}", result.error());
+            RoccoMod.LOGGER.info("[Rocco] El comentario espontaneo no salio: {}", result.error());
             this.rocco.setExpressionFromAi(RoccoExpression.HAPPY);
             return;
         }
@@ -1115,7 +1147,24 @@ public class RoccoBrain
         int limit = RoccoCommonConfig.CHAT_MAX_RESPONSE_CHARS.get();
         if (out.length() > limit)
         {
-            out = out.substring(0, limit).trim() + "...";
+            // Mejor cortar en la ultima frase completa que en la mitad de una palabra.
+            String head = out.substring(0, limit);
+            int end = Math.max(head.lastIndexOf(". "), Math.max(head.lastIndexOf("! "), head.lastIndexOf("? ")));
+            if (end >= limit / 2)
+            {
+                out = head.substring(0, end + 1).trim();
+            }
+            else
+            {
+                int space = head.lastIndexOf(' ');
+                out = (space > limit / 2 ? head.substring(0, space) : head).trim() + "...";
+            }
+        }
+        // Las frases de sus acciones vienen en minuscula (la IA las usa dentro de otra oracion):
+        // dichas solas, con mayuscula.
+        if (!out.isEmpty() && Character.isLowerCase(out.charAt(0)))
+        {
+            out = Character.toUpperCase(out.charAt(0)) + out.substring(1);
         }
         return out;
     }

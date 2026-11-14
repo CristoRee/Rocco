@@ -17,14 +17,19 @@
 - **La guía** aparece en cada mundo nuevo, la primera vez que a cada jugador le nace un Rocco.
 - **Rocco contesta más rápido:** lo que se le manda a la IA es un tercio más corto, sin perder nada de su forma de ser ni de lo que sabe hacer. Con Groq gratis ya entra en el cupo (antes Groq lo rechazaba siempre y Rocco quedaba esperando a otra IA), y si el cupo del minuto se llena espera unos segundos en vez de cambiar de IA. Con más de una IA configurada, si la primera tarda más de 5 segundos le pregunta también a la siguiente y usa la respuesta que llegue antes.
 - **Sus caras cambian solas:** después de hablar mantiene la cara de lo que dijo unos 30 segundos y vuelve a estar contento (si estaba enojado, pasa antes por serio). Tranquilo, pone su carita tierna cada tanto, y el aburrimiento le viene de a ratos. Si le pegás, llora un rato, después se enoja, se pone serio y se le pasa; si le hablás lindo y te contesta contento, se le pasa antes.
+- **Elegir el modelo de la IA desde el menú:** al lado de cada "Modelo" (Gemini, Groq, OpenRouter, Ollama y Fish Audio) hay un botón con los modelos gratis que andan, con una nota de qué es cada uno, y otro que trae los que ofrece hoy tu cuenta. Gemini viene con gemma-4-26b-a4b-it (gratis, rápido y con mucho cupo) y va primero en el orden.
+- **Charla más natural:** a un mensaje corto ("ey", "dale", "jaja") contesta corto, sin discursos; las preguntas que piden explicación siguen con respuesta completa. Comenta por su cuenta un poco más seguido (cada 2 a 4 minutos de silencio).
+- "Quiero comer pan, ¿vos querés?" y parecidos ya no los toma como una orden: le contesta la IA. "Matá unas ovejas" busca también cerca tuyo y al que estás mirando.
+- **Truco:** el tanteador muestra los nombres de cada equipo en vez de "Nosotros" y "Ellos".
 - **Voz con Fish Audio:** el modelo por defecto ahora es el gratis (s2.1-pro-free). Si el modelo elegido no tiene crédito de API (que es aparte del plan de la app), Rocco pasa solo al gratis y avisa, en vez de quedarse sin voz. Las emociones de la voz andan también con los modelos s2.
-- **Botella rota** más chica, en la mano de Rocco y en la tuya.
+- **Botella rota:** Rocco la agarra en el puño como el jugador, y en tu mano se ve un poco más grande.
 - **Botella vacía:** al terminar la Roco Cola hay que esperar un segundo para poder tirarla, así no sale volando sola.
 - Animaciones de la parrilla, las tortas fritas, el truco y la botella ajustadas, sonidos nuevos y el ruido de la botella al romperse.
 
 ### Arreglado
 - Al cortar un baile a la mitad, la cabeza de Rocco ya no da una vuelta entera.
 - Si lo que Rocco estaba atacando desaparecía justo en medio de un golpe, se quedaba en guardia para siempre. Ahora baja la guardia como siempre.
+- Truco: si te parabas de la silla mientras Rocco armaba la mesa (por ejemplo, venías agachado de abrir su menú), la partida se cortaba sola. Ahora te quedás sentado hasta que arranca.
 - La parte de abajo de la tapa de la parrilla y las tortas fritas en el pote ya no titilan, y tampoco el resto de la parrilla, la olla, el mate, el termo, la botella ni la mesa y las sillas del truco.
 
 ## 1.5.0

@@ -97,9 +97,9 @@ public final class SpontaneousChatter
     {
         long[] range = switch (profile.spontaneous())
         {
-            case POCOS -> new long[]{6 * MINUTE, 10 * MINUTE};
-            case NORMAL -> new long[]{3 * MINUTE, 6 * MINUTE};
-            case MUCHOS -> new long[]{90 * 20L, 3 * MINUTE};
+            case POCOS -> new long[]{4 * MINUTE, 7 * MINUTE};
+            case NORMAL -> new long[]{2 * MINUTE, 4 * MINUTE};
+            case MUCHOS -> new long[]{MINUTE, 2 * MINUTE + MINUTE / 2};
         };
         long value = range[0] + (long) (random.nextDouble() * (range[1] - range[0]));
         return now < this.chattyUntil ? value / 2 : value;

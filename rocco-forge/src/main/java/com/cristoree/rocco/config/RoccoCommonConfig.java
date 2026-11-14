@@ -6,7 +6,7 @@ import net.minecraftforge.common.ForgeConfigSpec;
 public final class RoccoCommonConfig
 {
     // Modelo vigente. Google retiro gemini-2.5-flash para claves nuevas (HTTP 404).
-    public static final String DEFAULT_GEMINI_MODEL = "auto";
+    public static final String DEFAULT_GEMINI_MODEL = "gemma-4-26b-a4b-it";
     public static final String RETIRED_GEMINI_MODEL = "gemini-2.5-flash";
 
     public static final ForgeConfigSpec SPEC;
@@ -233,9 +233,9 @@ public final class RoccoCommonConfig
                 .defineEnum("provider", AiProviderChoice.AUTO);
         AI_PROVIDER_ORDER = b
                 .comment("Orden en que se prueban los proveedores con AUTO, separados por coma.",
-                         "custom va primero: si pagas una IA mejor y la configuras, se usa esa.",
+                         "Si el primero tarda mas de 5 segundos, tambien se le pregunta al siguiente.",
                          "Opciones: custom, groq, gemini, openrouter, ollama.")
-                .define("providerOrder", "custom,groq,gemini,openrouter,ollama");
+                .define("providerOrder", "gemini,custom,groq,openrouter,ollama");
         AI_OFFLINE_FALLBACK = b
                 .comment("Si ninguna IA responde (o no hay claves), Rocco contesta con frases propias",
                          "y entiende ordenes simples: plantar, cosechar, seguir, esperar, dormir...")
@@ -251,9 +251,9 @@ public final class RoccoCommonConfig
                          "Si queda vacia se usa la variable de entorno ROCCO_GEMINI_API_KEY.")
                 .define("geminiApiKey", "");
         GEMINI_MODEL = b
-                .comment("Modelo de Gemini. 'auto' le pregunta a Google cuales hay hoy y elige el mejor",
-                         "flash disponible: asi no se rompe cuando Google retira modelos.",
-                         "gemini-2.5-flash ya no esta disponible para claves nuevas (da error 404).")
+                .comment("Modelo de Gemini. gemma-4-26b-a4b-it es gratis, contesta rapido y tiene mucho cupo por dia.",
+                         "'auto' le pregunta a Google cuales hay hoy y elige el mejor flash disponible.",
+                         "Con el boton de al lado se elige de una lista o de los modelos de tu cuenta.")
                 .define("geminiModel", DEFAULT_GEMINI_MODEL);
         GEMINI_ENDPOINT = b
                 .comment("URL base de la API. Cambiala solo si sabes lo que haces.")
@@ -496,7 +496,7 @@ public final class RoccoCommonConfig
                 .comment("Si queda mas lejos que esto, aparece al lado tuyo. Tambien lo usa",
                          "cuando se traba o se queda en el agua y no puede llegar.",
                          "0 desactiva el teleport.")
-                .defineInRange("teleportDistance", 24.0D, 0.0D, 256.0D);
+                .defineInRange("teleportDistance", 32.0D, 0.0D, 256.0D);
         LEASH_BLOCKS_TELEPORT = b
                 .comment("Atado con una rienda a un poste no aparece al lado tuyo (ni vuela, nada o",
                          "rema con vos). Para traerlo igual: /rocco llamar, que lo desata.")
