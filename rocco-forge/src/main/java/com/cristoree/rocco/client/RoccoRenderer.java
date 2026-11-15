@@ -187,8 +187,9 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
     }
 
     // La botella en su pata: corrimiento (px, desde el hueso de la mano), giro en X y en Y, y escala.
-    // La boca del modelo (y = 0,6 px) queda entre las pezuñas (y 6, z -1,3 en el modelo de Rocco).
-    private static final float[] BOTTLE_GRIP = {0.0F, 0.3F, -3.86F, -90.0F, 0.0F, 0.4F};
+    // La boca del modelo (y = 0,6 px) entre las pezuñas (y 6, z -1,3 en el modelo de Rocco), con el cuello
+    // hundido 1,2 px dentro de la pata para que se vea agarrada.
+    private static final float[] BOTTLE_GRIP = {0.0F, 0.3F, -2.66F, -90.0F, 0.0F, 0.4F};
 
     // Un item de 16 px queda en unos 5,4 px: del tamaño de su patita.
     private static final float HELD_ITEM_SCALE = 0.34F;
