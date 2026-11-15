@@ -3,7 +3,7 @@
 ## 1.6.0
 
 ### Nuevo
-- **Truco con Rocco:** "¿jugamos un truco?" y se abre el menú de la partida: uruguayo (con muestra) o argentino, a 15 o a 30, con o sin flor, Rocco tranqui, normal o pícaro, mate entre manos o nunca, y equipos por orden de llegada o mezclados. Los que estén a 12 bloques o menos se suman con un botón en el chat durante 30 segundos, hasta 7 jugadores. Rocco saca de la cabeza una mesa y una silla para cada uno, se sientan todos y reparte. Se juega 1 contra 1, de a tres (el mano solo contra los otros dos, con 4 cartas y un descarte), 2 contra 2, 3 contra 3 y 4 contra 4; con 4 o 6 jugadores Rocco arbitra y ceba. Hay truco, retruco, vale cuatro, envido, real envido, falta envido, flor, contraflor, irse al mazo, y Rocco tiene su forma de jugar (a veces miente, y en equipo le hace señas a su compañero). Ceba mate entre mano y mano. La pantalla de la mesa muestra tus cartas, lo que podés cantar, el tanteador con fósforos y la muestra; con **R** la cerrás para mirar alrededor y la volvés a abrir. Para levantarte en medio de la partida, agachate y confirmá en el chat.
+- **Truco con Rocco:** "¿jugamos un truco?" y se abre el menú de la partida: uruguayo (con muestra) o argentino, a 15 o a 30, con o sin flor, Rocco tranqui, normal o pícaro, mate entre manos o nunca, y equipos por orden de llegada o mezclados. Los que estén a 12 bloques o menos se suman con un botón en el chat durante 30 segundos, hasta 7 jugadores. Rocco saca de la cabeza una mesa y una silla para cada uno, se sientan todos y reparte. Se juega 1 contra 1, de a tres (el mano solo contra los otros dos, con 4 cartas y un descarte), 2 contra 2, 3 contra 3 y 4 contra 4; con 4 o 6 jugadores Rocco arbitra y ceba. Hay truco, retruco, vale cuatro, envido, real envido, falta envido, flor, contraflor, irse al mazo, y Rocco tiene su forma de jugar (a veces miente, y en equipo le hace señas a su compañero). Ceba mate entre mano y mano. La pantalla de la mesa muestra tus cartas, lo que podés cantar, el tanteador con fósforos y los nombres de cada equipo, y la muestra; con **R** la cerrás para mirar alrededor y la volvés a abrir. Para levantarte en medio de la partida, agachate y confirmá en el chat.
 - **Asado:** "hacé un asado" y saca su parrilla de tapa roja, se pone el delantal y asa de a una la carne cruda que tenga (vaca, cerdo y oveja), igual de rápido que un ahumador y con 16 piezas por carbón. Salen asado de tira, bondiola a la parrilla y costillitas de cordero, que van a su inventario; clic derecho a la parrilla y te pasa una. "Pará de cocinar" lo termina tranquilo.
 - **Tortas fritas:** "haceme tortas fritas" y, con trigo (el suyo o el que tengas en la mano), arma la olla y la mesa, amasa, fríe y toma mate. Un trigo, una torta frita; clic derecho al pote y te da una.
 - **Botella vacía de Roco Cola:** se tira y se rompe donde pega (medio corazón). Agachado, con clic derecho al piso, se rompe en tu mano y te queda la **botella rota**: un arma corta de 3 de daño que dura 40 golpes.
@@ -20,20 +20,16 @@
 - **Elegir el modelo de la IA desde el menú:** al lado de cada "Modelo" (Gemini, Groq, OpenRouter, Ollama y Fish Audio) hay un botón con los modelos gratis que andan, con una nota de qué es cada uno, y otro que trae los que ofrece hoy tu cuenta. Gemini viene con gemma-4-26b-a4b-it (gratis, rápido y con mucho cupo) y va primero en el orden.
 - **Charla más natural:** a un mensaje corto ("ey", "dale", "jaja") contesta corto, sin discursos; las preguntas que piden explicación siguen con respuesta completa. Comenta por su cuenta un poco más seguido (cada 2 a 4 minutos de silencio).
 - "Quiero comer pan, ¿vos querés?" y parecidos ya no los toma como una orden: le contesta la IA. "Matá unas ovejas" busca también cerca tuyo y al que estás mirando.
-- **Truco:** el tanteador muestra los nombres de cada equipo en vez de "Nosotros" y "Ellos".
 - **Voz con Fish Audio:** el modelo por defecto ahora es el gratis (s2.1-pro-free). Si el modelo elegido no tiene crédito de API (que es aparte del plan de la app), Rocco pasa solo al gratis y avisa, en vez de quedarse sin voz. Las emociones de la voz andan también con los modelos s2.
-- **Botella rota:** Rocco la agarra en el puño como el jugador, apuntando hacia adelante, y en tu mano se ve más grande.
 - **Lo que Rocco tiene en la mano** (herramientas, comida, lo que pesca o te da) lo agarra como un jugador y del tamaño de su patita. Antes el pico asomaba por detrás de su cabeza y el pan se veía gigante.
 - **Botella vacía:** al terminar la Roco Cola hay que esperar un segundo para poder tirarla, así no sale volando sola.
-- Animaciones de la parrilla, las tortas fritas, el truco y la botella ajustadas, sonidos nuevos y el ruido de la botella al romperse.
+- Sonidos nuevos y animaciones ajustadas.
 
 ### Arreglado
-- Al cortar un baile a la mitad, la cabeza de Rocco ya no da una vuelta entera.
+- La cabeza o el cuerpo de Rocco ya no dan una vuelta al cortarse una animación (un baile, una pelea).
 - Si lo que Rocco estaba atacando desaparecía justo en medio de un golpe, se quedaba en guardia para siempre. Ahora baja la guardia como siempre.
-- Al empezar y al terminar las tortas fritas, la cabeza de Rocco ya no da una vuelta rara.
 - Después de darte un regalo sorpresa (como el "aire puro del bosque"), Rocco vuelve a agarrar su arma o su botella rota en vez de quedarse con el frasco en la mano.
-- Truco: si te parabas de la silla mientras Rocco armaba la mesa (por ejemplo, venías agachado de abrir su menú), la partida se cortaba sola. Ahora te quedás sentado hasta que arranca.
-- La parte de abajo de la tapa de la parrilla y las tortas fritas en el pote ya no titilan, y tampoco el resto de la parrilla, la olla, el mate, el termo, la botella ni la mesa y las sillas del truco.
+- Varios objetos de las escenas (el mate, el termo, el barquito) ya no titilan.
 
 ## 1.5.0
 
