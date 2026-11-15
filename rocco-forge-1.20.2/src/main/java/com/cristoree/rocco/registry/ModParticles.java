@@ -1,0 +1,90 @@
+package com.cristoree.rocco.registry;
+
+import com.cristoree.rocco.RoccoMod;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
+
+// Las particulas de Rocco. Las disparan las propias animaciones (cada una trae sus momentos como
+// "particle_effects"), del lado del cliente.
+public final class ModParticles
+{
+    public static final DeferredRegister<ParticleType<?>> PARTICLES =
+            DeferredRegister.create(ForgeRegistries.PARTICLE_TYPES, RoccoMod.MODID);
+
+    public static final RegistryObject<SimpleParticleType> BLISS_FLOWER = register("bliss_flower");
+    public static final RegistryObject<SimpleParticleType> MATE_STEAM = register("mate_steam");
+    public static final RegistryObject<SimpleParticleType> MAGIC_RUNE = register("magic_rune");
+    public static final RegistryObject<SimpleParticleType> MAGIC_SPARK = register("magic_spark");
+    public static final RegistryObject<SimpleParticleType> MAGIC_BURST = register("magic_burst");
+
+    // Vuelo, agua y barco.
+    public static final RegistryObject<SimpleParticleType> LEAF_SPARKLE = register("leaf_sparkle");
+    public static final RegistryObject<SimpleParticleType> LEAF_BURST = register("leaf_burst");
+    public static final RegistryObject<SimpleParticleType> SPEED_LEAF = register("speed_leaf");
+    public static final RegistryObject<SimpleParticleType> WIND_STREAK = register("wind_streak");
+    public static final RegistryObject<SimpleParticleType> WIND_PUFF = register("wind_puff");
+    public static final RegistryObject<SimpleParticleType> WIND_TEAR = register("wind_tear");
+    public static final RegistryObject<SimpleParticleType> LAND_DUST = register("land_dust");
+    public static final RegistryObject<SimpleParticleType> DUCK_POP = register("duck_pop");
+    public static final RegistryObject<SimpleParticleType> WATER_DROP = register("water_drop");
+
+    // Pensar, aplaudir, festejar y bailar.
+    public static final RegistryObject<SimpleParticleType> THINK_DOT = register("think_dot");
+    public static final RegistryObject<SimpleParticleType> CLAP_SPARK = register("clap_spark");
+    public static final RegistryObject<SimpleParticleType> CONFETTI = register("confetti");
+    public static final RegistryObject<SimpleParticleType> MUSIC_NOTE = register("music_note");
+    public static final RegistryObject<SimpleParticleType> DANCE_SPARKLE = register("dance_sparkle");
+
+    // El jardincito de la tapa en modo Chill.
+    public static final RegistryObject<SimpleParticleType> BUTTERFLY = register("butterfly");
+    public static final RegistryObject<SimpleParticleType> PETAL = register("petal");
+
+    // Roco Cola, combate, equipo, cofre de ender y tumba.
+    public static final RegistryObject<SimpleParticleType> COLA_FIZZ = register("cola_fizz");
+    public static final RegistryObject<SimpleParticleType> COLA_POP = register("cola_pop");
+    public static final RegistryObject<SimpleParticleType> REFRESH_SPARKLE = register("refresh_sparkle");
+    public static final RegistryObject<SimpleParticleType> HIC_BUBBLE = register("hic_bubble");
+    public static final RegistryObject<SimpleParticleType> SWING_SPARKLE = register("swing_sparkle");
+    public static final RegistryObject<SimpleParticleType> PROUD_SPARKLE = register("proud_sparkle");
+    public static final RegistryObject<SimpleParticleType> ENDER_SPARK = register("ender_spark");
+    public static final RegistryObject<SimpleParticleType> ENDER_BURST = register("ender_burst");
+    public static final RegistryObject<SimpleParticleType> ENDER_RING = register("ender_ring");
+    public static final RegistryObject<SimpleParticleType> DIRT_CLOD = register("dirt_clod");
+
+    // El eructo de la Roco Cola y los regalos de amistad.
+    public static final RegistryObject<SimpleParticleType> BURP_WIND = register("burp_wind");
+    public static final RegistryObject<SimpleParticleType> BURP_LEAF = register("burp_leaf");
+    public static final RegistryObject<SimpleParticleType> BURP_PUFF = register("burp_puff");
+    public static final RegistryObject<SimpleParticleType> FRIEND_GLOW = register("friend_glow");
+    public static final RegistryObject<SimpleParticleType> HEART_POP = register("heart_pop");
+    public static final RegistryObject<SimpleParticleType> JOY_TEAR = register("joy_tear");
+    public static final RegistryObject<SimpleParticleType> SEED_POP = register("seed_pop");
+
+    // La parrilla, la olla de las tortas fritas y el vidrio de la botella (v14).
+    public static final RegistryObject<SimpleParticleType> GRILL_SMOKE = register("grill_smoke");
+    public static final RegistryObject<SimpleParticleType> HEAT_WAVE = register("heat_wave");
+    public static final RegistryObject<SimpleParticleType> EMBER = register("ember");
+    public static final RegistryObject<SimpleParticleType> FAT_SIZZLE = register("fat_sizzle");
+    public static final RegistryObject<SimpleParticleType> FLAME_BURST = register("flame_burst");
+    public static final RegistryObject<SimpleParticleType> OIL_BUBBLE = register("oil_bubble");
+    public static final RegistryObject<SimpleParticleType> OIL_SPLASH = register("oil_splash");
+    public static final RegistryObject<SimpleParticleType> OIL_DRIP = register("oil_drip");
+    public static final RegistryObject<SimpleParticleType> FLOUR_PUFF = register("flour_puff");
+    public static final RegistryObject<SimpleParticleType> GLASS_SHARD = register("glass_shard");
+
+    public static void register(IEventBus modEventBus)
+    {
+        PARTICLES.register(modEventBus);
+    }
+
+    private static RegistryObject<SimpleParticleType> register(String name)
+    {
+        return PARTICLES.register(name, () -> new SimpleParticleType(false));
+    }
+
+    private ModParticles() {}
+}

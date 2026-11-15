@@ -1,0 +1,406 @@
+package com.cristoree.rocco.client;
+
+import com.cristoree.rocco.config.RoccoClientConfig;
+import com.cristoree.rocco.entity.RoccoEntity;
+import com.cristoree.rocco.entity.RoccoGear;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.FishingRodItem;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.client.ForgeHooksClient;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.joml.Vector3d;
+import org.joml.Vector4f;
+import software.bernie.geckolib.cache.object.BakedGeoModel;
+import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.renderer.GeoEntityRenderer;
+import software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer;
+import software.bernie.geckolib.renderer.layer.BlockAndItemGeoLayer;
+import software.bernie.geckolib.util.RenderUtils;
+
+public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
+{
+    // La punta de la caña en la textura del juego (pixel 14,1 de fishing_rod.png), en el espacio
+    // 0..1 del modelo del item.
+    private static final float ROD_TIP_X = 14.5F / 16.0F;
+    private static final float ROD_TIP_Y = 1.0F - 1.5F / 16.0F;
+
+    // La pose al arrancar a dibujar este Rocco (antes de la escala) y donde estaba en ese cuadro:
+    // con eso se pasa la punta de la caña a coordenadas del mundo.
+    private Matrix4f renderOrigin = new Matrix4f();
+    private Vec3 renderPosition = Vec3.ZERO;
+    @Nullable
+    private Vec3 rodTip;
+
+    public RoccoRenderer(EntityRendererProvider.Context context)
+    {
+        super(context, new RoccoModel());
+        this.shadowRadius = 0.4F;
+
+        // item_right e item_left son huesos vacios en las palmas: ahi se dibuja lo que sostiene.
+        addRenderLayer(new BlockAndItemGeoLayer<>(this)
+        {
+            @Override
+            protected void renderStackForBone(PoseStack poseStack, GeoBone bone, ItemStack stack, RoccoEntity animatable,
+                                              MultiBufferSource bufferSource, float partialTick, int packedLight,
+                                              int packedOverlay)
+            {
+                // El cofre que flota: a un tercio de bloque (FIXED lo dibuja a medio bloque).
+                boolean grab = bone.getName().equals("grab");
+                if (grab)
+                {
+                    poseStack.pushPose();
+                    poseStack.scale(0.66F, 0.66F, 0.66F);
+                }
+                // Lo que tiene en la mano derecha, agarrado como lo agarra el jugador: GeckoLib no le da al
+                // objeto el giro que el juego le da a la mano del jugador, y quedaba para atras (la botella)
+                // o asomando por detras de la cabeza (el pico). La caña de pescar no: su hilo esta medido
+                // sobre como queda ahora.
+                boolean bottle = isBottle(bone, stack);
+                boolean inHand = bone.getName().equals("item_right") && !(stack.getItem() instanceof FishingRodItem);
+                if (bottle)
+                {
+                    // La botella rota, ubicada a mano (sin el ajuste de "mano derecha" del modelo): la
+                    // boca entre sus dos pezuñas y el pico roto apuntando hacia adelante. Como el brazo
+                    // descansa girado sobre el eje de adelante, la botella igual apunta derecho.
+                    poseStack.pushPose();
+                    float[] g = BOTTLE_GRIP;
+                    poseStack.translate(g[0] / 16.0F, g[1] / 16.0F, g[2] / 16.0F);
+                    poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(g[4]));
+                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(g[3]));
+                    poseStack.scale(g[5], g[5], g[5]);
+                }
+                else if (inHand)
+                {
+                    poseStack.pushPose();
+                    float[] p = ITEM_POSE;
+                    poseStack.translate(p[3] / 16.0F, p[4] / 16.0F, p[5] / 16.0F);
+                    // Su brazo descansa abierto 36 grados (el del jugador cuelga derecho): sin esto el
+                    // objeto salia torcido hacia afuera de la pata.
+                    poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(p[10]));
+                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(p[0]));
+                    poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(p[1]));
+                    poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(p[2]));
+                    poseStack.translate(p[7] / 16.0F, p[8] / 16.0F, p[9] / 16.0F);
+                    poseStack.scale(p[6], p[6], p[6]);
+                }
+                super.renderStackForBone(poseStack, bone, stack, animatable, bufferSource, partialTick, packedLight,
+                        packedOverlay);
+                if (grab || bottle || inHand)
+                {
+                    poseStack.popPose();
+                }
+                if (stack.getItem() instanceof FishingRodItem && bone.getName().equals("item_right"))
+                {
+                    rememberRodTip(poseStack, stack, animatable, getTransformTypeForStack(bone, stack, animatable));
+                }
+            }
+
+            // La comida y la pocion (ROCCO-V12): en el hueso held, derechas y de frente, del tamaño de
+            // su patita. La animacion las ubica, las gira y las achica mordida a mordida.
+            @Override
+            public void renderForBone(PoseStack poseStack, RoccoEntity animatable, GeoBone bone, RenderType renderType,
+                                      MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick,
+                                      int packedLight, int packedOverlay)
+            {
+                if (!bone.getName().equals("held"))
+                {
+                    super.renderForBone(poseStack, animatable, bone, renderType, bufferSource, buffer, partialTick,
+                            packedLight, packedOverlay);
+                    return;
+                }
+                ItemStack stack = getStackForBone(bone, animatable);
+                if (stack.isEmpty())
+                {
+                    return;
+                }
+                poseStack.pushPose();
+                // El giro y la escala del hueso ya vienen puestos: solo se va al pivote (con
+                // translateAndRotateMatrixForBone quedaria girado dos veces).
+                RenderUtils.translateToPivotPoint(poseStack, bone);
+                poseStack.scale(HELD_ITEM_SCALE, HELD_ITEM_SCALE, HELD_ITEM_SCALE);
+                Minecraft.getInstance().getItemRenderer().renderStatic(animatable, stack, ItemDisplayContext.NONE, false,
+                        poseStack, bufferSource, animatable.level(), packedLight, packedOverlay, animatable.getId());
+                poseStack.popPose();
+                bufferSource.getBuffer(renderType);
+            }
+
+            @Override
+            protected ItemStack getStackForBone(GeoBone bone, RoccoEntity animatable)
+            {
+                boolean consuming = isConsuming(animatable);
+                return switch (bone.getName())
+                {
+                    case "item_right" -> consuming ? ItemStack.EMPTY
+                            : heldFor(animatable, animatable.getMainHandItem(), RoccoGear.weaponLook(animatable.getMainHandItem()));
+                    case "item_left" -> heldFor(animatable, animatable.getOffhandItem(), RoccoGear.shieldLook(animatable.getOffhandItem()));
+                    // El cofre de ender que se traga o que absorbe, flotando entre las manitos.
+                    case "grab" -> consuming ? ItemStack.EMPTY : animatable.grabbedItem();
+                    // Cantando flor en el truco saca una flor de la cabeza.
+                    case "held" -> consuming ? animatable.grabbedItem()
+                            : RoccoModel.playingAnimation(animatable).equals("animation.rocco.truco_call_flor")
+                            ? new ItemStack(net.minecraft.world.item.Items.POPPY) : ItemStack.EMPTY;
+                    default -> ItemStack.EMPTY;
+                };
+            }
+
+            @Override
+            protected ItemDisplayContext getTransformTypeForStack(GeoBone bone, ItemStack stack,
+                                                                  RoccoEntity animatable)
+            {
+                if (isBottle(bone, stack))
+                {
+                    return ItemDisplayContext.NONE;
+                }
+                return switch (bone.getName())
+                {
+                    case "item_left" -> ItemDisplayContext.THIRD_PERSON_LEFT_HAND;
+                    case "grab" -> ItemDisplayContext.FIXED;
+                    default -> ItemDisplayContext.THIRD_PERSON_RIGHT_HAND;
+                };
+            }
+        });
+
+        // La armadura y las armas 3D, cada una con la textura de su material.
+        addRenderLayer(new RoccoGearLayer(this));
+
+        // Las esferitas de magia brillan en la oscuridad: rocco_glowmask.png marca solo esas partes.
+        addRenderLayer(new AutoGlowingGeoLayer<>(this));
+    }
+
+    // Los demas objetos (herramientas, comida, lo que te da): el mismo giro del jugador, del tamaño de su patita.
+    private static final float[] ITEM_POSE = {-90.0F, 180.0F, 0.0F, -1.0F, 2.5F, 0.0F, 0.6F, 0.0F, 0.5F, 0.0F, 0.0F};
+
+    private static boolean isBottle(GeoBone bone, ItemStack stack)
+    {
+        return bone.getName().equals("item_right") && stack.is(com.cristoree.rocco.registry.ModItems.BOTELLA_ROTA.get());
+    }
+
+    // La botella en su pata: corrimiento (px, desde el hueso de la mano), giro en X y en Y, y escala.
+    // La boca del modelo (y = 0,6 px) entre las pezuñas (y 6, z -1,3 en el modelo de Rocco), con el cuello
+    // hundido 1,2 px dentro de la pata para que se vea agarrada.
+    private static final float[] BOTTLE_GRIP = {0.0F, 0.3F, -2.66F, -90.0F, 0.0F, 0.4F};
+
+    // Un item de 16 px queda en unos 5,4 px: del tamaño de su patita.
+    private static final float HELD_ITEM_SCALE = 0.34F;
+
+    // Comiendo, tomando una pocion o dando un regalo: lo dice el servidor o la animacion que se esta viendo.
+    static boolean isConsuming(RoccoEntity rocco)
+    {
+        if (rocco.getActiveTask().usesHeld())
+        {
+            return true;
+        }
+        String playing = RoccoModel.playingAnimation(rocco);
+        return playing.startsWith("animation.rocco.food_eat") || playing.startsWith("animation.rocco.potion_drink")
+                || playing.startsWith("animation.rocco.give_");
+    }
+
+    // En la mano: lo que tenga, salvo un arma con modelo propio (la dibuja RoccoGearLayer) y salvo
+    // un arma con las manos ocupadas (tomando mate, volando, nadando...).
+    private static ItemStack heldFor(RoccoEntity rocco, ItemStack stack, @Nullable RoccoGear.WeaponLook look)
+    {
+        if (stack.isEmpty() || look != null || !RoccoClientConfig.SHOW_HELD_ITEMS.get())
+        {
+            return ItemStack.EMPTY;
+        }
+        if ((RoccoGear.isWeapon(stack) || RoccoGear.isShield(stack))
+                && RoccoGearLayer.handsBusy(rocco, RoccoModel.playingAnimation(rocco)))
+        {
+            return ItemStack.EMPTY;
+        }
+        return stack;
+    }
+
+    // Al morir hace su animacion de caida: sin el giro de costado del juego.
+    @Override
+    protected float getDeathMaxRotation(RoccoEntity animatable)
+    {
+        return 0.0F;
+    }
+
+    @Override
+    public void preRender(PoseStack poseStack, RoccoEntity animatable, BakedGeoModel model,
+                          MultiBufferSource bufferSource, VertexConsumer buffer, boolean isReRender,
+                          float partialTick, int packedLight, int packedOverlay,
+                          float red, float green, float blue, float alpha)
+    {
+        if (!isReRender)
+        {
+            this.renderOrigin = new Matrix4f(poseStack.last().pose());
+            this.renderPosition = new Vec3(Mth.lerp(partialTick, animatable.xOld, animatable.getX()),
+                    Mth.lerp(partialTick, animatable.yOld, animatable.getY()),
+                    Mth.lerp(partialTick, animatable.zOld, animatable.getZ()));
+
+            float scale = RoccoClientConfig.MODEL_SCALE.get().floatValue();
+            poseStack.scale(scale, scale, scale);
+        }
+
+        super.preRender(poseStack, animatable, model, bufferSource, buffer, isReRender, partialTick,
+                packedLight, packedOverlay, red, green, blue, alpha);
+    }
+
+    // Despues de dibujar, anota donde quedaron los localizadores (cabeza, mate, manos) para que
+    // las particulas salgan justo de ahi.
+    @Override
+    public void renderFinal(PoseStack poseStack, RoccoEntity animatable, BakedGeoModel model,
+                            MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick,
+                            int packedLight, int packedOverlay, float red, float green, float blue, float alpha)
+    {
+        super.renderFinal(poseStack, animatable, model, bufferSource, buffer, partialTick, packedLight,
+                packedOverlay, red, green, blue, alpha);
+
+        for (String name : RoccoModel.LOCATORS)
+        {
+            model.getBone(name).ifPresent(bone ->
+            {
+                if (bone.isTrackingMatrices())
+                {
+                    Vector3d world = bone.getWorldPosition();
+                    RoccoParticleFx.rememberLocator(animatable, name, new Vec3(world.x, world.y, world.z));
+                }
+            });
+        }
+    }
+
+    @Override
+    public void render(RoccoEntity entity, float entityYaw, float partialTick, PoseStack poseStack,
+                       MultiBufferSource bufferSource, int packedLight)
+    {
+        // Muerto esperando para reaparecer (se lo llevo la tierra): no se dibuja nada.
+        if (entity.isInvisible() && entity.getRoccoState() == com.cristoree.rocco.entity.RoccoState.DYING)
+        {
+            return;
+        }
+        this.rodTip = null;
+        super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
+        RoccoFishingLine.render(entity, this.rodTip, partialTick, poseStack, bufferSource, this.entityRenderDispatcher);
+        renderHealth(entity, poseStack, bufferSource, packedLight);
+    }
+
+    // Sus corazones (verdes, de hoja) sobre la cabeza mientras no tenga la vida llena; con la vida
+    // llena desaparecen. Van arriba del nombre, si se ve.
+    private void renderHealth(RoccoEntity rocco, PoseStack poseStack, MultiBufferSource buffers, int packedLight)
+    {
+        float health = rocco.getHealth();
+        float max = rocco.getMaxHealth();
+        if (!RoccoClientConfig.SHOW_HEALTH.get() || rocco.getRoccoState() != com.cristoree.rocco.entity.RoccoState.ACTIVE
+                || health >= max || health <= 0.0F || this.entityRenderDispatcher.distanceToSqr(rocco) > 24.0D * 24.0D)
+        {
+            return;
+        }
+        net.minecraft.network.chat.Component hearts = hearts(health, max);
+        poseStack.pushPose();
+        float above = shouldShowName(rocco) ? 0.27F : 0.0F;
+        poseStack.translate(0.0F, rocco.getNameTagOffsetY() + above, 0.0F);
+        poseStack.mulPose(this.entityRenderDispatcher.cameraOrientation());
+        poseStack.scale(-0.025F, -0.025F, 0.025F);
+        org.joml.Matrix4f pose = poseStack.last().pose();
+        net.minecraft.client.gui.Font font = getFont();
+        float x = -font.width(hearts) / 2.0F;
+        int background = (int) (Minecraft.getInstance().options.getBackgroundOpacity(0.25F) * 255.0F) << 24;
+        font.drawInBatch(hearts, x, 0.0F, 0xFFFFFFFF, false, pose, buffers, net.minecraft.client.gui.Font.DisplayMode.NORMAL,
+                background, packedLight);
+        poseStack.popPose();
+    }
+
+    // Uno por cada 2 de vida (hasta 10); medio corazon en verde claro. Con mas de 20 de vida
+    // maxima, en numeros.
+    private static net.minecraft.network.chat.Component hearts(float health, float max)
+    {
+        if (max > 20.0F)
+        {
+            return net.minecraft.network.chat.Component.literal("♥ " + (int) Math.ceil(health) + "/" + (int) max)
+                    .withStyle(net.minecraft.ChatFormatting.GREEN);
+        }
+        net.minecraft.network.chat.MutableComponent out = net.minecraft.network.chat.Component.empty();
+        int total = (int) Math.ceil(max / 2.0F);
+        int points = (int) Math.ceil(health);
+        for (int i = 0; i < total; i++)
+        {
+            int filled = points - i * 2;
+            int color = filled >= 2 ? 0x3FD13F : filled == 1 ? 0xB5E655 : 0x4A4A4A;
+            out.append(net.minecraft.network.chat.Component.literal("♥").withStyle(style -> style.withColor(color)));
+        }
+        return out;
+    }
+
+    @Override
+    public boolean shouldRender(RoccoEntity entity, Frustum frustum, double camX, double camY, double camZ)
+    {
+        return super.shouldRender(entity, frustum, camX, camY, camZ) || RoccoFishingLine.isVisible(entity, frustum);
+    }
+
+    // Repite lo que hace ItemRenderer antes de dibujar el item (la pose de "en la mano" del modelo
+    // y el corrimiento al centro) para saber donde quedo la punta, y la pasa a coordenadas del mundo.
+    private void rememberRodTip(PoseStack poseStack, ItemStack stack, RoccoEntity rocco, ItemDisplayContext context)
+    {
+        poseStack.pushPose();
+        BakedModel model = Minecraft.getInstance().getItemRenderer().getModel(stack, rocco.level(), rocco, rocco.getId());
+        ForgeHooksClient.handleCameraTransforms(poseStack, model, context, false);
+        poseStack.translate(-0.5F, -0.5F, -0.5F);
+        Vector4f tip = poseStack.last().pose().transform(new Vector4f(ROD_TIP_X, ROD_TIP_Y, 0.5F, 1.0F));
+        poseStack.popPose();
+
+        Vector4f local = new Matrix4f(this.renderOrigin).invert().transform(tip);
+        this.rodTip = this.renderPosition.add(local.x, local.y, local.z);
+    }
+
+    // Volando, las animaciones ya lo acuestan; ademas se inclina con el jugador (sube y baja con
+    // el), igual que el juego inclina al jugador con el elytra. Gira alrededor del centro del
+    // modelo para que no se despegue del lugar.
+    @Override
+    protected void applyRotations(RoccoEntity animatable, PoseStack poseStack, float ageInTicks, float rotationYaw,
+                                  float partialTick)
+    {
+        super.applyRotations(animatable, poseStack, ageInTicks, rotationYaw, partialTick);
+        if (animatable.getMotion().tiltsWithPlayer())
+        {
+            float pitch = Mth.lerp(partialTick, animatable.xRotO, animatable.getXRot());
+            float center = animatable.getBbHeight() * 0.5F;
+            poseStack.translate(0.0F, center, 0.0F);
+            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-pitch));
+            poseStack.translate(0.0F, -center, 0.0F);
+        }
+        // En el caballo parado de manos se echa para atras: poco, abrazado al cuello, porque si no su
+        // cabeza queda adentro de la del jugador. Para el que lo monta en primera persona se acuesta
+        // sobre el lomo: si no, le taparia toda la vista durante el salto.
+        float stand = animatable.horseStand(partialTick);
+        if (stand > 0.0F)
+        {
+            float lean = riderLooksOverHim(animatable) ? HORSE_LEAN_FOR_RIDER : HORSE_LEAN;
+            poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(stand * lean));
+        }
+    }
+
+    private static final float HORSE_LEAN = 10.0F;
+    private static final float HORSE_LEAN_FOR_RIDER = 50.0F;
+
+    private static boolean riderLooksOverHim(RoccoEntity rocco)
+    {
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft.player != null && minecraft.getCameraEntity() == minecraft.player
+                && minecraft.options.getCameraType().isFirstPerson() && minecraft.player.getVehicle() == rocco.getVehicle();
+    }
+
+    @Override
+    public boolean shouldShowName(RoccoEntity animatable)
+    {
+        if (!RoccoClientConfig.SHOW_NAMEPLATE.get() || !Minecraft.renderNames() || animatable.isPlantVisible())
+        {
+            return false;
+        }
+        double max = RoccoClientConfig.NAMEPLATE_DISTANCE.get();
+        return this.entityRenderDispatcher.distanceToSqr(animatable) <= max * max;
+    }
+}

@@ -33,6 +33,17 @@ Armá el jar con `gradlew build` dentro de `rocco-forge`. Queda en `rocco-forge/
 | Changelog | El de `ARCHIVO-1.6.0.md` |
 | Dependencias | **GeckoLib**: Required Dependency |
 
+### Otras versiones de Minecraft
+
+Cada versión de Minecraft tiene su carpeta y su jar. Se sube un archivo por versión, con el mismo changelog, y en cada uno se marca solo su versión del juego.
+
+| Carpeta | Jar (en `build/libs`) | Versión del juego | Forge | GeckoLib | Java |
+|---|---|---|---|---|---|
+| `rocco-forge` | `rocco-forge-1.20.1-1.6.0.jar` | 1.20.1 | 47 | 4.7 o más | 17 |
+| `rocco-forge-1.20.2` | `rocco-forge-1.20.2-1.6.0.jar` | 1.20.2 | 48 | 4.3.1 | 17 |
+
+El nombre visible lleva la versión: "Rocco 1.6.0 (Forge 1.20.2)". El jar que termina en `-slim` no se sube.
+
 ## 3. Imágenes
 
 - Capturas y GIFs para la galería: sirven los de `UsaryVaciaROCCO/rocco_completo/previews` (armas, armaduras, tumba, nacimiento, Roco Cola, cofre de ender, canto), más capturas tuyas jugando: el menú, el mate compartido, volando con elytra, el patito y el barquito.
@@ -49,7 +60,7 @@ Armá el jar con `gradlew build` dentro de `rocco-forge`. Queda en `rocco-forge/
 
 ## 5. Antes de cada versión
 
-1. Subir `mod_version` en `rocco-forge/gradle.properties`.
+1. Subir `mod_version` en el `gradle.properties` de cada carpeta (`rocco-forge`, `rocco-forge-1.20.2`, ...). Un cambio en el mod se lleva a todas las carpetas.
 2. Sumar la sección nueva en `CHANGELOG.md` y armar el texto del archivo como `ARCHIVO-<versión>.md`.
 3. Probar en un mundo nuevo y en uno viejo (que cargue bien con un Rocco de la versión anterior).
 4. `gradlew build` y subir el jar.

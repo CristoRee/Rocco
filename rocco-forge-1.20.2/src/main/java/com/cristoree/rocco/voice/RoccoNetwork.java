@@ -1,0 +1,526 @@
+package com.cristoree.rocco.voice;
+
+import com.cristoree.rocco.RoccoMod;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.network.NetworkDirection;
+import net.minecraftforge.event.network.CustomPayloadEvent;
+import net.minecraftforge.network.Channel;
+import net.minecraftforge.network.ChannelBuilder;
+import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.network.SimpleChannel;
+
+
+// El canal del mod: la voz de Rocco viaja del servidor a los jugadores, y lo que dice el jugador
+// por microfono viaja al servidor. El audio va en pedazos chicos porque Minecraft limita el
+// tamaño de cada paquete (del jugador al servidor, a 32 KB).
+public final class RoccoNetwork
+{
+    // Sube cuando cambian los mensajes: un cliente y un servidor con versiones distintas de Rocco
+    // se avisan al conectar en vez de fallar a mitad de partida. 2: se agrego OpenSetup.
+    // 3: se agrego VoiceLines (las frases grabadas). 4: el menu de Rocco (OpenMenu y MenuAction).
+    // 5: CallRocco (traerlo desde la config o con su tecla). 6: la musica desde links.
+    // 7: el eructo de la Roco Cola. 8: la guia de Rocco. 9: la cara que va con cada frase.
+    // 10: el truco (TrucoNetwork, desde el 20).
+    private static final int PROTOCOL = 10;
+    public static final int CHUNK_BYTES = 30_000;
+
+    // El jugador con el mod puede entrar a servidores que no lo tienen (ahi Rocco no existe y el canal
+    // no se usa). Un servidor con Rocco si necesita el mod en el jugador.
+    public static final SimpleChannel CHANNEL = ChannelBuilder.named(new ResourceLocation(RoccoMod.MODID, "main"))
+            .networkProtocolVersion(PROTOCOL)
+            .clientAcceptedVersions(Channel.VersionTest.ACCEPT_MISSING.or(Channel.VersionTest.exact(PROTOCOL)))
+            .serverAcceptedVersions(Channel.VersionTest.exact(PROTOCOL))
+            .simpleChannel();
+
+    // Un pedazo de la voz de Rocco: PCM de 16 bits mono, a 'sampleRate'.
+    // face: la cara de lo que dice (ordinal de RoccoExpression, -1 si no tiene): el cliente la muestra
+    // mientras suena esa frase, aunque despues haya llegado otra respuesta con otra cara.
+    public record VoiceChunk(int stream, int entityId, int sampleRate, int index, int count, byte[] data, int face)
+    {
+        static void encode(VoiceChunk msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.stream);
+            buf.writeVarInt(msg.entityId);
+            buf.writeVarInt(msg.sampleRate);
+            buf.writeVarInt(msg.index);
+            buf.writeVarInt(msg.count);
+            buf.writeByteArray(msg.data);
+            buf.writeVarInt(msg.face + 1);
+        }
+
+        static VoiceChunk decode(FriendlyByteBuf buf)
+        {
+            return new VoiceChunk(buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(),
+                    buf.readVarInt(), buf.readByteArray(CHUNK_BYTES + 64), buf.readVarInt() - 1);
+        }
+    }
+
+    // Un pedazo de lo que grabo el microfono del jugador (PCM 16 bits mono, 16 kHz).
+    public record MicChunk(int session, int index, boolean last, byte[] data)
+    {
+        static void encode(MicChunk msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.session);
+            buf.writeVarInt(msg.index);
+            buf.writeBoolean(msg.last);
+            buf.writeByteArray(msg.data);
+        }
+
+        static MicChunk decode(FriendlyByteBuf buf)
+        {
+            return new MicChunk(buf.readVarInt(), buf.readVarInt(), buf.readBoolean(), buf.readByteArray(CHUNK_BYTES + 64));
+        }
+    }
+
+    // Frases grabadas que Rocco dice en voz alta, en orden: el audio ya esta en el mod de cada
+    // jugador (assets/rocco/voice_lines/<codigo>.ogg), asi que solo viajan los codigos.
+    public record VoiceLines(int entityId, java.util.List<String> ids, int face)
+    {
+        static void encode(VoiceLines msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeCollection(msg.ids, (out, id) -> out.writeUtf(id, 96));
+            buf.writeVarInt(msg.face + 1);
+        }
+
+        static VoiceLines decode(FriendlyByteBuf buf)
+        {
+            int entity = buf.readVarInt();
+            java.util.List<String> ids = buf.readList(in -> in.readUtf(96));
+            return new VoiceLines(entity, ids, buf.readVarInt() - 1);
+        }
+    }
+
+    // Agachado + clic derecho: el menu de Rocco, con lo que esta haciendo para que cada boton diga
+    // lo que corresponde ("Dejar de seguir" o "Seguirme"). flags: ver RoccoMenu.
+    public record OpenMenu(int entityId, String status, int flags, String mode, String bond, float bondProgress,
+                           String magic, java.util.List<String> places)
+    {
+        static void encode(OpenMenu msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeUtf(msg.status, 128);
+            buf.writeVarInt(msg.flags);
+            buf.writeUtf(msg.mode, 32);
+            buf.writeUtf(msg.bond, 32);
+            buf.writeFloat(msg.bondProgress);
+            buf.writeUtf(msg.magic, 32);
+            buf.writeCollection(msg.places, (out, place) -> out.writeUtf(place, 64));
+        }
+
+        static OpenMenu decode(FriendlyByteBuf buf)
+        {
+            return new OpenMenu(buf.readVarInt(), buf.readUtf(128), buf.readVarInt(), buf.readUtf(32), buf.readUtf(32),
+                    buf.readFloat(), buf.readUtf(32), buf.readList(in -> in.readUtf(64)));
+        }
+    }
+
+    // Lo que el jugador eligio en el menu ("seguir", "ir_a" + "casa"...).
+    public record MenuAction(int entityId, String action, String argument)
+    {
+        static void encode(MenuAction msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeUtf(msg.action, 32);
+            buf.writeUtf(msg.argument, 64);
+        }
+
+        static MenuAction decode(FriendlyByteBuf buf)
+        {
+            return new MenuAction(buf.readVarInt(), buf.readUtf(32), buf.readUtf(64));
+        }
+    }
+
+    // "Traer a Rocco": el boton de la config o la tecla. Lo trae esté donde esté (como /rocco llamar).
+    public record CallRocco()
+    {
+        static void encode(CallRocco msg, FriendlyByteBuf buf)
+        {
+        }
+
+        static CallRocco decode(FriendlyByteBuf buf)
+        {
+            return new CallRocco();
+        }
+    }
+
+    // La guia de Rocco: al nacer (birth, una sola vez) o porque la pidio con /rocco tutorial.
+    public record OpenTutorial(int entityId, boolean birth)
+    {
+        static void encode(OpenTutorial msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeBoolean(msg.birth);
+        }
+
+        static OpenTutorial decode(FriendlyByteBuf buf)
+        {
+            return new OpenTutorial(buf.readVarInt(), buf.readBoolean());
+        }
+    }
+
+    public static void sendTutorial(ServerPlayer player, int entityId, boolean birth)
+    {
+        CHANNEL.send(new OpenTutorial(entityId, birth), PacketDistributor.PLAYER.with(player));
+    }
+
+    private static void handleTutorial(OpenTutorial msg, CustomPayloadEvent.Context context)
+    {
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.tutorial.RoccoTutorialClient.open(msg.entityId(), msg.birth())));
+        context.setPacketHandled(true);
+    }
+
+    // El eructo de un jugador: el viento y las hojas los dibuja cada cliente (RoccoBurpFx).
+    public record BurpFx(int entityId, float x, float y, float z)
+    {
+        static void encode(BurpFx msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeFloat(msg.x);
+            buf.writeFloat(msg.y);
+            buf.writeFloat(msg.z);
+        }
+
+        static BurpFx decode(FriendlyByteBuf buf)
+        {
+            return new BurpFx(buf.readVarInt(), buf.readFloat(), buf.readFloat(), buf.readFloat());
+        }
+    }
+
+    public static void sendBurp(ServerPlayer player, BurpFx msg)
+    {
+        CHANNEL.send(msg, PacketDistributor.TRACKING_ENTITY_AND_SELF.with(player));
+    }
+
+    private static void handleBurp(BurpFx msg, CustomPayloadEvent.Context context)
+    {
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.RoccoBurpFx.start(msg)));
+        context.setPacketHandled(true);
+    }
+
+    // Cortar una animacion disparada de una entidad (GeckoLib 4.3 no lo hace solo).
+    public record StopAnimation(int entityId, String controller, String animation)
+    {
+        static void encode(StopAnimation msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeUtf(msg.controller, 64);
+            buf.writeUtf(msg.animation == null ? "" : msg.animation, 64);
+        }
+
+        static StopAnimation decode(FriendlyByteBuf buf)
+        {
+            int entityId = buf.readVarInt();
+            String controller = buf.readUtf(64);
+            String animation = buf.readUtf(64);
+            return new StopAnimation(entityId, controller, animation.isEmpty() ? null : animation);
+        }
+    }
+
+    public static void sendStopAnimation(net.minecraft.world.entity.Entity entity, String controller, String animation)
+    {
+        CHANNEL.send(new StopAnimation(entity.getId(), controller, animation), PacketDistributor.TRACKING_ENTITY_AND_SELF.with(entity));
+    }
+
+    private static void handleStopAnimation(StopAnimation msg, CustomPayloadEvent.Context context)
+    {
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.RoccoClientAnims.stop(msg.entityId(), msg.controller(), msg.animation())));
+        context.setPacketHandled(true);
+    }
+
+    // ---------- musica (ver RoccoMusic) ----------
+
+    // Al jugador que pidio la cancion: "abri este link y decime si se puede escuchar".
+    public record MusicResolve(int request, String url)
+    {
+        static void encode(MusicResolve msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.request);
+            buf.writeUtf(msg.url, 600);
+        }
+
+        static MusicResolve decode(FriendlyByteBuf buf)
+        {
+            return new MusicResolve(buf.readVarInt(), buf.readUtf(600));
+        }
+    }
+
+    // La respuesta: si suena, el link final, el titulo y cuanto dura (0 si es una radio). Si no, por que.
+    public record MusicResolved(int request, boolean ok, String url, String title, long durationMs, String error)
+    {
+        static void encode(MusicResolved msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.request);
+            buf.writeBoolean(msg.ok);
+            buf.writeUtf(msg.url, 600);
+            buf.writeUtf(msg.title, 200);
+            buf.writeVarLong(Math.max(0L, msg.durationMs));
+            buf.writeUtf(msg.error, 300);
+        }
+
+        static MusicResolved decode(FriendlyByteBuf buf)
+        {
+            return new MusicResolved(buf.readVarInt(), buf.readBoolean(), buf.readUtf(600), buf.readUtf(200),
+                    buf.readVarLong(), buf.readUtf(300));
+        }
+    }
+
+    // A todos los de cerca: "este Rocco esta tocando esto desde el tick tal".
+    public record MusicPlay(int entityId, int session, String url, String title, long durationMs, long startTick)
+    {
+        static void encode(MusicPlay msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeVarInt(msg.session);
+            buf.writeUtf(msg.url, 600);
+            buf.writeUtf(msg.title, 200);
+            buf.writeVarLong(Math.max(0L, msg.durationMs));
+            buf.writeLong(msg.startTick);
+        }
+
+        static MusicPlay decode(FriendlyByteBuf buf)
+        {
+            return new MusicPlay(buf.readVarInt(), buf.readVarInt(), buf.readUtf(600), buf.readUtf(200),
+                    buf.readVarLong(), buf.readLong());
+        }
+    }
+
+    public record MusicStop(int entityId, int session)
+    {
+        static void encode(MusicStop msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeVarInt(msg.session);
+        }
+
+        static MusicStop decode(FriendlyByteBuf buf)
+        {
+            return new MusicStop(buf.readVarInt(), buf.readVarInt());
+        }
+    }
+
+    // "Subí el volumen": cambia el volumen de la musica de Rocco en la config de ese jugador.
+    public record MusicVolume(float delta)
+    {
+        static void encode(MusicVolume msg, FriendlyByteBuf buf)
+        {
+            buf.writeFloat(msg.delta);
+        }
+
+        static MusicVolume decode(FriendlyByteBuf buf)
+        {
+            return new MusicVolume(buf.readFloat());
+        }
+    }
+
+    // "/rocco setup": que el jugador abra la pantalla de bienvenida (los comandos corren en el servidor).
+    public record OpenSetup()
+    {
+        static void encode(OpenSetup msg, FriendlyByteBuf buf)
+        {
+        }
+
+        static OpenSetup decode(FriendlyByteBuf buf)
+        {
+            return new OpenSetup();
+        }
+    }
+
+    public static void register()
+    {
+        CHANNEL.messageBuilder(VoiceChunk.class, 0, NetworkDirection.PLAY_TO_CLIENT).encoder(VoiceChunk::encode).decoder(VoiceChunk::decode).consumerNetworkThread(RoccoNetwork::onVoiceChunk).add();
+        CHANNEL.messageBuilder(MicChunk.class, 1, NetworkDirection.PLAY_TO_SERVER).encoder(MicChunk::encode).decoder(MicChunk::decode).consumerNetworkThread(RoccoNetwork::onMicChunk).add();
+        CHANNEL.messageBuilder(OpenSetup.class, 2, NetworkDirection.PLAY_TO_CLIENT).encoder(OpenSetup::encode).decoder(OpenSetup::decode).consumerNetworkThread(RoccoNetwork::onOpenSetup).add();
+        CHANNEL.messageBuilder(VoiceLines.class, 3, NetworkDirection.PLAY_TO_CLIENT).encoder(VoiceLines::encode).decoder(VoiceLines::decode).consumerNetworkThread(RoccoNetwork::onVoiceLines).add();
+        CHANNEL.messageBuilder(OpenMenu.class, 4, NetworkDirection.PLAY_TO_CLIENT).encoder(OpenMenu::encode).decoder(OpenMenu::decode).consumerNetworkThread(RoccoNetwork::onOpenMenu).add();
+        CHANNEL.messageBuilder(MenuAction.class, 5, NetworkDirection.PLAY_TO_SERVER).encoder(MenuAction::encode).decoder(MenuAction::decode).consumerNetworkThread(RoccoNetwork::onMenuAction).add();
+        CHANNEL.messageBuilder(CallRocco.class, 6, NetworkDirection.PLAY_TO_SERVER).encoder(CallRocco::encode).decoder(CallRocco::decode).consumerNetworkThread(RoccoNetwork::onCallRocco).add();
+        CHANNEL.messageBuilder(MusicResolve.class, 7, NetworkDirection.PLAY_TO_CLIENT).encoder(MusicResolve::encode).decoder(MusicResolve::decode).consumerNetworkThread(RoccoNetwork::onMusicResolve).add();
+        CHANNEL.messageBuilder(MusicResolved.class, 8, NetworkDirection.PLAY_TO_SERVER).encoder(MusicResolved::encode).decoder(MusicResolved::decode).consumerNetworkThread(RoccoNetwork::onMusicResolved).add();
+        CHANNEL.messageBuilder(MusicPlay.class, 9, NetworkDirection.PLAY_TO_CLIENT).encoder(MusicPlay::encode).decoder(MusicPlay::decode).consumerNetworkThread(RoccoNetwork::onMusicPlay).add();
+        CHANNEL.messageBuilder(MusicStop.class, 10, NetworkDirection.PLAY_TO_CLIENT).encoder(MusicStop::encode).decoder(MusicStop::decode).consumerNetworkThread(RoccoNetwork::onMusicStop).add();
+        CHANNEL.messageBuilder(OpenTutorial.class, 13, NetworkDirection.PLAY_TO_CLIENT).encoder(OpenTutorial::encode).decoder(OpenTutorial::decode).consumerNetworkThread(RoccoNetwork::handleTutorial).add();
+        CHANNEL.messageBuilder(BurpFx.class, 12, NetworkDirection.PLAY_TO_CLIENT).encoder(BurpFx::encode).decoder(BurpFx::decode).consumerNetworkThread(RoccoNetwork::handleBurp).add();
+        CHANNEL.messageBuilder(StopAnimation.class, 14, NetworkDirection.PLAY_TO_CLIENT).encoder(StopAnimation::encode).decoder(StopAnimation::decode).consumerNetworkThread(RoccoNetwork::handleStopAnimation).add();
+        CHANNEL.messageBuilder(MusicVolume.class, 11, NetworkDirection.PLAY_TO_CLIENT).encoder(MusicVolume::encode).decoder(MusicVolume::decode).consumerNetworkThread(RoccoNetwork::onMusicVolume).add();
+        com.cristoree.rocco.truco.TrucoNetwork.register(CHANNEL, 20);
+    }
+
+    public static void sendMusicResolve(ServerPlayer player, MusicResolve msg)
+    {
+        CHANNEL.send(msg, PacketDistributor.PLAYER.with(player));
+    }
+
+    public static void sendMusicResolved(MusicResolved msg)
+    {
+        CHANNEL.send(msg, net.minecraftforge.network.PacketDistributor.SERVER.noArg());
+    }
+
+    public static void sendMusicPlay(ServerPlayer player, MusicPlay msg)
+    {
+        CHANNEL.send(msg, PacketDistributor.PLAYER.with(player));
+    }
+
+    public static void sendMusicStop(ServerPlayer player, MusicStop msg)
+    {
+        CHANNEL.send(msg, PacketDistributor.PLAYER.with(player));
+    }
+
+    public static void sendMusicVolume(ServerPlayer player, MusicVolume msg)
+    {
+        CHANNEL.send(msg, PacketDistributor.PLAYER.with(player));
+    }
+
+    private static void onMusicResolve(MusicResolve msg, CustomPayloadEvent.Context context)
+    {
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.music.RoccoMusicClient.resolve(msg)));
+        context.setPacketHandled(true);
+    }
+
+    private static void onMusicResolved(MusicResolved msg, CustomPayloadEvent.Context context)
+    {
+        ServerPlayer sender = context.getSender();
+        context.enqueueWork(() ->
+        {
+            if (sender != null)
+            {
+                com.cristoree.rocco.music.RoccoMusic.onResolved(sender, msg);
+            }
+        });
+        context.setPacketHandled(true);
+    }
+
+    private static void onMusicPlay(MusicPlay msg, CustomPayloadEvent.Context context)
+    {
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.music.RoccoMusicClient.play(msg)));
+        context.setPacketHandled(true);
+    }
+
+    private static void onMusicStop(MusicStop msg, CustomPayloadEvent.Context context)
+    {
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.music.RoccoMusicClient.stop(msg)));
+        context.setPacketHandled(true);
+    }
+
+    private static void onMusicVolume(MusicVolume msg, CustomPayloadEvent.Context context)
+    {
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.music.RoccoMusicClient.changeVolume(msg.delta())));
+        context.setPacketHandled(true);
+    }
+
+    public static void callRocco()
+    {
+        CHANNEL.send(new CallRocco(), net.minecraftforge.network.PacketDistributor.SERVER.noArg());
+    }
+
+    private static void onCallRocco(CallRocco msg, CustomPayloadEvent.Context context)
+    {
+        ServerPlayer sender = context.getSender();
+        context.enqueueWork(() ->
+        {
+            if (sender != null)
+            {
+                com.cristoree.rocco.RoccoCompanionTracker.callFromButton(sender);
+            }
+        });
+        context.setPacketHandled(true);
+    }
+
+    public static void openMenu(ServerPlayer player, OpenMenu menu)
+    {
+        CHANNEL.send(menu, PacketDistributor.PLAYER.with(player));
+    }
+
+    private static void onOpenMenu(OpenMenu msg, CustomPayloadEvent.Context context)
+    {
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.menu.RoccoMenuScreen.open(msg)));
+        context.setPacketHandled(true);
+    }
+
+    public static void sendMenuAction(MenuAction action)
+    {
+        CHANNEL.send(action, net.minecraftforge.network.PacketDistributor.SERVER.noArg());
+    }
+
+    private static void onMenuAction(MenuAction msg, CustomPayloadEvent.Context context)
+    {
+        ServerPlayer sender = context.getSender();
+        context.enqueueWork(() ->
+        {
+            if (sender != null)
+            {
+                com.cristoree.rocco.RoccoMenu.handle(sender, msg);
+            }
+        });
+        context.setPacketHandled(true);
+    }
+
+    public static void sendLines(ServerPlayer player, VoiceLines lines)
+    {
+        CHANNEL.send(lines, PacketDistributor.PLAYER.with(player));
+    }
+
+    private static void onVoiceLines(VoiceLines msg, CustomPayloadEvent.Context context)
+    {
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.voice.VoicePlayback.playLines(msg.entityId(), msg.ids(), msg.face())));
+        context.setPacketHandled(true);
+    }
+
+    public static void openSetup(ServerPlayer player)
+    {
+        CHANNEL.send(new OpenSetup(), net.minecraftforge.network.PacketDistributor.PLAYER.with(player));
+    }
+
+    private static void onOpenSetup(OpenSetup msg, CustomPayloadEvent.Context context)
+    {
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.setup.RoccoSetup.open()));
+        context.setPacketHandled(true);
+    }
+
+    private static void onVoiceChunk(VoiceChunk msg, CustomPayloadEvent.Context context)
+    {
+        // El servidor dedicado no tiene clases de audio: solo se toca el cliente si existe.
+        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.voice.VoicePlayback.receive(msg)));
+        context.setPacketHandled(true);
+    }
+
+    private static void onMicChunk(MicChunk msg, CustomPayloadEvent.Context context)
+    {
+        ServerPlayer sender = context.getSender();
+        context.enqueueWork(() ->
+        {
+            if (sender != null)
+            {
+                MicReceiver.receive(sender, msg);
+            }
+        });
+        context.setPacketHandled(true);
+    }
+
+    public static void sendVoice(ServerPlayer player, VoiceChunk chunk)
+    {
+        CHANNEL.send(chunk, PacketDistributor.PLAYER.with(player));
+    }
+
+    public static void sendMic(MicChunk chunk)
+    {
+        CHANNEL.send(chunk, net.minecraftforge.network.PacketDistributor.SERVER.noArg());
+    }
+
+    private RoccoNetwork() {}
+}
