@@ -1,0 +1,20 @@
+{
+  "type": "rocco:backpack_upgrade",
+  "category": "equipment",
+  "pattern": [
+    "GPG",
+    "CBC",
+    "GKG"
+  ],
+  "key": {
+    "G": "minecraft:gold_ingot",
+    "P": "minecraft:ender_pearl",
+    "C": "minecraft:chest",
+    "K": "minecraft:lantern",
+    "B": "rocco:mochila_2"
+  },
+  "result": {
+    "id": "rocco:mochila_3"
+  },
+  "source": "rocco:mochila_2"
+}

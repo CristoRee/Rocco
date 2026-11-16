@@ -1,0 +1,472 @@
+package com.cristoree.rocco;
+
+import com.cristoree.rocco.entity.RoccoEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Relative;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Set;
+import java.util.UUID;
+
+// Mantiene a Rocco junto a su jugador. Sin esto, al morir el jugador reaparecia lejos (o en
+// otra dimension) y Rocco quedaba atras: el goal de seguimiento no lo encontraba y nunca se
+// teleportaba.
+@net.neoforged.fml.common.EventBusSubscriber(modid = RoccoMod.MODID)
+public final class RoccoCompanionTracker
+{
+    public static final String TAG_ROCCO_UUID = "rocco_uuid";
+    // Donde lo vio por ultima vez y si te venia siguiendo: sirve para ir a buscarlo cuando su
+    // zona del mundo no esta cargada (entraste al mundo en otro lado, te tepeaste lejos...).
+    public static final String TAG_ROCCO_POS = "rocco_pos";
+    public static final String TAG_ROCCO_DIM = "rocco_dim";
+    public static final String TAG_ROCCO_FOLLOWING = "rocco_following";
+    // Donde quedo cuidando la casa (si la cuida): al entrar al mundo se la despierta.
+    public static final String TAG_ROCCO_HOME = "rocco_home";
+
+    // Llamadas en curso: se carga el chunk donde estaba hasta que aparece, y se lo trae.
+    // bring: traerlo al lado del jugador. Sin bring solo se despierta su zona (cuida la casa).
+    private record Recall(UUID player, ServerLevel level, net.minecraft.world.level.ChunkPos chunk, int ticksLeft, boolean announce,
+                          boolean bring) {}
+    private static final java.util.List<Recall> RECALLS = new java.util.ArrayList<>();
+
+    // Forge pide un "validador" para los chunks que dejamos cargados. Al abrir el mundo se
+    // sueltan todos: cada Rocco vuelve a pedir el suyo apenas se mueve.
+    // Los chunks que Rocco deja cargados. Al abrir el mundo se sueltan todos: los vuelve a pedir el.
+    public static final net.neoforged.neoforge.common.world.chunk.TicketController TICKETS =
+            new net.neoforged.neoforge.common.world.chunk.TicketController(
+                    net.minecraft.resources.Identifier.fromNamespaceAndPath(RoccoMod.MODID, "rocco"), (level, helper) ->
+            {
+                helper.getEntityTickets().keySet().forEach(helper::removeAllTickets);
+                helper.getBlockTickets().keySet().forEach(helper::removeAllTickets);
+            });
+
+    public static void registerChunkLoading(net.neoforged.neoforge.common.world.chunk.RegisterTicketControllersEvent event)
+    {
+        event.register(TICKETS);
+    }
+
+    // "Rocco, veni": lo trae aunque este lejisimo o en una zona descargada. true si ya llego.
+    public static boolean recall(ServerPlayer player, boolean announce)
+    {
+        RoccoEntity rocco = find(player);
+        if (rocco != null)
+        {
+            bringToPlayer(player);
+            return true;
+        }
+
+        CompoundTag data = player.getPersistentData();
+        MinecraftServer server = player.level().getServer();
+        if (!data.contains(TAG_ROCCO_POS) || server == null)
+        {
+            return false;
+        }
+
+        ResourceLocationHolder dim = ResourceLocationHolder.of(data.getStringOr(TAG_ROCCO_DIM, ""));
+        ServerLevel level = dim == null ? null : server.getLevel(net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.DIMENSION, dim.location()));
+        if (level == null)
+        {
+            return false;
+        }
+
+        BlockPos last = BlockPos.of(data.getLongOr(TAG_ROCCO_POS, 0L));
+        net.minecraft.world.level.ChunkPos chunk = net.minecraft.world.level.ChunkPos.containing(last);
+        TICKETS.forceChunk(level, player.getUUID(),
+                chunk.x(), chunk.z(), true, true);
+        RECALLS.removeIf(recall -> recall.player().equals(player.getUUID()));
+        RECALLS.add(new Recall(player.getUUID(), level, chunk, 200, announce, true));
+        return false;
+    }
+
+    // Entraste al mundo lejos de la casa que cuida: se carga la casa un momento para que Rocco
+    // despierte y pida la suya (despues la mantiene el).
+    private static void wakeHome(ServerPlayer player)
+    {
+        CompoundTag data = player.getPersistentData();
+        MinecraftServer server = player.level().getServer();
+        ResourceLocationHolder dim = ResourceLocationHolder.of(data.getStringOr(TAG_ROCCO_DIM, ""));
+        ServerLevel level = dim == null || server == null ? null : server.getLevel(net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.DIMENSION, dim.location()));
+        if (level == null)
+        {
+            return;
+        }
+        net.minecraft.world.level.ChunkPos chunk = net.minecraft.world.level.ChunkPos.containing(BlockPos.of(data.getLongOr(TAG_ROCCO_POS, 0L)));
+        TICKETS.forceChunk(level, player.getUUID(),
+                chunk.x(), chunk.z(), true, true);
+        RECALLS.removeIf(recall -> recall.player().equals(player.getUUID()));
+        RECALLS.add(new Recall(player.getUUID(), level, chunk, 200, false, false));
+    }
+
+    // Espera a que el chunk termine de cargar a Rocco y lo trae. Si en 10 segundos no aparece,
+    // se rinde y suelta el chunk.
+    @SubscribeEvent
+    public static void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event)
+    {
+        if (RECALLS.isEmpty())
+        {
+            return;
+        }
+
+        MinecraftServer server = event.getServer();
+        java.util.List<Recall> next = new java.util.ArrayList<>();
+        for (Recall recall : RECALLS)
+        {
+            ServerPlayer player = server.getPlayerList().getPlayer(recall.player());
+            RoccoEntity rocco = player == null ? null : find(player);
+
+            if (player != null && rocco != null)
+            {
+                if (recall.bring())
+                {
+                    bringToPlayer(player);
+                    if (recall.announce())
+                    {
+                        rocco.sayLine("teleport_arrived");
+                    }
+                }
+                release(recall);
+            }
+            else if (player == null || recall.ticksLeft() <= 0)
+            {
+                release(recall);
+            }
+            else
+            {
+                next.add(new Recall(recall.player(), recall.level(), recall.chunk(), recall.ticksLeft() - 1, recall.announce(), recall.bring()));
+            }
+        }
+        RECALLS.clear();
+        RECALLS.addAll(next);
+    }
+
+    private static void release(Recall recall)
+    {
+        TICKETS.forceChunk(recall.level(), recall.player(),
+                recall.chunk().x(), recall.chunk().z(), false, true);
+    }
+
+    // Al entrar al mundo: si te venia siguiendo y quedo lejos (o en una zona descargada), lo trae.
+    @SubscribeEvent
+    public static void onLogin(PlayerEvent.PlayerLoggedInEvent event)
+    {
+        if (!(event.getEntity() instanceof ServerPlayer player))
+        {
+            return;
+        }
+        CompoundTag data = player.getPersistentData();
+        if (data.contains(TAG_ROCCO_HOME) && data.contains(TAG_ROCCO_POS) && find(player) == null)
+        {
+            wakeHome(player);
+            return;
+        }
+        if (!data.getBooleanOr(TAG_ROCCO_FOLLOWING, false) || !data.contains(TAG_ROCCO_POS))
+        {
+            return;
+        }
+
+        RoccoEntity rocco = find(player);
+        double teleport = com.cristoree.rocco.config.RoccoCommonConfig.TELEPORT_DISTANCE.get();
+        boolean far = rocco == null || rocco.level() != player.level()
+                || (teleport > 0.0D && rocco.distanceToSqr(player) > teleport * teleport);
+        if (far && teleport > 0.0D && (rocco == null || rocco.mayAutoTeleport()))
+        {
+            recall(player, false);
+        }
+    }
+
+    // Lee "minecraft:overworld" sin explotar si el texto vino roto.
+    private record ResourceLocationHolder(net.minecraft.resources.Identifier location)
+    {
+        @Nullable
+        static ResourceLocationHolder of(String text)
+        {
+            net.minecraft.resources.Identifier parsed = net.minecraft.resources.Identifier.tryParse(text);
+            return parsed == null ? null : new ResourceLocationHolder(parsed);
+        }
+    }
+
+    public static void remember(ServerPlayer player, RoccoEntity rocco)
+    {
+        com.cristoree.rocco.entity.Nbt.putUUID(player.getPersistentData(), TAG_ROCCO_UUID, rocco.getUUID());
+        rocco.setOwnerId(player.getUUID());
+    }
+
+    // Anota donde murio el jugador para que Rocco pueda contarselo despues.
+    @SubscribeEvent
+    public static void onDeath(LivingDeathEvent event)
+    {
+        if (!(event.getEntity() instanceof ServerPlayer player))
+        {
+            return;
+        }
+
+        RoccoEntity rocco = find(player);
+        if (rocco == null)
+        {
+            return;
+        }
+
+        BlockPos where = player.blockPosition();
+        String dimension = player.level().dimension().identifier().toString();
+        long day = com.cristoree.rocco.Days.dayTime(player.level()) / 24000L;
+
+        rocco.rememberDeath(where, dimension, day);
+        RoccoMod.LOGGER.info("[Rocco] {} murio en {} ({})", player.getGameProfile().name(), where, dimension);
+    }
+
+    @SubscribeEvent
+    public static void onRespawn(PlayerEvent.PlayerRespawnEvent event)
+    {
+        if (event.getEntity() instanceof ServerPlayer player)
+        {
+            // Murieron los dos: Rocco se entierra al lado de donde reapareciste.
+            RoccoEntity dead = find(player);
+            if (dead != null && dead.life().waitingForOwner())
+            {
+                dead.life().ownerRespawned(player);
+                return;
+            }
+            bringOrRecall(player);
+            RoccoEntity rocco = event.isEndConquered() ? null : find(player);
+            if (rocco != null)
+            {
+                rocco.react("react_respawn");
+            }
+        }
+    }
+
+    // Al irte del mundo, Rocco se baja: si no, se guardaria con tu caballo adentro de tus datos.
+    @SubscribeEvent
+    public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event)
+    {
+        if (event.getEntity() instanceof ServerPlayer player)
+        {
+            RoccoEntity rocco = find(player);
+            if (rocco != null && rocco.isPassenger())
+            {
+                rocco.stopTravelling();
+            }
+        }
+    }
+
+    // Agachado + clic derecho con la mano vacia a TU lobo, con Rocco cerca: le das (o le sacas) el
+    // permiso de subirse a ese lobo.
+    @SubscribeEvent
+    public static void onInteractEntity(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.EntityInteract event)
+    {
+        if (!(event.getEntity() instanceof ServerPlayer player) || event.getHand() != net.minecraft.world.InteractionHand.MAIN_HAND
+                || !player.isShiftKeyDown() || !player.getMainHandItem().isEmpty()
+                || !(event.getTarget() instanceof net.minecraft.world.entity.animal.wolf.Wolf wolf) || !wolf.isOwnedBy(player))
+        {
+            return;
+        }
+        RoccoEntity rocco = find(player);
+        if (rocco == null || rocco.level() != player.level() || rocco.distanceToSqr(wolf) > 16.0D * 16.0D)
+        {
+            return;
+        }
+        boolean allowed = rocco.toggleWolf(wolf.getUUID());
+        player.sendOverlayMessage(net.minecraft.network.chat.Component.translatable(
+                allowed ? "rocco.wolf.allowed" : "rocco.wolf.denied", wolf.getDisplayName()));
+        event.setCanceled(true);
+        event.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);
+    }
+
+    // Tambien al cruzar un portal: si no, se queda del otro lado.
+    @SubscribeEvent
+    public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event)
+    {
+        if (event.getEntity() instanceof ServerPlayer player)
+        {
+            bringOrRecall(player);
+        }
+    }
+
+    // Si esta cargado lo trae ya; si su zona se descargo (por ejemplo, moriste lejisimo), carga
+    // donde lo vio por ultima vez y lo trae en cuanto aparece. Asi nunca queda perdido del otro lado.
+    private static void bringOrRecall(ServerPlayer player)
+    {
+        RoccoEntity found = find(player);
+        if (found != null && (!found.mayAutoTeleport() || found.staysForWork() || !found.isFollowing()))
+        {
+            return;
+        }
+        if (found != null)
+        {
+            bringToPlayer(player);
+        }
+        else if (player.getPersistentData().getBooleanOr(TAG_ROCCO_FOLLOWING, false))
+        {
+            recall(player, false);
+        }
+    }
+
+    // Pusiste un cofre de ender cerca de tu Rocco: si todavia no tiene el poder, va y se lo come.
+    @SubscribeEvent
+    public static void onBlockPlaced(net.neoforged.neoforge.event.level.BlockEvent.EntityPlaceEvent event)
+    {
+        if (!(event.getEntity() instanceof ServerPlayer player)
+                || !(event.getPlacedBlock().getBlock() instanceof net.minecraft.world.level.block.EnderChestBlock))
+        {
+            return;
+        }
+        RoccoEntity rocco = find(player);
+        if (rocco != null && rocco.level() == player.level()
+                && rocco.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(event.getPos())) < 8.0D * 8.0D)
+        {
+            rocco.life().noticeEnderChest(event.getPos());
+        }
+    }
+
+    // El UUID se conserva al morir solo si se copia a mano al jugador nuevo.
+    @SubscribeEvent
+    public static void onClone(PlayerEvent.Clone event)
+    {
+        CompoundTag old = event.getOriginal().getPersistentData();
+        if (com.cristoree.rocco.entity.Nbt.hasUUID(old, TAG_ROCCO_UUID))
+        {
+            com.cristoree.rocco.entity.Nbt.putUUID(event.getEntity().getPersistentData(), TAG_ROCCO_UUID, com.cristoree.rocco.entity.Nbt.getUUID(old, TAG_ROCCO_UUID));
+        }
+        // Los regalos de Rocco son una sola vez, aunque te mueras.
+        CompoundTag fresh = event.getEntity().getPersistentData();
+        fresh.putBoolean(com.cristoree.rocco.entity.RoccoGifts.TAG_SEED, old.getBooleanOr(com.cristoree.rocco.entity.RoccoGifts.TAG_SEED, false));
+        fresh.putBoolean(com.cristoree.rocco.entity.RoccoGifts.TAG_FLOWER, old.getBooleanOr(com.cristoree.rocco.entity.RoccoGifts.TAG_FLOWER, false));
+        fresh.putInt(com.cristoree.rocco.entity.RoccoGifts.TAG_FLOWER_TICKS, old.getIntOr(com.cristoree.rocco.entity.RoccoGifts.TAG_FLOWER_TICKS, 0));
+    }
+
+    // El boton de la config o la tecla: lo trae siempre (atado tambien: lo desata), y avisa.
+    public static void callFromButton(ServerPlayer player)
+    {
+        if (recall(player, true))
+        {
+            RoccoEntity rocco = find(player);
+            if (rocco != null && rocco.getRoccoState() == com.cristoree.rocco.entity.RoccoState.ACTIVE)
+            {
+                rocco.sayLine("teleport_arrived");
+            }
+            return;
+        }
+        player.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("rocco.call.searching")
+                .withStyle(net.minecraft.ChatFormatting.GRAY));
+    }
+
+    public static void bringToPlayer(ServerPlayer player)
+    {
+        RoccoEntity rocco = find(player);
+        if (rocco == null)
+        {
+            return;
+        }
+        // Muerto o enterrado: su tumba aparece al lado tuyo (despues hay que desenterrarlo igual).
+        com.cristoree.rocco.entity.RoccoState state = rocco.getRoccoState();
+        if (state == com.cristoree.rocco.entity.RoccoState.DYING || state == com.cristoree.rocco.entity.RoccoState.BURIED)
+        {
+            rocco.life().summonTo(player);
+            return;
+        }
+
+        ServerLevel target = player.level();
+        BlockPos spot = RoccoSpawner.findGround(target, player.blockPosition());
+
+        double x = spot.getX() + 0.5D;
+        double y = spot.getY();
+        double z = spot.getZ() + 0.5D;
+
+        // El orden importa: cambiar de dimension crea una instancia nueva a partir del NBT,
+        // asi que lo que se toque despues del teleport se pierde. Primero se ordena el estado.
+        // Si quedo sentado o dormido, traerlo asi pareceria que sigue perdido.
+        // Atado y lo llamas igual: se suelta (la rienda cae al lado del poste, como en el juego).
+        if (rocco.isLeashed())
+        {
+            rocco.dropLeash();
+        }
+        // Lo llamaste a proposito: deja de cuidar la casa y viene.
+        if (rocco.staysForWork())
+        {
+            rocco.cancelErrand();
+        }
+        rocco.standUp();
+        rocco.setFollowing(true);
+        rocco.stopTravelling();
+        rocco.getNavigation().stop();
+
+        if (rocco.level() == target)
+        {
+            rocco.teleportTo(x, y, z);
+        }
+        else
+        {
+            // Conserva inventario, dueño y memoria de muerte: todo eso viaja en el NBT.
+            rocco.teleportTo(target, x, y, z, Set.<Relative>of(), player.getYRot(), 0.0F, true);
+        }
+
+        RoccoMod.LOGGER.info("[Rocco] Traido junto a {} en {}", player.getGameProfile().name(), spot);
+    }
+
+    // Lo busca por UUID en todas las dimensiones, asi lo encuentra este donde este.
+    @Nullable
+    public static RoccoEntity find(ServerPlayer player)
+    {
+        CompoundTag data = player.getPersistentData();
+        if (!com.cristoree.rocco.entity.Nbt.hasUUID(data, TAG_ROCCO_UUID))
+        {
+            return findNearby(player);
+        }
+
+        UUID id = com.cristoree.rocco.entity.Nbt.getUUID(data, TAG_ROCCO_UUID);
+        MinecraftServer server = player.level().getServer();
+        if (server == null)
+        {
+            return null;
+        }
+
+        for (ServerLevel level : server.getAllLevels())
+        {
+            Entity found = level.getEntity(id);
+            if (found instanceof RoccoEntity rocco && rocco.isAlive())
+            {
+                return rocco;
+            }
+        }
+
+        // Guardado viejo o Rocco perdido: se intenta con el que tenga al lado.
+        return findNearby(player);
+    }
+
+    @Nullable
+    private static RoccoEntity findNearby(ServerPlayer player)
+    {
+        RoccoEntity closest = null;
+        double best = Double.MAX_VALUE;
+
+        for (RoccoEntity candidate : player.level().getEntitiesOfClass(
+                RoccoEntity.class, player.getBoundingBox().inflate(64.0D), LivingEntity::isAlive))
+        {
+            boolean mine = candidate.getOwnerId() == null
+                    || candidate.getOwnerId().equals(player.getUUID());
+
+            double distance = candidate.distanceToSqr(player);
+            if (mine && distance < best)
+            {
+                best = distance;
+                closest = candidate;
+            }
+        }
+
+        return closest;
+    }
+
+    private RoccoCompanionTracker() {}
+}

@@ -1,0 +1,332 @@
+package com.cristoree.rocco.work;
+
+import com.cristoree.rocco.entity.RoccoEntity;
+import net.minecraft.core.NonNullList;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.TransientCraftingContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.AbstractCookingRecipe;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.item.crafting.RecipeType;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+// Puente entre las recetas reales del juego (vanilla y de otros mods) y el planificador, y el
+// que craftea de verdad: arma la grilla con lo que Rocco tiene y le pide el resultado a la receta,
+// asi respeta todo lo que la receta quiera hacer (sobrantes como baldes, NBT, etc.).
+public final class Recipes
+{
+    private static RecipeManager indexedFor;
+    private static Map<String, List<CraftPlanner.Recipe>> byOutput = Map.of();
+    private static Map<String, CraftingRecipe> byId = Map.of();
+
+    public static CraftPlanner.Book book(ServerLevel level)
+    {
+        ensureIndex(level);
+        Map<String, List<CraftPlanner.Recipe>> index = byOutput;
+        return item -> index.getOrDefault(item, List.of());
+    }
+
+    public static List<CraftPlanner.Recipe> recipesFor(ServerLevel level, String item)
+    {
+        ensureIndex(level);
+        return byOutput.getOrDefault(item, List.of());
+    }
+
+    // El indice se arma una vez por RecipeManager: con /reload el juego crea uno nuevo y se rehace.
+    private static synchronized void ensureIndex(ServerLevel level)
+    {
+        RecipeManager manager = level.recipeAccess();
+        if (manager == indexedFor)
+        {
+            return;
+        }
+
+        Map<String, List<CraftPlanner.Recipe>> outputs = new HashMap<>();
+        Map<String, CraftingRecipe> ids = new HashMap<>();
+
+        // Desde 1.20.2 el juego guarda cada receta junto a su id (RecipeHolder).
+        for (net.minecraft.world.item.crafting.RecipeHolder<?> holder : manager.getRecipes())
+        {
+            if (!(holder.value() instanceof CraftingRecipe recipe))
+            {
+                continue;
+            }
+            CraftPlanner.Recipe simple = simplify(holder.id().identifier(), recipe, level);
+            if (simple != null)
+            {
+                outputs.computeIfAbsent(simple.output(), key -> new ArrayList<>()).add(simple);
+                ids.put(simple.id(), recipe);
+            }
+        }
+
+        // La receta "oficial" (misma id que el item) va primera: palo de tablas antes que de bambu.
+        for (Map.Entry<String, List<CraftPlanner.Recipe>> entry : outputs.entrySet())
+        {
+            entry.getValue().sort((a, b) -> Boolean.compare(!a.id().equals(entry.getKey()), !b.id().equals(entry.getKey())));
+        }
+
+        byOutput = outputs;
+        byId = ids;
+        indexedFor = manager;
+    }
+
+    private static CraftPlanner.Recipe simplify(net.minecraft.resources.Identifier id, CraftingRecipe recipe, ServerLevel level)
+    {
+        // Las mochilas las fabrica el jugador: la receta pasa lo que llevan adentro a la nueva.
+        // Solo las recetas comunes (con forma o sin forma); las especiales (fuegos artificiales,
+        // estandartes...) arman su resultado con lo que se pone.
+        if (!(recipe instanceof net.minecraft.world.item.crafting.ShapedRecipe)
+                && !(recipe instanceof net.minecraft.world.item.crafting.ShapelessRecipe))
+        {
+            return null;
+        }
+
+        ItemStack result = resultOf(recipe, level);
+        // Un resultado con datos propios (un nombre, encantamientos) es una receta especial.
+        if (result.isEmpty() || !result.getComponentsPatch().isEmpty())
+        {
+            return null;
+        }
+
+        Map<List<String>, Integer> grouped = new LinkedHashMap<>();
+        for (Optional<Ingredient> slot : ingredientsOf(recipe))
+        {
+            if (slot.isEmpty() || slot.get().isEmpty())
+            {
+                continue;
+            }
+            List<String> options = slot.get().items()
+                    .map(item -> Inv.id(new ItemStack(item.value())))
+                    .distinct()
+                    .toList();
+            if (options.isEmpty())
+            {
+                // Un tag vacio: la receta no se puede hacer en este modpack.
+                return null;
+            }
+            grouped.merge(options, 1, Integer::sum);
+        }
+
+        if (grouped.isEmpty())
+        {
+            return null;
+        }
+
+        List<CraftPlanner.Ingredient> ingredients = new ArrayList<>();
+        grouped.forEach((options, count) -> ingredients.add(new CraftPlanner.Ingredient(options, count)));
+
+        return new CraftPlanner.Recipe(id.toString(), Inv.id(result), result.getCount(),
+                List.copyOf(ingredients), !fitsTwoByTwo(recipe));
+    }
+
+    // Lo que da la receta (lo que muestra el libro de recetas).
+    private static ItemStack resultOf(CraftingRecipe recipe, ServerLevel level)
+    {
+        try
+        {
+            var context = net.minecraft.world.item.crafting.display.SlotDisplayContext.fromLevel(level);
+            for (net.minecraft.world.item.crafting.display.RecipeDisplay display : recipe.display())
+            {
+                ItemStack shown = display.result().resolveForFirstStack(context);
+                if (!shown.isEmpty())
+                {
+                    return shown;
+                }
+            }
+        }
+        catch (RuntimeException ignored)
+        {
+            // Una receta de otro mod que no se puede mostrar: no se usa.
+        }
+        return ItemStack.EMPTY;
+    }
+
+    // Los ingredientes en el orden de la grilla (con forma: con huecos; sin forma: en fila).
+    private static List<Optional<Ingredient>> ingredientsOf(CraftingRecipe recipe)
+    {
+        if (recipe instanceof net.minecraft.world.item.crafting.ShapedRecipe shaped)
+        {
+            return shaped.getIngredients();
+        }
+        List<Optional<Ingredient>> out = new ArrayList<>();
+        for (Ingredient ingredient : recipe.placementInfo().ingredients())
+        {
+            out.add(Optional.of(ingredient));
+        }
+        return out;
+    }
+
+    // Se hace en la mano (la grilla de 2x2 del inventario).
+    private static boolean fitsTwoByTwo(CraftingRecipe recipe)
+    {
+        if (recipe instanceof net.minecraft.world.item.crafting.ShapedRecipe shaped)
+        {
+            return shaped.getWidth() <= 2 && shaped.getHeight() <= 2;
+        }
+        return recipe.placementInfo().ingredients().size() <= 4;
+    }
+
+    // Craftea una vez la receta con lo que Rocco lleva. Devuelve false si no tenia lo necesario.
+    public static boolean craftOnce(RoccoEntity rocco, ServerLevel level, String recipeId)
+    {
+        ensureIndex(level);
+        CraftingRecipe recipe = byId.get(recipeId);
+        if (recipe == null)
+        {
+            return false;
+        }
+
+        Container inventory = rocco.inventory();
+        TransientCraftingContainer grid = new TransientCraftingContainer(new NoMenu(), 3, 3);
+        int[] reserved = new int[inventory.getContainerSize()];
+
+        List<Optional<Ingredient>> ingredients = ingredientsOf(recipe);
+        int width = recipe instanceof net.minecraft.world.item.crafting.ShapedRecipe shaped ? shaped.getWidth() : 3;
+
+        for (int i = 0; i < ingredients.size(); i++)
+        {
+            if (ingredients.get(i).isEmpty() || ingredients.get(i).get().isEmpty())
+            {
+                continue;
+            }
+            Ingredient ingredient = ingredients.get(i).get();
+
+            int slot = findFor(inventory, ingredient, reserved);
+            if (slot < 0)
+            {
+                return false;
+            }
+            reserved[slot]++;
+
+            int gridSlot = recipe instanceof net.minecraft.world.item.crafting.ShapedRecipe ? (i % width) + (i / width) * 3 : i;
+            grid.setItem(gridSlot, inventory.getItem(slot).copyWithCount(1));
+        }
+
+        net.minecraft.world.item.crafting.CraftingInput input = grid.asCraftInput();
+        if (!recipe.matches(input, level))
+        {
+            return false;
+        }
+
+        ItemStack result = recipe.assemble(input);
+        NonNullList<ItemStack> leftovers = recipe.getRemainingItems(input);
+
+        for (int slot = 0; slot < reserved.length; slot++)
+        {
+            if (reserved[slot] > 0)
+            {
+                inventory.removeItem(slot, reserved[slot]);
+            }
+        }
+
+        rocco.keep(result);
+        for (ItemStack leftover : leftovers)
+        {
+            if (!leftover.isEmpty())
+            {
+                rocco.keep(leftover);
+            }
+        }
+        inventory.setChanged();
+        return true;
+    }
+
+    private static int findFor(Container inventory, Ingredient ingredient, int[] reserved)
+    {
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++)
+        {
+            ItemStack stack = inventory.getItem(slot);
+            if (!stack.isEmpty() && stack.getCount() > reserved[slot] && ingredient.test(stack))
+            {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    // "3 de Roca y 2 de Palo, en una mesa de crafteo". null si no hay receta.
+    public static String describe(ServerLevel level, String item)
+    {
+        List<CraftPlanner.Recipe> recipes = recipesFor(level, item);
+        if (recipes.isEmpty())
+        {
+            return null;
+        }
+
+        CraftPlanner.Recipe recipe = recipes.get(0);
+        List<CraftPlanner.Missing> parts = recipe.ingredients().stream()
+                .map(ingredient -> new CraftPlanner.Missing(ingredient.options(), ingredient.count()))
+                .toList();
+
+        String text = Names.missing(parts);
+        if (recipe.outputCount() > 1)
+        {
+            text += " (salen " + recipe.outputCount() + ")";
+        }
+        return text + (recipe.needsTable() ? ", en una mesa de crafteo" : ", se hace en la mano");
+    }
+
+    // ---------- horno ----------
+
+    public static Optional<? extends AbstractCookingRecipe> cooking(ServerLevel level, RecipeType<? extends AbstractCookingRecipe> type, ItemStack input)
+    {
+        net.minecraft.world.item.crafting.SingleRecipeInput probe = new net.minecraft.world.item.crafting.SingleRecipeInput(input.copyWithCount(1));
+        if (type == RecipeType.SMOKING)
+        {
+            return level.recipeAccess().getRecipeFor(RecipeType.SMOKING, probe, level).map(net.minecraft.world.item.crafting.RecipeHolder::value);
+        }
+        if (type == RecipeType.BLASTING)
+        {
+            return level.recipeAccess().getRecipeFor(RecipeType.BLASTING, probe, level).map(net.minecraft.world.item.crafting.RecipeHolder::value);
+        }
+        return level.recipeAccess().getRecipeFor(RecipeType.SMELTING, probe, level).map(net.minecraft.world.item.crafting.RecipeHolder::value);
+    }
+
+    public static ItemStack cookedResult(ServerLevel level, ItemStack input)
+    {
+        return cooking(level, RecipeType.SMELTING, input)
+                .map(recipe -> recipe.assemble(new net.minecraft.world.item.crafting.SingleRecipeInput(input.copyWithCount(1))))
+                .orElse(ItemStack.EMPTY);
+    }
+
+    // La grilla de crafteo pide un menu; este no muestra nada ni avisa a nadie.
+    private static final class NoMenu extends AbstractContainerMenu
+    {
+        NoMenu()
+        {
+            super(null, -1);
+        }
+
+        @Override
+        public ItemStack quickMoveStack(Player player, int index)
+        {
+            return ItemStack.EMPTY;
+        }
+
+        @Override
+        public boolean stillValid(Player player)
+        {
+            return true;
+        }
+
+        @Override
+        public void slotsChanged(Container container)
+        {
+        }
+    }
+
+    private Recipes() {}
+}

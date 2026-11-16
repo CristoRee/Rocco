@@ -42,10 +42,13 @@ Cada versión de Minecraft tiene su carpeta y su jar. Se sube un archivo por ver
 | `rocco-forge` | `rocco-forge-1.20.1-1.6.0.jar` | 1.20.1 | 47 | 4.7 o más | 17 |
 | `rocco-forge-1.20.2` | `rocco-forge-1.20.2-1.6.0.jar` | 1.20.2 | 48 | 4.3.1 | 17 |
 | `rocco-neoforge-1.21.1` | `rocco-neoforge-1.21.1-1.6.0.jar` | 1.21.1 | NeoForge 21.1.150 o más | 4.9.3 o más | 21 |
+| `rocco-neoforge-26.3` | `rocco-neoforge-26.3-1.6.0.jar` | 26.3 | NeoForge 26.3 | 5.5.7 o más | 25 |
 
-El nombre visible lleva la versión: "Rocco 1.6.0 (Forge 1.20.2)", "Rocco 1.6.0 (NeoForge 1.21.1)". El jar que termina en `-slim` no se sube.
+El nombre visible lleva la versión: "Rocco 1.6.0 (Forge 1.20.2)", "Rocco 1.6.0 (NeoForge 1.21.1)", "Rocco 1.6.0 (NeoForge 26.3)". El jar que termina en `-slim` no se sube.
 
 La de 1.21.1 es para **NeoForge** (el que usan casi todos los modpacks de esa versión): en el campo Mod loader se marca NeoForge, no Forge. Armarla necesita Java 21 instalado. Un mundo de 1.20.1 abierto en 1.21.1 conserva a Rocco, su arma, su inventario y lo que llevan adentro las mochilas.
+
+La de 26.3 también es para **NeoForge**, con GeckoLib 5 (la de 26.3: en CurseForge se marca como dependencia la versión de GeckoLib para 26.3, no la 4.x). Armarla necesita Java 25 instalado. Se probó igual que las otras: mundo nuevo, mundo guardado, un Rocco de 1.20.1, servidor dedicado y música con el jar final. Pesa unos 23 MB: desde 26.x el juego ya no trae la librería con la que lavaplayer abre los links, así que va adentro del jar.
 
 ## 3. Imágenes
 
@@ -63,7 +66,7 @@ La de 1.21.1 es para **NeoForge** (el que usan casi todos los modpacks de esa ve
 
 ## 5. Antes de cada versión
 
-1. Subir `mod_version` en el `gradle.properties` de cada carpeta (`rocco-forge`, `rocco-forge-1.20.2`, `rocco-neoforge-1.21.1`). Un cambio en el mod se lleva a todas las carpetas.
+1. Subir `mod_version` en el `gradle.properties` de cada carpeta (`rocco-forge`, `rocco-forge-1.20.2`, `rocco-neoforge-1.21.1`, `rocco-neoforge-26.3`). Un cambio en el mod se lleva a todas las carpetas.
 2. Sumar la sección nueva en `CHANGELOG.md` y armar el texto del archivo como `ARCHIVO-<versión>.md`.
 3. Probar en un mundo nuevo y en uno viejo (que cargue bien con un Rocco de la versión anterior).
 4. `gradlew build` y subir el jar.

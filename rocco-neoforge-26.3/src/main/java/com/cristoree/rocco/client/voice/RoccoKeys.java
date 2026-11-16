@@ -1,0 +1,18 @@
+package com.cristoree.rocco.client.voice;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.KeyMapping;
+import net.neoforged.neoforge.client.settings.KeyConflictContext;
+
+// La tecla del microfono. Aparece en Opciones > Controles > Asignaciones de teclas, en la
+// categoria "Rocco", y se puede cambiar ahi como cualquier otra. Por defecto, la V.
+public final class RoccoKeys
+{
+    public static final KeyMapping TALK = new KeyMapping("key.rocco.talk", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYBOARD, com.mojang.blaze3d.platform.InputConstants.KEY_V, com.cristoree.rocco.client.RoccoKeyCategory.ROCCO);
+    // Traer a Rocco al lado tuyo. Sin tecla de fabrica, para que no se apriete sin querer.
+    public static final KeyMapping CALL = new KeyMapping("key.rocco.call", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), com.cristoree.rocco.client.RoccoKeyCategory.ROCCO);
+
+    private RoccoKeys() {}
+}

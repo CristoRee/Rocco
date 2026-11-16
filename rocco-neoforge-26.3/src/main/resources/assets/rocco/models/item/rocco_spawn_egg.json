@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "rocco:item/rocco_spawn_egg"
+  }
+}

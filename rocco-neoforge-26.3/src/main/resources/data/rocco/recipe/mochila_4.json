@@ -1,0 +1,20 @@
+{
+  "type": "rocco:backpack_upgrade",
+  "category": "equipment",
+  "pattern": [
+    "DED",
+    "WBW",
+    "DMD"
+  ],
+  "key": {
+    "D": "minecraft:diamond",
+    "E": "minecraft:ender_chest",
+    "W": "minecraft:cyan_wool",
+    "M": "minecraft:compass",
+    "B": "rocco:mochila_3"
+  },
+  "result": {
+    "id": "rocco:mochila_4"
+  },
+  "source": "rocco:mochila_3"
+}

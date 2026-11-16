@@ -1,0 +1,12 @@
+{
+  "pack": {
+    "description": {
+      "text": "rocco resources"
+    },
+    "min_format": 97,
+    "max_format": [
+      121,
+      0
+    ]
+  }
+}

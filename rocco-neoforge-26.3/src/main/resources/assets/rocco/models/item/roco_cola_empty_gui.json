@@ -1,0 +1,32 @@
+{
+ "textures": {
+  "icon": "rocco:item/roco_cola_empty_gui",
+  "particle": "rocco:item/roco_cola_empty_gui"
+ },
+ "elements": [
+  {
+   "name": "icon",
+   "from": [
+    0,
+    0,
+    8
+   ],
+   "to": [
+    16,
+    16,
+    8
+   ],
+   "faces": {
+    "south": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#icon"
+    }
+   }
+  }
+ ]
+}
