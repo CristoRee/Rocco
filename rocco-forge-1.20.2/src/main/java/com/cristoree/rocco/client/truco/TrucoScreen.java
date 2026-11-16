@@ -64,6 +64,12 @@ public final class TrucoScreen extends Screen
         refresh();
     }
 
+    // La mesa esta en el mundo: sin el fondo oscuro (ni el desenfoque) que el juego pone detras de las pantallas.
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick)
+    {
+    }
+
     @Override
     public boolean isPauseScreen()
     {
