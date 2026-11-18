@@ -6,6 +6,7 @@
 - **Voz y micrófono con proveedor propio:** además de Fish Audio y Deepgram, en la configuración de Voz y de Micrófono está "Proveedor propio", para cualquier servicio compatible con la API de OpenAI. Voz: OpenAI, o uno gratis en tu PC como Kokoro. Micrófono: Groq (Whisper, con capa gratis), OpenAI o un Whisper en tu PC. Se completa la dirección, la clave, el modelo y (en la voz) el nombre de la voz. Con voz propia no hay emociones en la voz ni voces de imitación.
 
 ### Cambiado
+- **Cuando la voz falla, se entiende por qué:** si Fish Audio rechaza la clave, se queda sin crédito o sin conexión, Rocco lo avisa en amarillo con qué hacer (antes era una línea gris que pasaba de largo y se quedaba mudo sin explicación). Avisa una sola vez por problema, para no llenar el chat, y `/rocco ia` ahora muestra también la voz y el micrófono, con su último error.
 - **La Roco Cola en su rato libre:** cada tanto (el 3 % de las veces que elige algo para hacer solo, con 10 minutos como mínimo entre una y otra) se toma una Roco Cola.
 - **"Conseguime pan" sin cantidad** hace una tanda de comida (un pan, 3 de trigo) en vez de 16. Los materiales como madera o piedra siguen siendo 16.
 - **Cuando le falta algo y no le pediste una cantidad,** dice qué le falta ("me falta trigo") en vez de un número exacto. Si le pediste una cantidad, sigue diciendo los números.

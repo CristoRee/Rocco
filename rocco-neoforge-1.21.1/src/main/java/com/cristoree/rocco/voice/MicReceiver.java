@@ -26,6 +26,8 @@ public final class MicReceiver
     private static final Map<UUID, Recording> RECORDINGS = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> NOTICES = new ConcurrentHashMap<>();
     private static ExecutorService executor;
+    // El ultimo error del microfono (null si la ultima frase se entendio), para /rocco ia.
+    private static volatile String lastError;
 
     static void receive(ServerPlayer player, RoccoNetwork.MicChunk chunk)
     {
@@ -33,8 +35,8 @@ public final class MicReceiver
         {
             if (chunk.last())
             {
-                notice(player, "El microfono esta apagado o sin clave: Mods > Rocco > Config > stt "
-                        + "(enabled y deepgramApiKey; Deepgram regala credito para empezar).");
+                notice(player, "El microfono esta apagado o sin configurar: Mods > Rocco > Config > Microfono "
+                        + "(Deepgram, que regala credito para empezar, o un proveedor propio como Groq).");
             }
             return;
         }
@@ -90,10 +92,12 @@ public final class MicReceiver
             {
                 if (result.text() == null)
                 {
-                    RoccoMod.LOGGER.warn("[Rocco] Deepgram no anduvo: {}", result.error());
+                    RoccoMod.LOGGER.warn("[Rocco] El microfono no anduvo: {}", result.error());
+                    lastError = result.error();
                     notice(player, "No te pude escuchar: " + result.error() + ".");
                     return;
                 }
+                lastError = null;
                 if (result.text().isBlank())
                 {
                     player.displayClientMessage(Component.literal("Rocco no te entendio, proba de nuevo.")
@@ -119,6 +123,30 @@ public final class MicReceiver
         }
         NOTICES.put(player.getUUID(), now);
         player.sendSystemMessage(Component.literal("[Rocco] " + text).withStyle(ChatFormatting.GRAY));
+    }
+
+    // Para /rocco ia: con que escucha y, si fallo, por que.
+    public static net.minecraft.network.chat.MutableComponent statusLine()
+    {
+        net.minecraft.network.chat.MutableComponent row = Component.literal(" Microfono: ");
+        if (!RoccoCommonConfig.STT_ENABLED.get())
+        {
+            return row.append(Component.literal("apagado").withStyle(ChatFormatting.DARK_GRAY));
+        }
+        if (!RoccoConfig.sttReady())
+        {
+            return row.append(Component.literal("sin configurar (Config > Microfono)").withStyle(ChatFormatting.DARK_GRAY));
+        }
+        boolean custom = RoccoCommonConfig.STT_PROVIDER.get() == RoccoCommonConfig.SttProvider.CUSTOM;
+        row.append(Component.literal(custom
+                ? "proveedor propio (" + RoccoCommonConfig.STT_CUSTOM_MODEL.get().trim() + ")"
+                : "Deepgram (" + RoccoCommonConfig.DEEPGRAM_MODEL.get().trim() + ")").withStyle(ChatFormatting.WHITE));
+        String error = lastError;
+        if (error != null)
+        {
+            row.append(Component.literal("  ultimo error: " + error).withStyle(ChatFormatting.RED));
+        }
+        return row;
     }
 
     private static synchronized ExecutorService executor()

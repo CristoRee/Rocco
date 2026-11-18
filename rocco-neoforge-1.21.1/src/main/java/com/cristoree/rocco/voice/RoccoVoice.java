@@ -31,6 +31,10 @@ public final class RoccoVoice
     private static final AtomicInteger STREAMS = new AtomicInteger();
     private static ExecutorService executor;
     private static long lastProblemNote;
+    // El ultimo error de la voz (null si la ultima frase salio bien), para /rocco ia y los recordatorios.
+    private static volatile String lastError;
+    // El que ya se aviso por chat: el mismo problema no se repite (el estado queda en /rocco ia).
+    private static String lastAnnounced;
     private static volatile long fishPausedUntil;
     // Con que clave y voz fallo: si el jugador las cambia, se vuelve a probar enseguida.
     private static volatile String fishPausedFor = "";
@@ -104,6 +108,7 @@ public final class RoccoVoice
             catch (RuntimeException e)
             {
                 RoccoMod.LOGGER.error("[Rocco] Error inesperado generando la voz", e);
+                server.execute(() -> problem(level, "error inesperado (" + e + ")", recordedFinal != null));
                 return;
             }
 
@@ -131,6 +136,8 @@ public final class RoccoVoice
                             + result.notice().substring(1)).withStyle(ChatFormatting.GRAY);
                     level.players().forEach(player -> player.sendSystemMessage(note));
                 }
+                lastError = null;
+                lastAnnounced = null;
                 if (level.getEntity(entityId) instanceof RoccoEntity speaker && speaker.isAlive())
                 {
                     send(level, speaker, result.pcm(), faceId);
@@ -265,16 +272,77 @@ public final class RoccoVoice
     private static void problem(ServerLevel level, String error, boolean recorded)
     {
         RoccoMod.LOGGER.warn("[Rocco] La voz no anduvo: {}", error);
+        lastError = error;
+        // Una sola vez por problema: si sigue fallando igual no se repite (para jugar tranquilo); si
+        // vuelve a andar y despues falla, se avisa de nuevo. El estado queda en /rocco ia.
         long now = System.currentTimeMillis();
-        if (now - lastProblemNote < 60_000L)
+        if (error.equals(lastAnnounced) || now - lastProblemNote < 60_000L)
         {
             return;
         }
         lastProblemNote = now;
-        Component note = Component.literal("[Rocco] La voz no anduvo: " + error
-                        + (recorded ? ". Mientras tanto uso mis frases grabadas." : ". Sigo por escrito."))
-                .withStyle(ChatFormatting.GRAY);
+        lastAnnounced = error;
+        // En amarillo y con que hacer: en gris pasaba de largo y Rocco quedaba mudo sin que se supiera por que.
+        String text = "[Rocco] Me quede sin voz: " + error + ". " + hint(error)
+                + (recorded ? " Mientras tanto uso mis frases grabadas." : " Sigo por escrito.") + " (Estado en /rocco ia.)";
+        Component note = Component.literal(text.replace("  ", " ")).withStyle(ChatFormatting.YELLOW);
         level.players().forEach(player -> player.sendSystemMessage(note));
+    }
+
+    // Que hacer segun el error.
+    private static String hint(String error)
+    {
+        String lower = error.toLowerCase(java.util.Locale.ROOT);
+        String where = FishAudio.customVoice() ? "Config > Voz > Proveedor propio" : "Config > Voz > Fish Audio";
+        if (lower.contains("rechazo la clave"))
+        {
+            return "Revisa la clave en " + where + " (si la borraste o vencio, genera una nueva). Con la clave nueva vuelvo a probar enseguida.";
+        }
+        if (lower.contains("credito"))
+        {
+            return "Carga credito de API en Fish Audio, o usa el modelo gratis " + FishAudio.FREE_MODEL + ".";
+        }
+        if (lower.contains("falta"))
+        {
+            return "Completala en " + where + ".";
+        }
+        if (lower.contains(" 429") || lower.contains("rate") || lower.contains("limit") || lower.contains("quota"))
+        {
+            return "Llegaste al limite de uso por ahora; vuelvo a probar solo.";
+        }
+        if (lower.contains("no pude conectar"))
+        {
+            return "Parece un problema de conexion; vuelvo a probar con la proxima frase.";
+        }
+        return "";
+    }
+
+    // Para /rocco ia: con que habla y, si fallo, por que.
+    public static net.minecraft.network.chat.MutableComponent statusLine()
+    {
+        net.minecraft.network.chat.MutableComponent row = Component.literal(" Voz: ");
+        if (!RoccoCommonConfig.VOICE_ENABLED.get())
+        {
+            return row.append(Component.literal("apagada").withStyle(ChatFormatting.DARK_GRAY));
+        }
+        if (!RoccoConfig.voiceReady())
+        {
+            return row.append(Component.literal("sin configurar (Config > Voz)").withStyle(ChatFormatting.DARK_GRAY));
+        }
+        row.append(Component.literal(FishAudio.customVoice()
+                ? "proveedor propio (" + RoccoCommonConfig.VOICE_CUSTOM_MODEL.get().trim() + ")"
+                : "Fish Audio (" + FishAudio.model() + ")").withStyle(ChatFormatting.WHITE));
+        if (fishPaused())
+        {
+            long seconds = Math.max(1L, (fishPausedUntil - System.currentTimeMillis()) / 1000L);
+            row.append(Component.literal("  en pausa " + seconds + "s").withStyle(ChatFormatting.YELLOW));
+        }
+        String error = lastError;
+        if (error != null)
+        {
+            row.append(Component.literal("  ultimo error: " + error).withStyle(ChatFormatting.RED));
+        }
+        return row;
     }
 
     private static String fishSetup()

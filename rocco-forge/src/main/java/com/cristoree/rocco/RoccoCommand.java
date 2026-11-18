@@ -203,6 +203,10 @@ public final class RoccoCommand
         {
             source.sendSuccess(RoccoBrain::freeAiMessage, false);
         }
+
+        // La voz y el microfono: con que andan y, si fallaron, por que.
+        source.sendSuccess(com.cristoree.rocco.voice.RoccoVoice::statusLine, false);
+        source.sendSuccess(com.cristoree.rocco.voice.MicReceiver::statusLine, false);
     }
 
     private static void showPersonality(CommandSourceStack source)
