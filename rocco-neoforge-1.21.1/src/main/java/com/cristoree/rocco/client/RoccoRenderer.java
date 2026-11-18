@@ -303,13 +303,18 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
         float above = shouldShowName(rocco) ? 0.27F : 0.0F;
         poseStack.translate(0.0F, rocco.getBbHeight() + 0.5F + above, 0.0F);
         poseStack.mulPose(this.entityRenderDispatcher.cameraOrientation());
-        poseStack.scale(-0.025F, -0.025F, 0.025F);
+        poseStack.scale(0.025F, -0.025F, 0.025F);
         org.joml.Matrix4f pose = poseStack.last().pose();
         net.minecraft.client.gui.Font font = getFont();
         float x = -font.width(hearts) / 2.0F;
         int background = (int) (Minecraft.getInstance().options.getBackgroundOpacity(0.25F) * 255.0F) << 24;
-        font.drawInBatch(hearts, x, 0.0F, 0xFFFFFFFF, false, pose, buffers, net.minecraft.client.gui.Font.DisplayMode.NORMAL,
+        // Como el cartel del nombre: primero el fondo con los corazones tenues (se ven a traves de las
+        // paredes, igual que el nombre) y encima los corazones sin fondo. En una sola pasada el fondo y
+        // los corazones quedaban a la misma profundidad y alguno no se dibujaba.
+        font.drawInBatch(hearts, x, 0.0F, 0x20FFFFFF, false, pose, buffers, net.minecraft.client.gui.Font.DisplayMode.SEE_THROUGH,
                 background, packedLight);
+        font.drawInBatch(hearts, x, 0.0F, 0xFFFFFFFF, false, pose, buffers, net.minecraft.client.gui.Font.DisplayMode.NORMAL,
+                0, packedLight);
         poseStack.popPose();
     }
 

@@ -93,7 +93,7 @@ public final class RoccoVoice
             FishAudio.Result attempt;
             try
             {
-                String voice = impression == null ? null : ImpressionVoices.voiceFor(impression, language);
+                String voice = impression == null || FishAudio.customVoice() ? null : ImpressionVoices.voiceFor(impression, language);
                 attempt = FishAudio.synthesize(line, voice);
                 // Si la voz de la imitacion fallo, que lo diga con la suya antes que quedarse mudo.
                 if (attempt.pcm() == null && voice != null)

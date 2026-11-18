@@ -32,6 +32,7 @@ public final class CraftErrand extends Errand
 
     private final List<Item> candidates;
     private final int wantedCount;
+    private boolean vague;
     private final boolean keep;
     private final boolean quiet;
     // Sin decir nada en todo el camino (cuidando la casa se hace las tijeras solo).
@@ -70,6 +71,28 @@ public final class CraftErrand extends Errand
     {
         this.silent = true;
         return this;
+    }
+
+    // Sin cantidad pedida: lo que falta se dice sin numeros ("me falta trigo", no "me faltan 48").
+    public CraftErrand vague()
+    {
+        this.vague = true;
+        return this;
+    }
+
+    private boolean noCount()
+    {
+        return this.vague || this.wantedCount <= 0;
+    }
+
+    private String missingText(List<CraftPlanner.Missing> missing)
+    {
+        return noCount() ? Names.missingNames(missing) : Names.missing(missing);
+    }
+
+    private String missingCategory(String category)
+    {
+        return noCount() ? category + "_vague" : category;
     }
 
     @Override
@@ -125,7 +148,7 @@ public final class CraftErrand extends Errand
             CraftPlanner.Plan withChests = planWith(stockWithChests());
             if (withChests.complete())
             {
-                say("craft_fetching", "item", Names.name(this.target), "missing", Names.missing(this.plan.missing()));
+                say(missingCategory("craft_fetching"), "item", Names.name(this.target), "missing", missingText(this.plan.missing()));
                 this.toldChests = true;
                 this.phase = Phase.SEARCH;
                 return Status.RUNNING;
@@ -134,14 +157,14 @@ public final class CraftErrand extends Errand
             this.toldChests = true;
             if (RoccoCommonConfig.WORK_GATHER_FROM_NATURE.get() && allGatherable(stillMissing))
             {
-                say("craft_gathering", "item", Names.name(this.target), "missing", Names.missing(stillMissing));
+                say(missingCategory("craft_gathering"), "item", Names.name(this.target), "missing", missingText(stillMissing));
                 this.toldGathering = true;
                 this.phase = Phase.SEARCH;
                 return Status.RUNNING;
             }
         }
 
-        say("craft_missing", "item", Names.name(this.target), "missing", Names.missing(stillMissing));
+        say(missingCategory("craft_missing"), "item", Names.name(this.target), "missing", missingText(stillMissing));
         this.lastMissing = this.plan.missingTotal();
         this.phase = Phase.WAIT;
         this.waitStart = this.age;
@@ -273,7 +296,7 @@ public final class CraftErrand extends Errand
             int missing = this.plan.missingTotal();
             if (missing < this.lastMissing)
             {
-                say("craft_still_need", "missing", Names.missing(this.plan.missing()));
+                say(missingCategory("craft_still_need"), "missing", missingText(this.plan.missing()));
             }
             this.lastMissing = missing;
         }
@@ -452,7 +475,7 @@ public final class CraftErrand extends Errand
             return Status.RUNNING;
         }
 
-        say("craft_still_missing", "missing", Names.missing(this.plan.missing()));
+        say(missingCategory("craft_still_missing"), "missing", missingText(this.plan.missing()));
         this.lastMissing = this.plan.missingTotal();
         this.phase = Phase.WAIT;
         this.waitStart = this.age;
@@ -685,7 +708,7 @@ public final class CraftErrand extends Errand
                 ? this.candidates.get(0) : this.target);
         if (this.phase == Phase.WAIT && this.plan != null && !this.plan.missing().isEmpty())
         {
-            return what + " (esperando que le den: " + Names.missing(this.plan.missing()) + ")";
+            return what + " (esperando que le den: " + missingText(this.plan.missing()) + ")";
         }
         return what;
     }

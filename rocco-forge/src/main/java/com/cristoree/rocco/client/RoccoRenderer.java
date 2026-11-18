@@ -309,8 +309,13 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
         net.minecraft.client.gui.Font font = getFont();
         float x = -font.width(hearts) / 2.0F;
         int background = (int) (Minecraft.getInstance().options.getBackgroundOpacity(0.25F) * 255.0F) << 24;
-        font.drawInBatch(hearts, x, 0.0F, 0xFFFFFFFF, false, pose, buffers, net.minecraft.client.gui.Font.DisplayMode.NORMAL,
+        // Como el cartel del nombre: primero el fondo con los corazones tenues (se ven a traves de las
+        // paredes, igual que el nombre) y encima los corazones sin fondo. En una sola pasada el fondo y
+        // los corazones quedaban a la misma profundidad y alguno no se dibujaba.
+        font.drawInBatch(hearts, x, 0.0F, 0x20FFFFFF, false, pose, buffers, net.minecraft.client.gui.Font.DisplayMode.SEE_THROUGH,
                 background, packedLight);
+        font.drawInBatch(hearts, x, 0.0F, 0xFFFFFFFF, false, pose, buffers, net.minecraft.client.gui.Font.DisplayMode.NORMAL,
+                0, packedLight);
         poseStack.popPose();
     }
 

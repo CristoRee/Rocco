@@ -417,21 +417,21 @@ public final class MateShare
     {
         switch (this.step)
         {
-            case START -> { if (t == 64) sound(ModSounds.MATE_POUR.get(), 0.6F); }
-            case REFILL -> { if (t == 38) sound(ModSounds.MATE_POUR.get(), 0.6F); }
+            case START -> { if (t == 64) sound(ModSounds.MATE_POUR.get(), 0.9F); }
+            case REFILL -> { if (t == 38) sound(ModSounds.MATE_POUR.get(), 0.9F); }
             case SIP_SLOW ->
             {
-                if (t == 16 || t == 114 || t == 212) sound(ModSounds.MATE_SIP.get(), 0.5F);
-                else if (t == 235) sound(ModSounds.MATE_SLURP.get(), 0.6F);
-                else if (t == 64 || t == 162 || t == 260) sound(ModSounds.MATE_SIGH.get(), 0.5F);
+                if (t == 16 || t == 114 || t == 212) sound(ModSounds.MATE_SIP.get(), 0.85F);
+                else if (t == 235) sound(ModSounds.MATE_SLURP.get(), 0.9F);
+                else if (t == 64 || t == 162 || t == 260) sound(ModSounds.MATE_SIGH.get(), 0.8F);
             }
             case SIP ->
             {
-                if (t == 9 || t == 83 || t == 157) sound(ModSounds.MATE_SIP.get(), 0.5F);
-                else if (t == 174) sound(ModSounds.MATE_SLURP.get(), 0.6F);
-                else if (t == 46 || t == 120 || t == 194) sound(ModSounds.MATE_SIGH.get(), 0.5F);
+                if (t == 9 || t == 83 || t == 157) sound(ModSounds.MATE_SIP.get(), 0.85F);
+                else if (t == 174) sound(ModSounds.MATE_SLURP.get(), 0.9F);
+                else if (t == 46 || t == 120 || t == 194) sound(ModSounds.MATE_SIGH.get(), 0.8F);
             }
-            case PUT_AWAY -> { if (t == 12) sound(ModSounds.MATE_SIGH.get(), 0.5F); }
+            case PUT_AWAY -> { if (t == 12) sound(ModSounds.MATE_SIGH.get(), 0.8F); }
             default -> { }
         }
     }

@@ -3222,25 +3222,25 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
             {
                 if (tick == 35)
                 {
-                    playRoccoSound(ModSounds.LEAVES.get(), 0.4F);
+                    playRoccoSound(ModSounds.LEAVES.get(), 0.6F);
                 }
                 else if (tick == 64 || tick == 353)
                 {
-                    playRoccoSound(ModSounds.MATE_POUR.get(), 0.6F);
+                    playRoccoSound(ModSounds.MATE_POUR.get(), 0.9F);
                 }
                 else if (tick == 130 || tick == 204 || tick == 278 || tick == 419 || tick == 493)
                 {
-                    playRoccoSound(ModSounds.MATE_SIP.get(), 0.5F);
+                    playRoccoSound(ModSounds.MATE_SIP.get(), 0.85F);
                 }
                 else if (tick == 295 || tick == 510)
                 {
-                    playRoccoSound(ModSounds.MATE_SLURP.get(), 0.6F);
+                    playRoccoSound(ModSounds.MATE_SLURP.get(), 0.9F);
                 }
                 // El "aaah" de despues de cada sorbo, cuando le salen las florcitas, y el grande
                 // del final.
                 else if (tick == 161 || tick == 235 || tick == 310 || tick == 450 || tick == 524)
                 {
-                    playRoccoSound(ModSounds.MATE_SIGH.get(), 0.5F);
+                    playRoccoSound(ModSounds.MATE_SIGH.get(), 0.8F);
                 }
             }
             // Ticks de ROCCO-PENSAR-FESTEJAR-BAILAR.md.
@@ -5557,7 +5557,8 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         return this.life.colaRequestTooSoon();
     }
 
-    // En vez de lo que eligio para su rato libre, 0,5 % de las veces una Roco Cola.
+    // En vez de lo que eligio para su rato libre, el 3 % de las veces una Roco Cola (con 10 minutos
+    // como minimo entre una y otra).
     private boolean idleCola(Player owner)
     {
         if (!this.life.colaIdleReady() || this.random.nextDouble() >= RoccoCommonConfig.COLA_IDLE_CHANCE.get())

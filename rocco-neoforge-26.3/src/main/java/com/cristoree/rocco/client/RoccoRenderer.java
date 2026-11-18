@@ -552,17 +552,12 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity, RoccoRenderer.
 
     private void submitHealth(State state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera)
     {
-        poseStack.pushPose();
-        float above = state.nameTag != null ? 0.27F : 0.0F;
-        poseStack.translate(0.0F, state.boundingBoxHeight + 0.5F + above, 0.0F);
-        poseStack.rotate(camera.orientation);
-        poseStack.scale(0.025F, -0.025F, 0.025F);
-        net.minecraft.client.gui.Font font = getFont();
-        float x = -font.width(state.hearts) / 2.0F;
-        int background = (int) (Minecraft.getInstance().options.getBackgroundOpacity(0.25F) * 255.0F) << 24;
-        collector.submitText(poseStack, x, 0.0F, state.hearts.getVisualOrderText(), false,
-                net.minecraft.client.gui.Font.DisplayMode.NORMAL, state.lightCoords, 0xFFFFFFFF, background, 0);
-        poseStack.popPose();
+        // Como un cartel de nombre del juego (fondo y corazones en dos pasadas, mirando a la camara);
+        // con el nombre visible, una linea mas arriba.
+        net.minecraft.world.phys.Vec3 at = state.nameTagAttachment != null ? state.nameTagAttachment
+                : new net.minecraft.world.phys.Vec3(0.0D, state.boundingBoxHeight + 0.5D, 0.0D);
+        collector.submitNameTag(poseStack, at, state.nameTag != null ? -11 : 0, state.hearts, !state.isDiscrete,
+                state.lightCoords, camera);
     }
 
     // ---------- que se dibuja y que no ----------

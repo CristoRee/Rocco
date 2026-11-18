@@ -796,8 +796,8 @@ public final class RoccoActions
             }
             // En ningun cofre: como "conseguime", lo fabrica o lo saca de la naturaleza si puede
             // (y si no hay forma, lo dice). Mejor que un "no hay" y quedarse quieto.
-            int amount = query.count() > 0 ? query.count() : new ItemStack(query.first()).getMaxStackSize() > 1 ? 16 : 1;
-            return start(rocco, new GatherErrand(rocco, player, query.items(), amount, !give, false));
+            int amount = query.count() > 0 ? query.count() : defaultAmount(query.first());
+            return start(rocco, new GatherErrand(rocco, player, query.items(), amount, !give, false).vague(query.count() <= 0));
         }
         return start(rocco, errand);
     }
@@ -915,8 +915,16 @@ public final class RoccoActions
         {
             return SAID;
         }
-        int amount = query.count() > 0 ? query.count() : new ItemStack(query.first()).getMaxStackSize() > 1 ? 16 : 1;
-        return start(rocco, new GatherErrand(rocco, player, query.items(), amount, false, false));
+        int amount = query.count() > 0 ? query.count() : defaultAmount(query.first());
+        return start(rocco, new GatherErrand(rocco, player, query.items(), amount, false, false).vague(query.count() <= 0));
+    }
+
+    // Sin cantidad: de materiales una buena tanda (16); de comida y de lo que no se apila, uno solo.
+    // Si no, "conseguime pan" pedia 16 panes (48 de trigo).
+    private static int defaultAmount(net.minecraft.world.item.Item item)
+    {
+        ItemStack stack = new ItemStack(item);
+        return stack.getMaxStackSize() <= 1 || stack.isEdible() ? 1 : 16;
     }
 
     private static Outcome open(RoccoEntity rocco, ServerLevel level)

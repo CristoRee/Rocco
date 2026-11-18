@@ -840,10 +840,12 @@ public class RoccoBrain
         String argument = parsed.argument();
 
         // Las IAs a veces contestan "dale, me quedo quieto" y se olvidan la linea #accion (o
-        // inventan un verbo). Si lo que pidio el jugador es una orden clara, se hace igual.
+        // inventan un verbo). Si lo que pidio el jugador es una orden clara, se hace igual. Con el
+        // mismo filtro que las ordenes sin IA: si el jugador contaba algo ("consegui pan para
+        // nosotros"), no se inventa un pedido (antes salia "me faltan 48 de trigo para hacer pan").
         if (!RoccoActions.knows(verb))
         {
-            OfflineRocco.Answer understood = question.equals(GREET_PROMPT) ? null : OfflineRocco.reply(this.rocco, question);
+            OfflineRocco.Answer understood = question.equals(GREET_PROMPT) ? null : OfflineRocco.localOrder(this.rocco, question);
             if (understood != null && understood.verb() != null)
             {
                 RoccoMod.LOGGER.debug("[Rocco] La IA no puso la orden; uso la del jugador: {} {}",
@@ -980,7 +982,7 @@ public class RoccoBrain
             {
                 RoccoMod.LOGGER.info("[Rocco] Respuesta bloqueada por el proveedor: {}", result.error());
             }
-            OfflineRocco.Answer order = question.equals(GREET_PROMPT) ? null : OfflineRocco.reply(this.rocco, question);
+            OfflineRocco.Answer order = question.equals(GREET_PROMPT) ? null : OfflineRocco.localOrder(this.rocco, question);
             if (order != null && order.verb() != null)
             {
                 // Si era una orden, se hace igual; lo que diga al arrancar es la respuesta.
@@ -1253,7 +1255,8 @@ public class RoccoBrain
     // Las etiquetas de emocion solo sirven si hay voz y el modelo de Fish Audio las entiende (s1, s2).
     private static boolean voiceEmotions()
     {
-        return RoccoConfig.voiceReady() && com.cristoree.rocco.voice.FishAudio.emotionsFor(com.cristoree.rocco.voice.FishAudio.model());
+        return RoccoConfig.voiceReady() && !com.cristoree.rocco.voice.FishAudio.customVoice()
+                && com.cristoree.rocco.voice.FishAudio.emotionsFor(com.cristoree.rocco.voice.FishAudio.model());
     }
 
     private boolean inDanger(ServerPlayer player)

@@ -76,6 +76,11 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.IntValue VOICE_CACHE_SIZE_MB;
     public static final ForgeConfigSpec.ConfigValue<String> IMPRESSION_VOICES;
     public static final ForgeConfigSpec.BooleanValue IMPRESSION_VOICE_SEARCH;
+    public static final ForgeConfigSpec.EnumValue<VoiceProvider> VOICE_PROVIDER;
+    public static final ForgeConfigSpec.ConfigValue<String> VOICE_CUSTOM_URL;
+    public static final ForgeConfigSpec.ConfigValue<String> VOICE_CUSTOM_API_KEY;
+    public static final ForgeConfigSpec.ConfigValue<String> VOICE_CUSTOM_MODEL;
+    public static final ForgeConfigSpec.ConfigValue<String> VOICE_CUSTOM_VOICE;
 
     // stt (Deepgram)
     public static final ForgeConfigSpec.BooleanValue STT_ENABLED;
@@ -88,6 +93,10 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.IntValue STT_SILENCE_TIMEOUT_MS;
     public static final ForgeConfigSpec.IntValue STT_MAX_SECONDS;
     public static final ForgeConfigSpec.BooleanValue STT_PUNCTUATE;
+    public static final ForgeConfigSpec.EnumValue<SttProvider> STT_PROVIDER;
+    public static final ForgeConfigSpec.ConfigValue<String> STT_CUSTOM_URL;
+    public static final ForgeConfigSpec.ConfigValue<String> STT_CUSTOM_API_KEY;
+    public static final ForgeConfigSpec.ConfigValue<String> STT_CUSTOM_MODEL;
 
     // behavior
     public static final ForgeConfigSpec.BooleanValue FOLLOW_ENABLED;
@@ -385,6 +394,12 @@ public final class RoccoCommonConfig
                          "Si tenes Fish Audio andando, todo sale con tu voz y estas no se usan, salvo",
                          "que Fish Audio falle (sin credito, sin conexion).")
                 .define("recordedLines", true);
+        VOICE_PROVIDER = b
+                .comment("Con que se genera la voz. FISH_AUDIO (Fish Audio): la voz de Rocco, con emociones e imitaciones.",
+                         "CUSTOM (Proveedor propio): cualquier servicio compatible con la API de voz de OpenAI",
+                         "(POST /audio/speech), como OpenAI o uno en tu PC (Kokoro). Se completa en customUrl,",
+                         "customApiKey, customModel y customVoice. Con este no hay emociones ni voces de imitacion.")
+                .defineEnum("provider", VoiceProvider.FISH_AUDIO);
         FISH_API_KEY = b
                 .comment("Clave de Fish Audio.",
                          "Si queda vacia se usa la variable de entorno ROCCO_FISH_API_KEY.")
@@ -439,6 +454,20 @@ public final class RoccoCommonConfig
                          "(y la recuerda), asi las imitaciones suenan con la voz del personaje.",
                          "Apagado, imita solo con el texto y su propia voz.")
                 .define("impressionVoiceSearch", true);
+        VOICE_CUSTOM_URL = b
+                .comment("Proveedor propio: la URL base de la API, sin /audio/speech al final.",
+                         "Ejemplos: https://api.openai.com/v1, o http://localhost:8880/v1 para Kokoro en tu PC.")
+                .define("customUrl", "https://api.openai.com/v1");
+        VOICE_CUSTOM_API_KEY = b
+                .comment("Proveedor propio: la clave. Vacia si el servicio no pide (uno en tu PC).",
+                         "Si queda vacia se usa la variable de entorno ROCCO_VOICE_CUSTOM_API_KEY.")
+                .define("customApiKey", "");
+        VOICE_CUSTOM_MODEL = b
+                .comment("Proveedor propio: el modelo de voz (en OpenAI: gpt-4o-mini-tts o tts-1; en Kokoro: kokoro).")
+                .define("customModel", "gpt-4o-mini-tts");
+        VOICE_CUSTOM_VOICE = b
+                .comment("Proveedor propio: el nombre de la voz (en OpenAI: alloy, ash, echo, onyx...; en Kokoro: am_adam...).")
+                .define("customVoice", "ash");
         b.pop();
 
         b.comment("Escuchar al jugador por microfono (Deepgram, voz a texto).").push("stt");
@@ -446,6 +475,11 @@ public final class RoccoCommonConfig
                 .comment("Permite hablarle a Rocco por microfono. La tecla (V por defecto) se cambia en",
                          "Opciones > Controles > Asignaciones de teclas, categoria Rocco.")
                 .define("enabled", false);
+        STT_PROVIDER = b
+                .comment("Con que se pasa tu voz a texto. DEEPGRAM (Deepgram), o CUSTOM (Proveedor propio):",
+                         "cualquier servicio compatible con la API de transcripcion de OpenAI (POST /audio/transcriptions),",
+                         "como Groq (Whisper, con capa gratis), OpenAI o un Whisper en tu PC.")
+                .defineEnum("provider", SttProvider.DEEPGRAM);
         DEEPGRAM_API_KEY = b
                 .comment("Clave de Deepgram.",
                          "Si queda vacia se usa la variable de entorno ROCCO_DEEPGRAM_API_KEY.")
@@ -477,6 +511,17 @@ public final class RoccoCommonConfig
         STT_PUNCTUATE = b
                 .comment("Pide a Deepgram que agregue puntuacion.")
                 .define("punctuate", true);
+        STT_CUSTOM_URL = b
+                .comment("Proveedor propio: la URL base de la API, sin /audio/transcriptions al final.",
+                         "Ejemplos: https://api.groq.com/openai/v1, https://api.openai.com/v1 o http://localhost:8000/v1.")
+                .define("customUrl", "https://api.groq.com/openai/v1");
+        STT_CUSTOM_API_KEY = b
+                .comment("Proveedor propio: la clave. Vacia si el servicio no pide (uno en tu PC).",
+                         "Si queda vacia se usa la variable de entorno ROCCO_STT_CUSTOM_API_KEY.")
+                .define("customApiKey", "");
+        STT_CUSTOM_MODEL = b
+                .comment("Proveedor propio: el modelo (en Groq: whisper-large-v3-turbo; en OpenAI: whisper-1 o gpt-4o-mini-transcribe).")
+                .define("customModel", "whisper-large-v3-turbo");
         b.pop();
 
         b.comment("Como se mueve y actua Rocco en el mundo.").push("behavior");
@@ -570,8 +615,9 @@ public final class RoccoCommonConfig
                 .comment("Otros jugadores (nunca a vos).")
                 .define("defaultAttackPlayers", false);
         COLA_IDLE_CHANCE = b
-                .comment("Chance de tomarse una Roco Cola cada vez que elige algo para hacer en su rato libre.")
-                .defineInRange("colaIdleChance", 0.005D, 0.0D, 1.0D);
+                .comment("Chance de tomarse una Roco Cola cada vez que elige algo para hacer en su rato libre",
+                         "(0.03 = 3 %).")
+                .defineInRange("idleColaChance", 0.03D, 0.0D, 1.0D);
         COLA_IDLE_COOLDOWN_MINUTES = b
                 .comment("Minutos minimos entre dos Roco Colas que se toma solo.")
                 .defineInRange("colaIdleCooldownMinutes", 10, 0, 1440);
@@ -852,6 +898,10 @@ public final class RoccoCommonConfig
     public enum LatencyMode { NORMAL, BALANCED, LOW }
 
     public enum MicActivation { PUSH_TO_TALK, VOICE_ACTIVATION }
+
+    public enum VoiceProvider { FISH_AUDIO, CUSTOM }
+
+    public enum SttProvider { DEEPGRAM, CUSTOM }
 
     public enum LidStyle { AUTO, GARDEN, CLASSIC }
 

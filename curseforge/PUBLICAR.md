@@ -19,18 +19,18 @@ En https://authors.curseforge.com → **Create Project** → Minecraft → Mods.
 
 ## 2. Subir el archivo
 
-Armá el jar con `gradlew build` dentro de `rocco-forge`. Queda en `rocco-forge/build/libs/rocco-forge-1.20.1-1.6.0.jar`.
+Armá el jar con `gradlew build` dentro de `rocco-forge`. Queda en `rocco-forge/build/libs/rocco-forge-1.20.1-1.6.1.jar`.
 
 | Campo | Qué poner |
 |---|---|
-| Archivo | `rocco-forge-1.20.1-1.6.0.jar` |
-| Nombre visible | Rocco 1.6.0 (Forge 1.20.1) |
+| Archivo | `rocco-forge-1.20.1-1.6.1.jar` |
+| Nombre visible | Rocco 1.6.1 (Forge 1.20.1) |
 | Tipo | Release (o Beta, si querés probarlo primero con algunos jugadores) |
 | Versión del juego | 1.20.1 |
 | Mod loader | Forge |
 | Entorno | Client y Server (va en los dos) |
 | Java | 17 |
-| Changelog | El de `ARCHIVO-1.6.0.md` |
+| Changelog | El de `ARCHIVO-1.6.1.md` |
 | Dependencias | **GeckoLib**: Required Dependency |
 
 ### Otras versiones de Minecraft
@@ -39,12 +39,12 @@ Cada versión de Minecraft tiene su carpeta y su jar. Se sube un archivo por ver
 
 | Carpeta | Jar (en `build/libs`) | Versión del juego | Forge | GeckoLib | Java |
 |---|---|---|---|---|---|
-| `rocco-forge` | `rocco-forge-1.20.1-1.6.0.jar` | 1.20.1 | 47 | 4.7 o más | 17 |
+| `rocco-forge` | `rocco-forge-1.20.1-1.6.1.jar` | 1.20.1 | 47 | 4.7 o más | 17 |
 | `rocco-forge-1.20.2` | `rocco-forge-1.20.2-1.6.0.jar` | 1.20.2 | 48 | 4.3.1 | 17 |
-| `rocco-neoforge-1.21.1` | `rocco-neoforge-1.21.1-1.6.0.jar` | 1.21.1 | NeoForge 21.1.150 o más | 4.9.3 o más | 21 |
-| `rocco-neoforge-26.3` | `rocco-neoforge-26.3-1.6.0.jar` | 26.3 | NeoForge 26.3 | 5.5.7 o más | 25 |
+| `rocco-neoforge-1.21.1` | `rocco-neoforge-1.21.1-1.6.1.jar` | 1.21.1 | NeoForge 21.1.150 o más | 4.9.3 o más | 21 |
+| `rocco-neoforge-26.3` | `rocco-neoforge-26.3-1.6.1.jar` | 26.3 | NeoForge 26.3 | 5.5.7 o más | 25 |
 
-El nombre visible lleva la versión: "Rocco 1.6.0 (Forge 1.20.2)", "Rocco 1.6.0 (NeoForge 1.21.1)", "Rocco 1.6.0 (NeoForge 26.3)". El jar que termina en `-slim` no se sube.
+El nombre visible lleva la versión: "Rocco 1.6.1 (NeoForge 1.21.1)", "Rocco 1.6.1 (NeoForge 26.3)". La de 1.20.2 quedó en la 1.6.0, sin los arreglos de la 1.6.1. El jar que termina en `-slim` no se sube.
 
 La de 1.21.1 es para **NeoForge** (el que usan casi todos los modpacks de esa versión): en el campo Mod loader se marca NeoForge, no Forge. Armarla necesita Java 21 instalado. Un mundo de 1.20.1 abierto en 1.21.1 conserva a Rocco, su arma, su inventario y lo que llevan adentro las mochilas.
 

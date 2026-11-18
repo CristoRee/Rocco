@@ -1,5 +1,23 @@
 # Cambios
 
+## 1.6.1
+
+### Nuevo
+- **Voz y micrófono con proveedor propio:** además de Fish Audio y Deepgram, en la configuración de Voz y de Micrófono está "Proveedor propio", para cualquier servicio compatible con la API de OpenAI. Voz: OpenAI, o uno gratis en tu PC como Kokoro. Micrófono: Groq (Whisper, con capa gratis), OpenAI o un Whisper en tu PC. Se completa la dirección, la clave, el modelo y (en la voz) el nombre de la voz. Con voz propia no hay emociones en la voz ni voces de imitación.
+
+### Cambiado
+- **La Roco Cola en su rato libre:** cada tanto (el 3 % de las veces que elige algo para hacer solo, con 10 minutos como mínimo entre una y otra) se toma una Roco Cola.
+- **"Conseguime pan" sin cantidad** hace una tanda de comida (un pan, 3 de trigo) en vez de 16. Los materiales como madera o piedra siguen siendo 16.
+- **Cuando le falta algo y no le pediste una cantidad,** dice qué le falta ("me falta trigo") en vez de un número exacto. Si le pediste una cantidad, sigue diciendo los números.
+- **Los sonidos del mate** (cebar, los sorbos, la bombilla y el "aaah") se escuchan más fuerte.
+- **Respuestas un poco más rápidas:** la conexión con la IA, la voz y el micrófono se reutiliza entre pedidos en vez de abrirse de nuevo cada vez.
+
+### Arreglado
+- **Un barquito en miniatura flotando quieto** durante las tortas fritas (también en el asado, el truco y la botella rota) cuando Rocco caminaba.
+- **Mensajes que no eran órdenes se tomaban como órdenes** y se contestaban con frases predeterminadas en vez de la IA. "Conseguí pan para nosotros" se entendía como "conseguí pan" y respondía "Me faltan 48 de trigo para hacer pan". Ahora lo que le contás ("yo...", "recién...", "te traje...", "para nosotros") y los verbos en -ir que se escriben igual como orden o como pasado ("conseguí", "abrí", "subí") los contesta la IA, si hay una.
+- **1.21.1:** no se veía la vida de Rocco sobre su cabeza, ni la boya de su caña de pescar (las dos se dibujaban mirando para atrás).
+- **Uno de los corazones sobre su cabeza** podía no dibujarse.
+
 ## 1.6.0
 
 ### Nuevo

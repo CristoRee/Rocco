@@ -673,6 +673,17 @@ public final class Names
         return joinList(parts);
     }
 
+    // Lo mismo sin cantidades ("trigo y palos"): cuando nadie pidio un numero, no se inventa uno.
+    public static String missingNames(List<CraftPlanner.Missing> missing)
+    {
+        List<String> parts = new ArrayList<>();
+        for (CraftPlanner.Missing item : missing)
+        {
+            parts.add(options(item.options()));
+        }
+        return joinList(parts);
+    }
+
     public static String stacks(List<ItemStack> stacks)
     {
         Map<String, Integer> totals = new java.util.LinkedHashMap<>();

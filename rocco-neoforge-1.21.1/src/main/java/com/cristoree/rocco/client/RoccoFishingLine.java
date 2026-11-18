@@ -240,7 +240,7 @@ public final class RoccoFishingLine
         poseStack.pushPose();
         poseStack.scale(0.5F, 0.5F, 0.5F);
         poseStack.mulPose(dispatcher.cameraOrientation());
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        // Desde 1.20.5 la orientacion de la camara ya mira hacia el jugador (sin el giro de 180).
         PoseStack.Pose pose = poseStack.last();
         Matrix4f matrix = pose.pose();
         Matrix3f normal = pose.normal();

@@ -346,6 +346,15 @@ public final class OfflineRocco
             "^(yo\\s+)?(quiero|voy a|me voy a|tengo que|necesito|me gustaria|tengo ganas de)\\s+[a-z]+(ar|er|ir)\\b");
     private static final Pattern ASKS_OPINION = Pattern.compile(
             "\\b(queres|quieres|te parece|te gusta|te copa|y vos|vos que|que opinas|que decis)\\b");
+    // En voseo la orden de los verbos en -ir se escribe igual que el pasado: "consegui pan" puede
+    // ser "anda a conseguir pan" o "ya consegui pan". Con IA eso lo decide ella (el "segui" solo
+    // sigue siendo una orden).
+    private static final Pattern AMBIGUOUS_ORDER = Pattern.compile(
+            "^(consegui|segui|abri|subi|dormi|construi|fundi|derreti|recibi|pedi|servi|elegi)\\s+\\S");
+    // El jugador cuenta algo ("yo consegui pan para nosotros", "recien volvi", "te traje esto"): es
+    // charla, aunque arranque con un verbo que tambien es una orden.
+    private static final Pattern NARRATION = Pattern.compile(
+            "\\b(yo|recien|acabo de|acabamos de|nosotros|nosotras|ayer|anoche|te traje|te consegui|te hice)\\b");
 
     // Una orden corta y clara que Rocco hace solo, sin preguntarle a la IA. null si conviene que la
     // conteste la IA (charla, preguntas, frases largas o con matices).
@@ -362,6 +371,7 @@ public final class OfflineRocco
         if (text.isEmpty() || text.split("\\s+").length > 10 || ABILITY_QUESTION.matcher(text).find()
                 || PAST_QUESTION.matcher(text).find()
                 || ABOUT_PLAYER.matcher(text).find() || ASKS_OPINION.matcher(text).find()
+                || AMBIGUOUS_ORDER.matcher(text).find() || NARRATION.matcher(text).find()
                 || !COMMAND_START.matcher(text).find())
         {
             return null;
@@ -1026,6 +1036,11 @@ public final class OfflineRocco
     // La cara que va con cada tipo de frase de trabajo.
     public static RoccoExpression faceFor(String category)
     {
+        // Las variantes sin numeros ponen la misma cara que la frase de siempre.
+        if (category.endsWith("_vague"))
+        {
+            return faceFor(category.substring(0, category.length() - "_vague".length()));
+        }
         switch (category)
         {
             case "cheer_small", "cheer_big", "react_fly", "react_boat" ->
@@ -1255,6 +1270,24 @@ public final class OfflineRocco
                     "Para {item} me faltan {missing}. Los consigo yo y te lo hago.",
                     "No hay {missing} en ningun lado, asi que voy a sacarlo de la naturaleza. Despues te hago {item}.",
                     "Dale. Junto {missing} por aca y te armo {item}."}),
+            Map.entry("craft_missing_vague", new String[]{
+                    "Para {item} me falta {missing}, y en los cofres no hay. Pasame un poco y lo hago.",
+                    "Me falta {missing} para {item}. En los cofres no hay: tirame un poco y arranco.",
+                    "Sin {missing} no hay {item}, y en los cofres no queda. Me conseguis un poco?"}),
+            Map.entry("craft_fetching_vague", new String[]{
+                    "Para {item} me falta {missing}, pero hay en los cofres. Voy a buscar y te lo hago.",
+                    "Dale. Saco {missing} del cofre y te hago {item}.",
+                    "{item}, sale. Busco {missing} en los cofres y vuelvo."}),
+            Map.entry("craft_gathering_vague", new String[]{
+                    "Para {item} me falta {missing}. Lo consigo yo y te lo hago.",
+                    "No hay {missing} en ningun lado, asi que voy a sacarlo de la naturaleza. Despues te hago {item}.",
+                    "Dale. Junto {missing} por aca y te armo {item}."}),
+            Map.entry("craft_still_need_vague", new String[]{
+                    "Bien, pero todavia me falta {missing}.",
+                    "Vamos bien. Todavia necesito {missing}."}),
+            Map.entry("craft_still_missing_vague", new String[]{
+                    "En los cofres no estaba todo. Me sigue faltando {missing}.",
+                    "Busque y nada. Me falta {missing}, conseguimelo y lo hago."}),
             Map.entry("craft_got_it", new String[]{
                     "Ahi esta, ya tengo todo. Mira y aprende.",
                     "Perfecto, con esto alcanza. Manos a la obra."}),

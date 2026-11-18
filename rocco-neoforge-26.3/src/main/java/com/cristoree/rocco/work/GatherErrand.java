@@ -33,6 +33,8 @@ public final class GatherErrand extends Errand
     private final int amount;
     private final boolean keep;
     private final boolean quiet;
+    // La cantidad la eligio Rocco (no se la pidieron): lo que falte se dice sin numeros.
+    private boolean vague;
 
     private boolean chestsTried;
     private boolean craftTried;
@@ -52,6 +54,12 @@ public final class GatherErrand extends Errand
         this.amount = Math.max(1, amount);
         this.keep = keep;
         this.quiet = quiet;
+    }
+
+    public GatherErrand vague(boolean vague)
+    {
+        this.vague = vague;
+        return this;
     }
 
     @Override
@@ -93,7 +101,8 @@ public final class GatherErrand extends Errand
         if (!this.craftTried && !isNatural() && !Recipes.recipesFor(this.level, Inv.id(this.items.get(0))).isEmpty())
         {
             this.craftTried = true;
-            delegate(new CraftErrand(this.rocco, requester(), this.items, this.amount - have, true, true));
+            CraftErrand craft = new CraftErrand(this.rocco, requester(), this.items, this.amount - have, true, true);
+            delegate(this.vague ? craft.vague() : craft);
             return Status.RUNNING;
         }
 

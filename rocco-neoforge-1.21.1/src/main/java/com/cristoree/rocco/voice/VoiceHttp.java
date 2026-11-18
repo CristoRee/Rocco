@@ -40,9 +40,11 @@ final class VoiceHttp
             InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
             return new Response(status, readAll(stream));
         }
-        finally
+        catch (IOException e)
         {
+            // Solo si fallo: si salio bien, la conexion queda abierta para la proxima frase.
             connection.disconnect();
+            throw e;
         }
     }
 
@@ -60,9 +62,11 @@ final class VoiceHttp
             InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
             return new Response(status, readAll(stream));
         }
-        finally
+        catch (IOException e)
         {
+            // Solo si fallo: si salio bien, la conexion queda abierta para la proxima frase.
             connection.disconnect();
+            throw e;
         }
     }
 

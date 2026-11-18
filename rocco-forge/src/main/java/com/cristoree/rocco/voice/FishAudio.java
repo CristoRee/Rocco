@@ -66,6 +66,12 @@ public final class FishAudio
             Map.entry("nervous", "nervous"));
     private static final java.util.regex.Pattern MARK = java.util.regex.Pattern.compile("\\{([a-z ]{2,24})}");
 
+    // La voz sale de un proveedor propio (compatible con OpenAI) y no de Fish Audio.
+    public static boolean customVoice()
+    {
+        return RoccoCommonConfig.VOICE_PROVIDER.get() == RoccoCommonConfig.VoiceProvider.CUSTOM;
+    }
+
     // Una etiqueta que la voz sabe decir.
     public static boolean knowsEmotion(String tag)
     {
@@ -110,6 +116,11 @@ public final class FishAudio
     // voiceOverride: otra voz solo para esta frase (una imitacion). null = la de Rocco.
     public static Result synthesize(String text, @org.jetbrains.annotations.Nullable String voiceOverride)
     {
+        // Con un proveedor propio habla con esa voz (las voces de imitacion son de Fish Audio).
+        if (customVoice())
+        {
+            return OpenAiVoice.synthesize(text);
+        }
         String key = RoccoConfig.fishApiKey();
         String voice = voiceOverride != null && !voiceOverride.isBlank()
                 ? voiceOverride.trim()
@@ -228,7 +239,7 @@ public final class FishAudio
         return net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get().resolve("rocco").resolve("voz_cache");
     }
 
-    private static Wav.Pcm readCache(String key)
+    static Wav.Pcm readCache(String key)
     {
         if (!RoccoCommonConfig.VOICE_CACHE_ENABLED.get() || RoccoCommonConfig.VOICE_CACHE_SIZE_MB.get() <= 0)
         {
@@ -250,7 +261,7 @@ public final class FishAudio
         return null;
     }
 
-    private static void writeCache(String key, byte[] wav)
+    static void writeCache(String key, byte[] wav)
     {
         long limit = RoccoCommonConfig.VOICE_CACHE_SIZE_MB.get() * 1024L * 1024L;
         if (!RoccoCommonConfig.VOICE_CACHE_ENABLED.get() || limit <= 0)

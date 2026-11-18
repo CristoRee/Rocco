@@ -60,9 +60,13 @@ final class AiHttp
             String payload = read(status >= 400 ? connection.getErrorStream() : connection.getInputStream());
             return new Response(status, payload, retryAfter(connection));
         }
-        finally
+        catch (IOException e)
         {
+            // Solo si fallo, para no dejar guardada una conexion rota. Si salio bien la respuesta
+            // ya se leyo entera y Java deja la conexion abierta para el proximo pedido: no se vuelve
+            // a negociar TLS, que hasta los servidores de las IAs son cientos de milisegundos.
             connection.disconnect();
+            throw e;
         }
     }
 

@@ -19,6 +19,10 @@ public final class Deepgram
 
     public static Result transcribe(byte[] wav)
     {
+        if (RoccoCommonConfig.STT_PROVIDER.get() == RoccoCommonConfig.SttProvider.CUSTOM)
+        {
+            return OpenAiTranscribe.transcribe(wav);
+        }
         String key = RoccoConfig.deepgramApiKey();
         if (key.isEmpty())
         {

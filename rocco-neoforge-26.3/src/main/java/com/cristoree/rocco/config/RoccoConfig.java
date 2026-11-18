@@ -17,6 +17,8 @@ public final class RoccoConfig
     public static final String ENV_GROQ = "ROCCO_GROQ_API_KEY";
     public static final String ENV_OPENROUTER = "ROCCO_OPENROUTER_API_KEY";
     public static final String ENV_CUSTOM = "ROCCO_CUSTOM_API_KEY";
+    public static final String ENV_VOICE_CUSTOM = "ROCCO_VOICE_CUSTOM_API_KEY";
+    public static final String ENV_STT_CUSTOM = "ROCCO_STT_CUSTOM_API_KEY";
 
     // NeoForge nombra los archivos solo: config/rocco-common.toml y config/rocco-client.toml
     public static void register(ModContainer container)
@@ -56,6 +58,16 @@ public final class RoccoConfig
         return secret(RoccoCommonConfig.CUSTOM_API_KEY, ENV_CUSTOM);
     }
 
+    public static String customVoiceApiKey()
+    {
+        return secret(RoccoCommonConfig.VOICE_CUSTOM_API_KEY, ENV_VOICE_CUSTOM);
+    }
+
+    public static String customSttApiKey()
+    {
+        return secret(RoccoCommonConfig.STT_CUSTOM_API_KEY, ENV_STT_CUSTOM);
+    }
+
     // Rocco siempre puede contestar algo: sin IA usa sus frases propias (si no se apago).
     public static boolean chatReady()
     {
@@ -71,17 +83,29 @@ public final class RoccoConfig
 
     public static boolean voiceReady()
     {
-        return RoccoCommonConfig.ENABLED.get()
-                && RoccoCommonConfig.VOICE_ENABLED.get()
-                && !fishApiKey().isEmpty()
-                && !RoccoCommonConfig.FISH_VOICE_ID.get().isBlank();
+        if (!RoccoCommonConfig.ENABLED.get() || !RoccoCommonConfig.VOICE_ENABLED.get())
+        {
+            return false;
+        }
+        // Con un proveedor propio la clave puede faltar (uno en tu PC no pide).
+        if (RoccoCommonConfig.VOICE_PROVIDER.get() == RoccoCommonConfig.VoiceProvider.CUSTOM)
+        {
+            return !RoccoCommonConfig.VOICE_CUSTOM_URL.get().isBlank();
+        }
+        return !fishApiKey().isEmpty() && !RoccoCommonConfig.FISH_VOICE_ID.get().isBlank();
     }
 
     public static boolean sttReady()
     {
-        return RoccoCommonConfig.ENABLED.get()
-                && RoccoCommonConfig.STT_ENABLED.get()
-                && !deepgramApiKey().isEmpty();
+        if (!RoccoCommonConfig.ENABLED.get() || !RoccoCommonConfig.STT_ENABLED.get())
+        {
+            return false;
+        }
+        if (RoccoCommonConfig.STT_PROVIDER.get() == RoccoCommonConfig.SttProvider.CUSTOM)
+        {
+            return !RoccoCommonConfig.STT_CUSTOM_URL.get().isBlank();
+        }
+        return !deepgramApiKey().isEmpty();
     }
 
     // Forge valida cada opcion por separado, pero no las relaciones entre dos de ellas.
