@@ -592,8 +592,9 @@ public final class RoccoCommonConfig
                 .comment("Ataca a los monstruos que se te acercan a menos de 8 bloques, aunque no te hayan pegado.")
                 .define("huntHostiles", false);
         ATTACK_CREEPERS = b
-                .comment("Pelea cuerpo a cuerpo con creepers. Apagado, solo les dispara si tiene arco o ballesta.")
-                .define("attackCreepers", false);
+                .comment("Pelea con los creepers. No explotan por culpa de Rocco: al que pelea, al que lo persigue",
+                         "y al que tiene cerca se le apaga la mecha. Apagado, solo les dispara si tiene arco o ballesta.")
+                .define("fightCreepers", true);
         OWNER_CAN_HURT_ROCCO = b
                 .comment("Tus golpes le hacen dano, como a cualquier mob. Apagado, tus golpes no le hacen nada",
                          "(para no lastimarlo sin querer en medio de una pelea).")

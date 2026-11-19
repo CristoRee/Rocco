@@ -771,7 +771,7 @@
   "rocco.tip.behavior.defendOwner": "Attacks whatever hurts you (respecting who you let him attack in his menu).",
   "rocco.tip.behavior.assistOwner": "Attacks whatever you attack (respecting who you let him attack in his menu).",
   "rocco.tip.behavior.huntHostiles": "Attacks monsters that come within 8 blocks of you, even if they have not hit you.",
-  "rocco.tip.behavior.attackCreepers": "Fights creepers in melee. Off: he only shoots them if he has a bow or crossbow.",
+  "rocco.tip.behavior.fightCreepers": "Fights creepers. They don't explode because of Rocco: the one he fights, the one chasing him and any close to him get their fuse put out. Off: he only shoots them if he has a bow or crossbow.",
   "rocco.tip.behavior.ownerCanHurtRocco": "Your hits hurt him, like any mob. Off: your hits do nothing to him (so you do not hurt him by accident in a fight).",
   "rocco.tip.behavior.weaponDurability": "His weapons and armor wear out like yours.",
   "rocco.tip.behavior.defaultAttackHostiles": "Who a new Rocco may attack (changed later in his menu): hostile mobs.",

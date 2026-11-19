@@ -104,6 +104,34 @@ public final class GeminiClient
         return out;
     }
 
+    // Uno rapido y distinto de "current", para cuando el de la charla esta saturado o fue retirado:
+    // el que trae Rocco de fabrica (gratis, rapido y con mucho cupo), si no un flash-lite (casi no
+    // razona), y si no el mejor flash.
+    public static String fastAlternative(List<String> available, String current)
+    {
+        List<String> others = available.stream()
+                .filter(id -> current == null || !id.equalsIgnoreCase(current))
+                .toList();
+        String preferred = RoccoCommonConfig.GEMINI_MODEL.getDefault();
+        for (String id : others)
+        {
+            if (id.equalsIgnoreCase(preferred))
+            {
+                return id;
+            }
+        }
+        Comparator<String> newestFirst = Comparator
+                .comparingInt(GeminiClient::majorVersion)
+                .thenComparingInt(GeminiClient::minorVersion)
+                .reversed();
+        List<String> lite = others.stream()
+                .map(name -> name.toLowerCase(Locale.ROOT))
+                .filter(name -> name.startsWith("gemini-") && name.contains("flash-lite") && usableForChat(name))
+                .sorted(Comparator.comparing((String name) -> name.contains("preview") || name.contains("exp")).thenComparing(newestFirst))
+                .toList();
+        return lite.isEmpty() ? chooseModel(others) : lite.get(0);
+    }
+
     // Elige el mejor modelo para charlar: el flash mas nuevo y estable. Si no hay estable acepta
     // preview, y si no hay flash, cualquier gemini que sirva para texto.
     public static String chooseModel(List<String> available)

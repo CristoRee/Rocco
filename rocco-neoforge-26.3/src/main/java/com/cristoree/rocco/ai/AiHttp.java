@@ -18,6 +18,9 @@ import java.util.Map;
 // en su propio modulo y no siempre esta disponible bajo ModLauncher.
 final class AiHttp
 {
+    // Un tope mas corto para los pedidos de este hilo (la charla, que alguien espera). 0 = el de la config.
+    static final ThreadLocal<Integer> TIMEOUT_OVERRIDE_MS = ThreadLocal.withInitial(() -> 0);
+
     record Response(int status, String body, int retryAfterSeconds) {}
 
     static Response post(String url, Map<String, String> headers, JsonObject body) throws IOException
@@ -34,6 +37,11 @@ final class AiHttp
             throws IOException
     {
         int timeout = RoccoCommonConfig.AI_TIMEOUT_SECONDS.get() * 1000;
+        int cap = TIMEOUT_OVERRIDE_MS.get();
+        if (cap > 0 && cap < timeout)
+        {
+            timeout = cap;
+        }
 
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setRequestMethod(method);

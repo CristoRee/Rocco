@@ -89,11 +89,40 @@ public final class RoccoCombat
             {
                 return false;
             }
-            // Le explotan en la cara: solo con arco o ballesta, salvo que lo actives en la config.
+            // Con la opcion apagada, solo con arco o ballesta. Prendida (de fabrica) pelea igual: no
+            // le explotan (ver defuseCreepers).
             return !(target instanceof Creeper) || RoccoCommonConfig.ATTACK_CREEPERS.get()
                     || RoccoGear.attackFor(rocco.weapon()).ranged() && hasArrows(rocco);
         }
         return (allowed & PEACEFUL) != 0;
+    }
+
+    // Ningun creeper explota por culpa de Rocco: al que esta peleando, al que lo persigue a el, al
+    // que le pego hace poco y al que tiene a menos de 6 bloques se le apaga la mecha. El creeper
+    // calcula la mecha antes de que sus metas la vuelvan a prender, asi que alcanza con hacerlo una
+    // vez por tick, sin importar quien se mueve primero. Uno prendido con encendedor si explota:
+    // eso lo decidio el jugador.
+    static void defuseCreepers(RoccoEntity rocco)
+    {
+        if (!rocco.isAlive())
+        {
+            return;
+        }
+        LivingEntity target = rocco.getTarget();
+        for (Creeper creeper : rocco.level().getEntitiesOfClass(Creeper.class, rocco.getBoundingBox().inflate(16.0D)))
+        {
+            if (creeper.isIgnited())
+            {
+                continue;
+            }
+            boolean involved = creeper == target || creeper.getTarget() == rocco
+                    || (creeper.getLastHurtByMob() == rocco && creeper.tickCount - creeper.getLastHurtByMobTimestamp() < 200)
+                    || creeper.distanceToSqr(rocco) < 36.0D;
+            if (involved)
+            {
+                creeper.setSwellDir(-1);
+            }
+        }
     }
 
     // ---------- elegir objetivo ----------

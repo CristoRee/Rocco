@@ -3681,6 +3681,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         }
 
         applyConfigOnce();
+        RoccoCombat.defuseCreepers(this);
 
         if (getRoccoState() == RoccoState.AWAKENING)
         {

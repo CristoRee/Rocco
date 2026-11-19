@@ -32,7 +32,10 @@ public final class AiRouter
     private static volatile AiProvider lastUsed;
 
     // Cuanto se espera al que va primero antes de preguntarle tambien al siguiente.
-    private static final long HEDGE_AFTER_MS = 5_000L;
+    private static final long HEDGE_AFTER_MS = 3_500L;
+    // Charlando (alguien espera la respuesta), cuanto se espera como mucho a una IA de internet en
+    // cada intento. Las de tu PC (Ollama, un proveedor propio) pueden tardar mas: esas no se cortan.
+    private static final int CHAT_TIMEOUT_MS = 10_000;
     private static final java.util.concurrent.ExecutorService POOL = java.util.concurrent.Executors.newCachedThreadPool(runnable ->
     {
         Thread thread = new Thread(runnable, "Rocco-IA-pedido");
@@ -103,7 +106,7 @@ public final class AiRouter
         java.util.concurrent.CompletionService<Done> pending = new java.util.concurrent.ExecutorCompletionService<>(POOL);
         int next = 0;
         int running = 0;
-        pending.submit(task(order.get(next++), systemPrompt, history, question));
+        pending.submit(task(order.get(next++), systemPrompt, history, question, hurry));
         running++;
 
         while (running > 0)
@@ -119,7 +122,7 @@ public final class AiRouter
                     // El que va primero tarda: se le pregunta tambien al siguiente.
                     AiProvider extra = order.get(next++);
                     RoccoMod.LOGGER.info("[Rocco] La IA tarda; le pregunto tambien a {}.", extra.label());
-                    pending.submit(task(extra, systemPrompt, history, question));
+                    pending.submit(task(extra, systemPrompt, history, question, hurry));
                     running++;
                     continue;
                 }
@@ -136,7 +139,7 @@ public final class AiRouter
                 running--;
                 if (running == 0 && next < order.size())
                 {
-                    pending.submit(task(order.get(next++), systemPrompt, history, question));
+                    pending.submit(task(order.get(next++), systemPrompt, history, question, hurry));
                     running++;
                 }
                 continue;
@@ -162,7 +165,7 @@ public final class AiRouter
             // Fallo: si no queda nadie pensando, al siguiente.
             if (running == 0 && next < order.size())
             {
-                pending.submit(task(order.get(next++), systemPrompt, history, question));
+                pending.submit(task(order.get(next++), systemPrompt, history, question, hurry));
                 running++;
             }
         }
@@ -178,12 +181,28 @@ public final class AiRouter
     }
 
     private static java.util.concurrent.Callable<Done> task(AiProvider provider, String systemPrompt, List<ChatTurn> history,
-                                                           String question)
+                                                           String question, boolean hurry)
     {
-        return () -> new Done(provider, attempt(provider, systemPrompt, history, question));
+        return () -> new Done(provider, attempt(provider, systemPrompt, history, question, hurry));
     }
 
-    private static ChatReply attempt(AiProvider provider, String systemPrompt, List<ChatTurn> history, String question)
+    private static ChatReply attempt(AiProvider provider, String systemPrompt, List<ChatTurn> history, String question,
+                                     boolean hurry)
+    {
+        boolean online = provider == AiProvider.GEMINI || provider == AiProvider.GROQ || provider == AiProvider.OPENROUTER;
+        AiHttp.TIMEOUT_OVERRIDE_MS.set(hurry && online ? CHAT_TIMEOUT_MS : 0);
+        try
+        {
+            return attemptModels(provider, systemPrompt, history, question, hurry);
+        }
+        finally
+        {
+            AiHttp.TIMEOUT_OVERRIDE_MS.set(0);
+        }
+    }
+
+    private static ChatReply attemptModels(AiProvider provider, String systemPrompt, List<ChatTurn> history, String question,
+                                           boolean hurry)
     {
         String model;
         try
@@ -195,7 +214,8 @@ public final class AiRouter
             return ChatReply.fail(networkFailure(provider, e), describe(provider, e), provider.label(), null);
         }
 
-        ChatReply reply = callWithRetries(provider, model, systemPrompt, history, question);
+        ChatReply reply = callWithRetries(provider, model, systemPrompt, history, question, hurry);
+        String used = model;
 
         // Modelo retirado: se busca uno vigente en el catalogo y se reintenta una vez.
         if (reply.failure() == ChatReply.Failure.MODEL_MISSING)
@@ -203,7 +223,25 @@ public final class AiRouter
             String replacement = ModelResolver.replaceMissing(provider, model);
             if (replacement != null)
             {
-                reply = callWithRetries(provider, replacement, systemPrompt, history, question);
+                used = replacement;
+                reply = callWithRetries(provider, replacement, systemPrompt, history, question, hurry);
+            }
+        }
+
+        // Charlando: si el modelo esta saturado (503) o no contesto a tiempo, se prueba enseguida otro
+        // del mismo proveedor en vez de insistir con el mismo (asi una respuesta llegaba a tardar un minuto).
+        if (hurry && !reply.ok() && (reply.failure() == ChatReply.Failure.SERVER || reply.failure() == ChatReply.Failure.NETWORK))
+        {
+            String other = ModelResolver.alternative(provider, used);
+            if (other != null)
+            {
+                RoccoMod.LOGGER.info("[Rocco] {}: '{}' no contesto ({}); pruebo con '{}'.", provider.label(), used, reply.error(), other);
+                reply = callWithRetries(provider, other, systemPrompt, history, question, hurry);
+                if (reply.ok())
+                {
+                    // Contesto rapido: los proximos mensajes van directo a este, sin esperar al saturado.
+                    ModelResolver.useForAWhile(provider, other);
+                }
             }
         }
 
@@ -211,9 +249,10 @@ public final class AiRouter
     }
 
     private static ChatReply callWithRetries(AiProvider provider, String model, String systemPrompt,
-                                             List<ChatTurn> history, String question)
+                                             List<ChatTurn> history, String question, boolean hurry)
     {
-        int attempts = RoccoCommonConfig.AI_MAX_RETRIES.get() + 1;
+        // Charlando, un intento por modelo: el segundo va a otro modelo (ver attemptModels).
+        int attempts = hurry ? 1 : RoccoCommonConfig.AI_MAX_RETRIES.get() + 1;
         ChatReply reply = null;
 
         for (int attempt = 1; attempt <= attempts; attempt++)

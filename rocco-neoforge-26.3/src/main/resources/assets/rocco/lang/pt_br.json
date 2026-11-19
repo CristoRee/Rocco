@@ -773,7 +773,7 @@
   "rocco.tip.behavior.defendOwner": "Ataca o que te machuca (respeitando quem você deixou atacar no menu dele).",
   "rocco.tip.behavior.assistOwner": "Ataca o que você ataca (respeitando quem você deixou atacar no menu dele).",
   "rocco.tip.behavior.huntHostiles": "Ataca monstros que chegam a menos de 8 blocos de você, mesmo que não tenham te batido.",
-  "rocco.tip.behavior.attackCreepers": "Luta corpo a corpo com creepers. Desligado, só atira neles se tiver arco ou besta.",
+  "rocco.tip.behavior.fightCreepers": "Luta com os creepers. Eles não explodem por causa do Rocco: o que ele enfrenta, o que o persegue e os que estão perto têm o pavio apagado. Desligado, só atira neles se tiver arco ou besta.",
   "rocco.tip.behavior.ownerCanHurtRocco": "Os seus golpes o machucam, como em qualquer mob. Desligado, os seus golpes não fazem nada a ele (para não machucá-lo sem querer numa luta).",
   "rocco.tip.behavior.weaponDurability": "As armas e armaduras dele se gastam como as suas.",
   "rocco.tip.behavior.defaultAttackHostiles": "Quem um Rocco novo pode atacar (depois se muda no menu dele): mobs hostis.",

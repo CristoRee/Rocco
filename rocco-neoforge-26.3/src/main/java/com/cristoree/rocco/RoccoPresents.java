@@ -149,6 +149,17 @@ public final class RoccoPresents
                 Math.round(hours * 10.0D) / 10.0D, Names.stacks(present));
     }
 
+    // Ademas de al salir, cada minuto mientras juega: si el juego se cierra de golpe (desde el
+    // launcher, un cuelgue, apagar la PC) no hay "salir", y al volver no se sabia desde cuando faltaba.
+    @SubscribeEvent
+    public static void onPlayerTick(net.neoforged.neoforge.event.tick.PlayerTickEvent.Post event)
+    {
+        if (event.getEntity() instanceof ServerPlayer player && player.tickCount % 1200 == 600)
+        {
+            player.getPersistentData().putLong(TAG_LEFT_AT, System.currentTimeMillis());
+        }
+    }
+
     // Si te moris antes de que te lo de, el regalo sigue esperandote.
     @SubscribeEvent
     public static void onClone(PlayerEvent.Clone event)

@@ -30,6 +30,17 @@ public final class ModelResolver
 
     public static String modelFor(AiProvider provider) throws IOException
     {
+        // El que contesto cuando el elegido estaba saturado: se sigue con ese un rato.
+        Temporary temporary = TEMPORARY.get(provider);
+        if (temporary != null)
+        {
+            if (System.currentTimeMillis() < temporary.until())
+            {
+                return temporary.model();
+            }
+            TEMPORARY.remove(provider);
+        }
+
         String configured = provider.configuredModel();
 
         if (!configured.isEmpty() && !configured.equalsIgnoreCase(AUTO))
@@ -59,7 +70,9 @@ public final class ModelResolver
     {
         try
         {
-            String chosen = choose(provider, catalog.list(provider), missing);
+            String chosen = provider == AiProvider.GEMINI
+                    ? GeminiClient.fastAlternative(cachedCatalog(provider), missing)
+                    : choose(provider, catalog.list(provider), missing);
             if (chosen == null || chosen.equalsIgnoreCase(missing))
             {
                 return null;
@@ -84,6 +97,55 @@ public final class ModelResolver
             RoccoMod.LOGGER.warn("[Rocco] {}: no pude buscar un modelo de reemplazo: {}", provider.label(), e.toString());
             return null;
         }
+    }
+
+    // Otro modelo del mismo proveedor para charlar ya, cuando el que se uso esta saturado o no
+    // contesto (la eleccion de la sesion no cambia). null si no hay otro o es una IA de tu PC.
+    public static String alternative(AiProvider provider, String current)
+    {
+        if (provider == AiProvider.OLLAMA || provider == AiProvider.CUSTOM)
+        {
+            return null;
+        }
+        try
+        {
+            List<String> available = cachedCatalog(provider);
+            String chosen = provider == AiProvider.GEMINI
+                    ? GeminiClient.fastAlternative(available, current)
+                    : choose(provider, available, current);
+            return chosen == null || chosen.equalsIgnoreCase(current) ? null : chosen;
+        }
+        catch (IOException | RuntimeException e)
+        {
+            RoccoMod.LOGGER.debug("[Rocco] {}: no pude buscar otro modelo: {}", provider.label(), e.toString());
+            return null;
+        }
+    }
+
+    // Por 10 minutos, este modelo en lugar del elegido (que estaba saturado o tardaba). Despues se
+    // vuelve a probar el elegido.
+    private record Temporary(String model, long until) {}
+    private static final Map<AiProvider, Temporary> TEMPORARY = new ConcurrentHashMap<>();
+
+    public static void useForAWhile(AiProvider provider, String model)
+    {
+        TEMPORARY.put(provider, new Temporary(model, System.currentTimeMillis() + 10 * 60_000L));
+    }
+
+    // El catalogo, guardado 10 minutos: buscar otro modelo no tiene que sumar una consulta cada vez.
+    private record Listed(List<String> models, long at) {}
+    private static final Map<AiProvider, Listed> CATALOGS = new ConcurrentHashMap<>();
+
+    private static List<String> cachedCatalog(AiProvider provider) throws IOException
+    {
+        Listed listed = CATALOGS.get(provider);
+        if (listed != null && System.currentTimeMillis() - listed.at() < 10 * 60_000L)
+        {
+            return listed.models();
+        }
+        List<String> models = catalog.list(provider);
+        CATALOGS.put(provider, new Listed(models, System.currentTimeMillis()));
+        return models;
     }
 
     // Los modelos para charlar que ofrece hoy la cuenta del jugador (para elegir desde el menu).
@@ -111,6 +173,11 @@ public final class ModelResolver
     public static String lastKnown(AiProvider provider)
     {
         String configured = provider.configuredModel();
+        Temporary temporary = TEMPORARY.get(provider);
+        if (temporary != null && System.currentTimeMillis() < temporary.until())
+        {
+            return temporary.model() + " (el elegido estaba saturado)";
+        }
         if (!configured.isEmpty() && !configured.equalsIgnoreCase(AUTO))
         {
             return REPLACEMENTS.getOrDefault(replacementKey(provider, configured), configured);
@@ -122,6 +189,7 @@ public final class ModelResolver
     {
         RESOLVED.clear();
         REPLACEMENTS.clear();
+        TEMPORARY.clear();
     }
 
     private static String choose(AiProvider provider, List<String> available, String exclude)
