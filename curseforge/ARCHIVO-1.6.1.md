@@ -4,7 +4,7 @@
 - **Your own voice and mic provider:** besides Fish Audio and Deepgram, the Voice and Microphone settings now have "Your own provider", for any service compatible with OpenAI's API. Voice: OpenAI, or a free one on your PC like Kokoro. Microphone: Groq (Whisper, with a free tier), OpenAI or a Whisper on your PC. You set the address, key, model and (for the voice) the voice name. With your own voice provider there are no voice emotions or impression voices.
 
 **Changed**
-- **Fights creepers, with no explosions:** he now attacks them by default, and no creeper explodes because of Rocco: the one he fights, the one chasing him and any close to him get their fuse put out. One you light with flint and steel still explodes.
+- **Fights creepers:** he now attacks them by default, and creepers ignore him: if he hits them they don't turn to chase him, and they never explode because of him. With you, as always in Minecraft.
 - **When the voice fails, you know why:** if Fish Audio rejects the key, runs out of credit or can't connect, Rocco says so in yellow with what to do (before it was a gray line that went unnoticed and he just went silent). He says it only once per problem, so the chat doesn't fill up, and `/rocco ia` now also shows the voice and the mic, with their last error.
 - **Roco Cola in his free time:** now and then (3% of the times he picks something to do on his own, with at least 10 minutes between one and the next) he has a Roco Cola.
 - **"Get me bread" with no amount** makes one batch of food (one bread, 3 wheat) instead of 16. Materials like wood or stone are still 16.
@@ -27,7 +27,7 @@
 - **Voz y micrófono con proveedor propio:** además de Fish Audio y Deepgram, en la configuración de Voz y de Micrófono está "Proveedor propio", para cualquier servicio compatible con la API de OpenAI. Voz: OpenAI, o uno gratis en tu PC como Kokoro. Micrófono: Groq (Whisper, con capa gratis), OpenAI o un Whisper en tu PC. Se completa la dirección, la clave, el modelo y (en la voz) el nombre de la voz. Con voz propia no hay emociones en la voz ni voces de imitación.
 
 **Cambiado**
-- **Pelea con los creepers, sin explosiones:** ahora los ataca de fábrica, y ningún creeper explota por culpa de Rocco: al que pelea, al que lo persigue y a cualquiera cerca de él se le apaga la mecha. Uno que prendas con un encendedor sí explota.
+- **Pelea con los creepers:** ahora los ataca de fábrica, y los creepers lo ignoran: si les pega no se dan vuelta a perseguirlo y nunca explotan por él. Con vos, como siempre en Minecraft.
 - **Cuando la voz falla, se entiende por qué:** si Fish Audio rechaza la clave, se queda sin crédito o sin conexión, Rocco lo avisa en amarillo con qué hacer (antes era una línea gris que pasaba de largo y se quedaba mudo sin explicación). Avisa una sola vez por problema, para no llenar el chat, y `/rocco ia` ahora muestra también la voz y el micrófono, con su último error.
 - **La Roco Cola en su rato libre:** cada tanto (el 3 % de las veces que elige algo para hacer solo, con 10 minutos como mínimo entre una y otra) se toma una Roco Cola.
 - **"Conseguime pan" sin cantidad** hace una tanda de comida (un pan, 3 de trigo) en vez de 16. Los materiales como madera o piedra siguen siendo 16.
