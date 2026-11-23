@@ -1,0 +1,20 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Rocco IA (servidor)",
+    "description": "Opcional: le da IA a Rocco en un servidor dedicado (BDS). Necesita las APIs beta y una clave en config/. Ver LEEME.",
+    "uuid": "284eacc6-c1af-44be-abf1-dbb445753a13",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 26, 60]
+  },
+  "modules": [
+    { "type": "script", "language": "javascript", "uuid": "24f6c7b2-c159-46ae-9609-d86547b385b3", "version": [1, 0, 0], "entry": "scripts/ia.js" }
+  ],
+  "dependencies": [
+    { "uuid": "88b29f94-082b-4fd1-9459-c32b2bcf0df9", "version": [1, 0, 0] },
+    { "module_name": "@minecraft/server", "version": "2.12.0-beta" },
+    { "module_name": "@minecraft/server-net", "version": "1.0.0-beta" },
+    { "module_name": "@minecraft/server-admin", "version": "1.0.0-beta" }
+  ],
+  "metadata": { "authors": ["CristoRee"] }
+}

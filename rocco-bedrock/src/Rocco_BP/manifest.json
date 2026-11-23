@@ -1,0 +1,20 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Rocco",
+    "description": "Rocco, tu compañero de aventuras: charla, te sigue, toma mate, juega al truco y te defiende.",
+    "uuid": "88b29f94-082b-4fd1-9459-c32b2bcf0df9",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 26, 0]
+  },
+  "modules": [
+    { "type": "data", "uuid": "b5c5874a-e5c4-4dfb-9119-f3512d6706bf", "version": [1, 0, 0] },
+    { "type": "script", "language": "javascript", "uuid": "827f1fe2-83d6-4045-a1ca-6a8daa7a8d1b", "version": [1, 0, 0], "entry": "scripts/main.js" }
+  ],
+  "dependencies": [
+    { "uuid": "a0d5cf55-1094-43dc-a9e1-8e9eb69828b5", "version": [1, 0, 0] },
+    { "module_name": "@minecraft/server", "version": "2.5.0" },
+    { "module_name": "@minecraft/server-ui", "version": "2.0.0" }
+  ],
+  "metadata": { "authors": ["CristoRee"] }
+}

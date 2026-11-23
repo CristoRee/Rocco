@@ -18,6 +18,8 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, charla
 
 El mod tiene que estar instalado en el cliente y, si jugás en un servidor, también en el servidor.
 
+**¿Jugás Bedrock?** (Windows, celular, consolas) Hay un complemento de Rocco para Bedrock 1.26 en [`rocco-bedrock`](rocco-bedrock/LEEME.md), con el mismo modelo, caras, animaciones, sonidos y frases; ahí está qué trae y qué no se puede hacer en Bedrock.
+
 ## Instalación
 
 1. Instalá Forge 1.20.1.

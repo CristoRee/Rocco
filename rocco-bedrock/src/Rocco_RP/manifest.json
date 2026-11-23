@@ -1,0 +1,17 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Rocco (recursos)",
+    "description": "El modelo, las caras, las animaciones y los sonidos de Rocco.",
+    "uuid": "a0d5cf55-1094-43dc-a9e1-8e9eb69828b5",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 26, 0]
+  },
+  "modules": [
+    { "type": "resources", "uuid": "838927d3-95cc-4d7d-be12-3c5b54df2e4f", "version": [1, 0, 0] }
+  ],
+  "dependencies": [
+    { "uuid": "88b29f94-082b-4fd1-9459-c32b2bcf0df9", "version": [1, 0, 0] }
+  ],
+  "metadata": { "authors": ["CristoRee"] }
+}
