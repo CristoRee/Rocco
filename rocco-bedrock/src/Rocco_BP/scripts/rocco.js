@@ -31,6 +31,7 @@ export function rt(rocco) {
       lastSaid: 0,
       lastIdle: now(),
       lastCola: -1e9,
+      lastColaGift: -1e9,
       lastLine: {},
       scene: null,
     };

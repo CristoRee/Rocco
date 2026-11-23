@@ -134,7 +134,7 @@ def rocco_entity():
             {"cause": "fall", "deals_damage": "no"},
         ]},
         "minecraft:collision_box": {"width": 0.6, "height": 1.3},
-        "minecraft:health": {"value": 40, "max": 40},
+        "minecraft:health": {"value": 40, "max": 40, "min": 1},
         "minecraft:attack": {"damage": 4},
         "minecraft:movement.basic": {},
         "minecraft:navigation.walk": {
@@ -148,7 +148,6 @@ def rocco_entity():
         "minecraft:persistent": {},
         "minecraft:tameable": {"probability": 0.0, "tame_event": {"event": "rocco:tamed", "target": "self"}},
         "minecraft:breathable": {"total_supply": 15, "suffocate_time": 0, "breathes_water": True},
-        "minecraft:fall_damage": {"value": 0.0},
         "minecraft:inventory": {"container_type": "inventory", "inventory_size": 54, "private": True},
         "minecraft:equipment": {},
         "minecraft:experience_reward": {"on_death": "0"},

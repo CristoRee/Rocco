@@ -80,6 +80,19 @@ export function listItems(container) {
   return out;
 }
 
+// Las comidas de Minecraft: en Bedrock los items de fabrica no muestran su componente de comida
+// al script (solo los de los paquetes), asi que van por nombre.
+const VANILLA_FOOD = new Set([
+  "apple", "golden_apple", "enchanted_golden_apple", "bread", "cookie", "cake", "pumpkin_pie", "melon_slice",
+  "glistering_melon_slice", "sweet_berries", "glow_berries", "carrot", "golden_carrot", "potato", "baked_potato",
+  "poisonous_potato", "beetroot", "beetroot_soup", "mushroom_stew", "rabbit_stew", "suspicious_stew", "dried_kelp",
+  "beef", "cooked_beef", "porkchop", "cooked_porkchop", "chicken", "cooked_chicken", "mutton", "cooked_mutton",
+  "rabbit", "cooked_rabbit", "cod", "cooked_cod", "salmon", "cooked_salmon", "tropical_fish", "pufferfish",
+  "rotten_flesh", "spider_eye", "chorus_fruit", "honey_bottle",
+]);
+
 export function isFood(stack) {
+  if (!stack) return false;
+  if (stack.typeId.startsWith("minecraft:") && VANILLA_FOOD.has(stack.typeId.slice(10))) return true;
   return !!safe("comida", () => stack.getComponent("minecraft:food"));
 }

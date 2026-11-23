@@ -1,0 +1,11 @@
+Resumen (campo "Summary", hasta 255 caracteres):
+
+Rocco, el compañero del mod de Java, ahora en Bedrock: brota de la tierra, charla con su personalidad, te sigue y te defiende, toma mate y te ceba, hace asado, juega al truco y se pone armadura y armas 3D. Sin experimentos.
+
+English summary:
+
+Rocco, the companion from the Java mod, now on Bedrock: sprouts from the ground, chats with his own personality, follows and defends you, shares mate, grills asado, plays truco and wears 3D armor and weapons. No experiments. In Spanish.
+
+Resumo em português:
+
+Rocco, o companheiro do mod de Java, agora no Bedrock: brota da terra, conversa com personalidade própria, te segue e te defende, serve chimarrão, faz churrasco, joga truco e usa armadura e armas 3D. Sem experimentos. Em espanhol.

@@ -31,17 +31,19 @@ He works **without any account or key**: he comes with hundreds of built-in line
 
 ## 📦 Requirements
 
-| | Version |
-|---|---|
-| Minecraft | 1.20.1 |
-| Forge | 47.4.10 or newer |
-| GeckoLib | 4.7.4 or newer (required) |
+| Minecraft | Loader | GeckoLib (required) | Java |
+|---|---|---|---|
+| 1.20.1 | Forge 47.4.10 or newer | 4.7.4 or newer | 17 |
+| 1.21.1 | NeoForge 21.1.150 or newer | 4.9.3 or newer | 21 |
+| 26.3 | NeoForge 26.3 | 5.5.7 or newer (the one for 26.3) | 25 |
 
-Goes on both client and server.
+Download the file for your Minecraft version. Goes on both client and server. A world from 1.20.1 opened in 1.21.1 keeps Rocco, his weapon, his inventory and what's inside his backpacks.
+
+> **Playing Bedrock?** (Windows, phone, consoles) There's a separate Rocco add-on for Minecraft Bedrock 1.26, with the same model, faces, animations, sounds and lines. Look for **Rocco (Bedrock)**.
 
 ## 🌱 Getting started
 
-1. Install Forge 1.20.1, GeckoLib and Rocco.
+1. Install Forge (1.20.1) or NeoForge (1.21.1, 26.3), GeckoLib and Rocco.
 2. Use Rocco's spawn egg (spawn eggs tab) and right-click the little plant.
 3. Talk to him in chat. **Sneak + right-click** opens his menu.
 
@@ -93,9 +95,19 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, entien
 - **Regalos:** si te vas un rato, cuando volvés te dejó cosas que juntó. Y de vez en cuando te regala alguna rareza.
 - **Voz y micrófono (opcional):** habla en voz alta con Fish Audio, imita voces de personajes y te escucha con Deepgram. Sin clave de Fish Audio habla por escrito. En un servidor, la clave y la voz son las de quien lo hospeda.
 
-**Requisitos:** Minecraft 1.20.1, Forge 47.4.10 o más nuevo y GeckoLib 4.7.4 o más nuevo (obligatorio), en el cliente y en el servidor.
+**Requisitos:** bajá el archivo de tu versión de Minecraft. Va en el cliente y en el servidor, y GeckoLib es obligatorio.
 
-**Cómo empezar:** instalá Forge, GeckoLib y Rocco, usá el huevo generador de Rocco y hacele clic derecho a la plantita. Hablale por el chat; **agachado + clic derecho** abre su menú. Para que charle con IA, poné una clave gratuita (Groq, Gemini u OpenRouter, o Ollama en tu PC) en **Mods > Rocco > Config > IA (cerebro)**.
+| Minecraft | Loader | GeckoLib | Java |
+|---|---|---|---|
+| 1.20.1 | Forge 47.4.10 o más nuevo | 4.7.4 o más nuevo | 17 |
+| 1.21.1 | NeoForge 21.1.150 o más nuevo | 4.9.3 o más nuevo | 21 |
+| 26.3 | NeoForge 26.3 | 5.5.7 o más nuevo (el de 26.3) | 25 |
+
+Un mundo de 1.20.1 abierto en 1.21.1 conserva a Rocco, su arma, su inventario y lo que llevan sus mochilas.
+
+**¿Jugás Bedrock?** (Windows, celular, consolas) Hay un complemento de Rocco aparte para Minecraft Bedrock 1.26, con el mismo modelo, caras, animaciones, sonidos y frases. Buscalo como **Rocco (Bedrock)**.
+
+**Cómo empezar:** instalá Forge (1.20.1) o NeoForge (1.21.1, 26.3), GeckoLib y Rocco, usá el huevo generador de Rocco y hacele clic derecho a la plantita. Hablale por el chat; **agachado + clic derecho** abre su menú. Para que charle con IA, poné una clave gratuita (Groq, Gemini u OpenRouter, o Ollama en tu PC) en **Mods > Rocco > Config > IA (cerebro)**.
 
 **Privacidad:** sin claves, Rocco no se conecta a ningún lado, salvo al link de una canción que le pases, que tu juego abre para escucharlo, como un navegador. Solo si ponés una clave se conecta a ese servicio (lo que le decís va al proveedor de IA que elijas, el texto hablado a Fish Audio y el audio del micrófono a Deepgram). Las claves quedan solo en tu configuración y no se junta ni se manda nada a ningún otro lado.
 
@@ -109,6 +121,8 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, entien
 
 Ele fala **espanhol** e funciona **sem nenhuma conta ou chave**, com centenas de falas próprias. Com uma chave de IA gratuita (Groq, Gemini, OpenRouter ou um Ollama local) ele conversa de verdade, e pode responder em português: no menu dele (agachado + clique direito) abra **Personalidad** e coloque **Dialect** em **Automatic**: ele segue o idioma do seu jogo. Os menus, as falas prontas e as ordens sem IA são em espanhol.
 
-**Requer** Minecraft 1.20.1, Forge 47.4.10+ e GeckoLib 4.7.4+, no cliente e no servidor.
+**Requer** GeckoLib, no cliente e no servidor: Minecraft 1.20.1 com Forge 47.4.10+ e GeckoLib 4.7.4+, 1.21.1 com NeoForge 21.1.150+ e GeckoLib 4.9.3+, ou 26.3 com NeoForge 26.3 e GeckoLib 5.5.7+. Baixe o arquivo da sua versão.
+
+**Joga Bedrock?** Existe um complemento do Rocco separado para Minecraft Bedrock 1.26: procure **Rocco (Bedrock)**.
 
 **Serviços externos:** sem chaves ele não se conecta a nada, exceto ao site de um link de música que alguém passar para ele, que o seu jogo abre para tocar. Só se você colocar uma chave ele se conecta a esse serviço (suas mensagens vão para o provedor de IA escolhido, o texto falado para a Fish Audio, o áudio do microfone para a Deepgram). Nada é coletado nem enviado para outro lugar.

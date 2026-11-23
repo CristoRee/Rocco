@@ -9,7 +9,7 @@ import { tickAll, tickPresence, onFirstJoin, onReturn, rememberLeaving, beginAwa
 import { openMenu, giveHeld, equipBackpack } from "./menu.js";
 import { hear, onScriptEvent, aiAvailable, aiStatus } from "./chat.js";
 import { onRoccoHit, onRoccoHurt, onDied, rise, gearSlot, equipFrom } from "./combat.js";
-import { eatFood, playerDrankMate, busy } from "./activities.js";
+import { eatFood, playerDrankMate, busy, stopAll } from "./activities.js";
 import { trucoMateDrunk, endAllFor } from "./truco/session.js";
 import { heldItem, setHeldItem, isFood } from "./items.js";
 
@@ -114,12 +114,51 @@ world.beforeEvents.playerLeave.subscribe((event) => {
 
 // ---------------------------------------------------------------- tocar a Rocco
 
+// Tocarlo llega por dos lados: el evento de script (trae al jugador) y el evento de la entidad
+// (su componente minecraft:interact). El de script no siempre se dispara (con los jugadores
+// simulados del servidor nunca), asi que el de la entidad hace de respaldo: busca al jugador que
+// lo esta mirando de cerca. Se atiende una sola vez por toque.
+const lastTouch = new Map();
+
 world.afterEvents.playerInteractWithEntity.subscribe((event) => {
   const rocco = event.target;
   const player = event.player;
   if (!isRocco(rocco)) return;
+  lastTouch.set(rocco.id, now());
   system.run(() => safe("tocar", () => interact(rocco, player)));
 });
+
+function toucher(rocco) {
+  let best;
+  let bestScore = Infinity;
+  for (const p of world.getPlayers()) {
+    if (p.dimension.id !== rocco.dimension.id) continue;
+    const head = p.getHeadLocation();
+    const to = { x: rocco.location.x - head.x, y: rocco.location.y + 0.7 - head.y, z: rocco.location.z - head.z };
+    const d = Math.hypot(to.x, to.y, to.z);
+    if (d > 7) continue;
+    const v = p.getViewDirection();
+    const cos = (v.x * to.x + v.y * to.y + v.z * to.z) / (d || 1);
+    // Mirandolo de frente pesa mucho mas que estar cerca.
+    const score = d * (2 - cos);
+    if (score < bestScore) {
+      bestScore = score;
+      best = p;
+    }
+  }
+  return best;
+}
+
+function onTouchedEvent(rocco) {
+  const at = now();
+  system.runTimeout(() => {
+    if (!rocco.isValid || (lastTouch.get(rocco.id) ?? -100) >= at - 1) return;
+    const player = toucher(rocco);
+    if (!player) return;
+    lastTouch.set(rocco.id, now());
+    safe("tocar", () => interact(rocco, player));
+  }, 1);
+}
 
 function interact(rocco, player) {
   const s = state(rocco);
@@ -148,12 +187,23 @@ function interact(rocco, player) {
       say(rocco, line("armor_equip"), "smug");
       return;
     }
-    if (held.typeId !== "rocco:mate" && isFood(held) && !busy(rocco)) {
+    // Comida: deja lo liviano que estuviera haciendo (bailar, un mate solo, una cola) y come.
+    // En una escena larga o mientras te ceba mate, no: ahi se abre el menu.
+    if (held.typeId !== "rocco:mate" && isFood(held) && canStopForFood(rocco)) {
+      if (busy(rocco)) stopAll(rocco);
       feed(rocco, player, held);
       return;
     }
   }
   openMenu(rocco, player);
+}
+
+const LIGHT_TASKS = new Set(["mate", "dance", "cola", "wave", "clap", "celebrate", "give", "eat"]);
+
+function canStopForFood(rocco) {
+  const r = rt(rocco);
+  if (r.scene) return false;
+  return !r.task || LIGHT_TASKS.has(r.task);
 }
 
 function feed(rocco, player, held) {
@@ -186,14 +236,30 @@ world.afterEvents.entityHurt.subscribe((event) => {
   const hurt = event.hurtEntity;
   if (!isRocco(hurt)) return;
   rt(hurt).lastHitAt = now();
+  // Su vida no baja de 1 (minecraft:health "min"): llegar ahi es el golpe que lo hubiera matado.
+  if (atFloor(hurt)) {
+    system.run(() => safe("tumba", () => onDied(hurt)));
+    return;
+  }
   safe("lastimado", () => onRoccoHurt(hurt, event.damage, event.damageSource));
 });
 
-world.afterEvents.dataDrivenEntityTrigger.subscribe((event) => {
-  if (event.eventId !== "rocco:died" || !isRocco(event.entity)) return;
+world.afterEvents.entityHealthChanged.subscribe((event) => {
   const rocco = event.entity;
-  system.run(() => safe("tumba", () => onDied(rocco)));
-}, { entityTypes: ["rocco:rocco"], eventTypes: ["rocco:died"] });
+  if (event.newValue <= 1 && isRocco(rocco) && state(rocco) === "active") system.run(() => safe("tumba", () => onDied(rocco)));
+}, { entityTypes: ["rocco:rocco"] });
+
+function atFloor(rocco) {
+  const health = rocco.getComponent("minecraft:health");
+  return !!health && health.currentValue <= 1 && state(rocco) === "active";
+}
+
+world.afterEvents.dataDrivenEntityTrigger.subscribe((event) => {
+  const rocco = event.entity;
+  if (!isRocco(rocco)) return;
+  if (event.eventId === "rocco:interacted") onTouchedEvent(rocco);
+  else if (event.eventId === "rocco:died") system.run(() => safe("tumba", () => onDied(rocco)));
+}, { entityTypes: ["rocco:rocco"], eventTypes: ["rocco:died", "rocco:interacted"] });
 
 world.afterEvents.entityRemove.subscribe((event) => {
   if (event.typeId === "rocco:rocco") forget(event.removedEntityId);

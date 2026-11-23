@@ -181,7 +181,7 @@ export function tickShare(rocco) {
 const COLA_COOLDOWN = 20 * 60 * 10;
 
 export function colaReady(rocco) {
-  return now() - rt(rocco).lastCola > COLA_COOLDOWN;
+  return now() - rt(rocco).lastColaGift > COLA_COOLDOWN;
 }
 
 /** Rocco se toma una (de su cuenta: no gasta las tuyas). */
@@ -209,7 +209,7 @@ export function giveCola(rocco, player) {
   }
   const ticks = play(rocco, "give_cola");
   setTask(rocco, "give", ticks);
-  rt(rocco).lastCola = now();
+  rt(rocco).lastColaGift = now();
   say(rocco, line("cola_give"), "cheer");
   system.runTimeout(() => {
     if (!rocco.isValid) return;

@@ -60,7 +60,7 @@ export function onScriptEvent(id, message) {
   waiting(answer);
 }
 
-function askAi(rocco, player, text) {
+function askAi(rocco, playerName, text) {
   return new Promise((resolve) => {
     const id = nextId++;
     const timer = system.runTimeout(() => {
@@ -79,7 +79,7 @@ function askAi(rocco, player, text) {
     })();
     const payload = JSON.stringify({
       id,
-      jugador: player.name,
+      jugador: playerName,
       texto: text.slice(0, 400),
       modo: data(rocco, "mode", "chill"),
       nombre: displayName(rocco),
@@ -104,7 +104,10 @@ function heardInChat(playerId, text) {
 
 export async function hear(rocco, player, message, echo = true) {
   const text = String(message || "").trim();
-  if (!text) return;
+  // Se pudo haber ido entre que escribio y ahora (el comando corre un tick despues).
+  if (!text || !player.isValid || !rocco.isValid) return;
+  // El nombre se guarda ahora: si el jugador se va mientras Rocco piensa, ya no se puede leer.
+  const name = player.name;
   if (echo) safe("eco", () => player.sendMessage("§7<" + player.name + "> " + text));
   if (state(rocco) !== "active") {
     if (state(rocco) === "plant") player.sendMessage({ translate: "rocco.chat.asleep" });
@@ -130,13 +133,13 @@ export async function hear(rocco, player, message, echo = true) {
     const r = rt(rocco);
     r.thinkUntil = now() + AI_TIMEOUT;
     setFace(rocco, "think", AI_TIMEOUT);
-    const answer = await askAi(rocco, player, text);
+    const answer = await askAi(rocco, name, text);
     r.thinkUntil = 0;
     if (!rocco.isValid) return;
     if (answer && answer.texto) {
       say(rocco, answer.texto, answer.cara || "happy");
-      if (answer.accion) doVerb(rocco, player, answer.accion, answer.arg || "");
-      writeMemory(rocco, player.name + ": " + text.slice(0, 80) + " | Rocco: " + String(answer.texto).slice(0, 80));
+      if (answer.accion && player.isValid) doVerb(rocco, player, answer.accion, answer.arg || "");
+      writeMemory(rocco, name + ": " + text.slice(0, 80) + " | Rocco: " + String(answer.texto).slice(0, 80));
       return;
     }
   }

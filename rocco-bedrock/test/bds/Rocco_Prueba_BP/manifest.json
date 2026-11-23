@@ -1,0 +1,18 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Rocco - prueba (no publicar)",
+    "description": "Prueba de punta a punta con un jugador simulado. Solo para el servidor de pruebas.",
+    "uuid": "1b484858-eafb-4583-8ab5-0d2a63c8497f",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 26, 60]
+  },
+  "modules": [
+    { "type": "script", "language": "javascript", "uuid": "f55aa189-26f8-4a9a-bf7a-4ed4b23b34a5", "version": [1, 0, 0], "entry": "scripts/prueba.js" }
+  ],
+  "dependencies": [
+    { "uuid": "88b29f94-082b-4fd1-9459-c32b2bcf0df9", "version": [1, 0, 0] },
+    { "module_name": "@minecraft/server", "version": "2.12.0-beta" },
+    { "module_name": "@minecraft/server-gametest", "version": "1.0.0-beta" }
+  ]
+}

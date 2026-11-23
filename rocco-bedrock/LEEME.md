@@ -75,7 +75,10 @@ python rocco-bedrock/tools/build.py            # arma build/ y los .mcaddon/.mcp
 python rocco-bedrock/tools/build.py --test     # además corre la simulación (test/sim.mjs)
 python rocco-bedrock/tools/build.py --install  # además lo copia a las carpetas de desarrollo de Bedrock
 node rocco-bedrock/test/truco_sim.mjs          # 240 partidas de truco para probar el motor
+python rocco-bedrock/test/bds/probar.py --bds <carpeta del servidor> [--ia] [--mock]
 ```
+
+La última prueba corre en el **servidor oficial de Bedrock** (Bedrock Dedicated Server, de minecraft.net, de la misma versión que las APIs beta de los manifiestos) con un **jugador simulado**. El jugador hace brotar a Rocco y lo despierta. Después habla con él, lo hace seguirlo y quedarse, y le pide el asado, las tortas fritas, que le cebe mate (y lo toma de verdad) y una Roco Cola. También pelea con un zombi, le da una pechera y comida, lo manda a la tumba y lo desentierra, y prueba los muebles del truco. Con `--ia` suma el paquete de la IA, y con `--mock` le contesta un proveedor de IA de prueba en esta misma PC, así se prueba la vuelta entera sin claves.
 
 - `tools/build.py` convierte el modelo y las animaciones al formato de Bedrock. También arma las partículas desde los valores de Java y genera el controlador de animaciones, los controladores de dibujo (caras, accesorios, armadura, armas), las entidades, los items, las recetas y los textos en tres idiomas.
 - `tools/verify.py` revisa que cada sonido, animación, partícula, frase y texto que nombran los scripts exista de verdad.

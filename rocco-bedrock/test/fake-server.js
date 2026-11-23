@@ -154,7 +154,7 @@ export const world = {
   getTimeOfDay: () => 6000,
   afterEvents: {
     playerSpawn: signal(), playerInteractWithEntity: signal(), entityHitEntity: signal(), entityHurt: signal(),
-    dataDrivenEntityTrigger: signal(), entityRemove: signal(), itemCompleteUse: signal(), playerLeave: signal(),
+    dataDrivenEntityTrigger: signal(), entityRemove: signal(), entityHealthChanged: signal(), itemCompleteUse: signal(), playerLeave: signal(),
   },
   beforeEvents: { playerLeave: signal(), chatSend: signal() },
 };
