@@ -40,7 +40,9 @@ public final class EntityPreview
 
     public static void render(GuiGraphics graphics, int x, int y, int scale, Quaternionf pose, Quaternionf camera, LivingEntity entity)
     {
+        com.cristoree.rocco.client.RoccoRenderer.inGui = true;
         InventoryScreen.renderEntityInInventory(graphics, x, y, scale, NO_OFFSET, pose, camera, entity);
+        com.cristoree.rocco.client.RoccoRenderer.inGui = false;
     }
 
     private EntityPreview() {}

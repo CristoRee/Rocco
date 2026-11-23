@@ -146,13 +146,18 @@ public final class RoccoCombat
             }
             this.cooldown = 10;
             LivingEntity found = choose();
-            if (found == null || found == this.rocco.getTarget())
+            if (found == null)
             {
                 return false;
             }
+            // Aunque el objetivo ya fuera ese (se lo marcaron de antes), si estaba en otra cosa la deja.
             if (!this.rocco.canFight())
             {
                 this.rocco.dropForFight();
+            }
+            if (found == this.rocco.getTarget())
+            {
+                return false;
             }
             this.rocco.setTarget(found);
             return false;

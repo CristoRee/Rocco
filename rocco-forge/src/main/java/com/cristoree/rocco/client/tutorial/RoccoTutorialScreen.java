@@ -199,8 +199,10 @@ public class RoccoTutorialScreen extends Screen
         int centerX = boxX + BOX_WIDTH / 2;
         if (this.rocco != null && this.rocco.isAlive())
         {
+            com.cristoree.rocco.client.RoccoRenderer.inGui = true;
             InventoryScreen.renderEntityInInventoryFollowsMouse(g, centerX, boxY + boxH - 18, ROCCO_SCALE,
                     centerX - mouseX, (boxY + 40) - mouseY, this.rocco);
+            com.cristoree.rocco.client.RoccoRenderer.inGui = false;
             g.renderItem(icon, boxX + BOX_WIDTH - 20, boxY + 4);
             return;
         }

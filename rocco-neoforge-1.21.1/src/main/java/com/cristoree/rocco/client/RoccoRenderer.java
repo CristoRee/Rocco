@@ -30,6 +30,9 @@ import software.bernie.geckolib.util.RenderUtil;
 
 public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
 {
+    // Se esta dibujando el Rocco chiquito de un menu (lo marcan las pantallas alrededor del dibujo).
+    public static boolean inGui;
+
     // La punta de la caña en la textura del juego (pixel 14,1 de fishing_rod.png), en el espacio
     // 0..1 del modelo del item.
     private static final float ROD_TIP_X = 14.5F / 16.0F;
@@ -283,7 +286,10 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
         }
         this.rodTip = null;
         super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
-        RoccoFishingLine.render(entity, this.rodTip, partialTick, poseStack, bufferSource, this.entityRenderDispatcher);
+        if (!inGui)
+        {
+            RoccoFishingLine.render(entity, this.rodTip, partialTick, poseStack, bufferSource, this.entityRenderDispatcher);
+        }
         renderHealth(entity, poseStack, bufferSource, packedLight);
     }
 
@@ -293,7 +299,7 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
     {
         float health = rocco.getHealth();
         float max = rocco.getMaxHealth();
-        if (!RoccoClientConfig.SHOW_HEALTH.get() || rocco.getRoccoState() != com.cristoree.rocco.entity.RoccoState.ACTIVE
+        if (inGui || !RoccoClientConfig.SHOW_HEALTH.get() || rocco.getRoccoState() != com.cristoree.rocco.entity.RoccoState.ACTIVE
                 || health >= max || health <= 0.0F || this.entityRenderDispatcher.distanceToSqr(rocco) > 24.0D * 24.0D)
         {
             return;
@@ -400,6 +406,11 @@ public class RoccoRenderer extends GeoEntityRenderer<RoccoEntity>
     @Override
     public boolean shouldShowName(RoccoEntity animatable)
     {
+        // En los menus (el Rocco chiquito) no lleva el cartel con el nombre.
+        if (inGui)
+        {
+            return false;
+        }
         if (!RoccoClientConfig.SHOW_NAMEPLATE.get() || !Minecraft.renderNames() || animatable.isPlantVisible())
         {
             return false;

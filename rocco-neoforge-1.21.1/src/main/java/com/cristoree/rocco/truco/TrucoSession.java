@@ -1324,7 +1324,7 @@ public final class TrucoSession
         this.mateInHand = false;
         this.level.playSound(null, player.getX(), player.getY(), player.getZ(), ModSounds.MATE_SIP.get(), SoundSource.PLAYERS, 0.7F, 1.0F);
         this.level.sendParticles(ModParticles.MATE_STEAM.get(), player.getX(), player.getEyeY() + 0.1D, player.getZ(), 4, 0.1D, 0.05D, 0.1D, 0.01D);
-        player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 80, 0, false, true));
+        player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 80, 0, false, false, true));
         this.mateStep = MateStep.BACK;
         this.mateTicks = 0;
         this.animQueue.clear();

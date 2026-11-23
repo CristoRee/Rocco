@@ -454,8 +454,10 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
             }
             else
             {
+                com.cristoree.rocco.client.RoccoRenderer.inGui = true;
                 InventoryScreen.renderEntityInInventoryFollowsMouse(graphics, boxLeft + 25, boxTop + 62, 42,
                         (float) (boxLeft + 25 - mouseX), (float) (boxTop + 25 - mouseY), rocco);
+                com.cristoree.rocco.client.RoccoRenderer.inGui = false;
             }
         }
     }
@@ -480,8 +482,10 @@ public class RoccoEquipmentScreen extends AbstractContainerScreen<RoccoEquipment
         rocco.xRotO = 0.0F;
         rocco.yHeadRot = angle;
         rocco.yHeadRotO = angle;
+        com.cristoree.rocco.client.RoccoRenderer.inGui = true;
         InventoryScreen.renderEntityInInventory(graphics, x, y, 42,
                 new Quaternionf().rotateZ((float) Math.PI), new Quaternionf(), rocco);
+        com.cristoree.rocco.client.RoccoRenderer.inGui = false;
         rocco.yBodyRot = body;
         rocco.yBodyRotO = bodyOld;
         rocco.setYRot(yaw);

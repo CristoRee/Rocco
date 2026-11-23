@@ -260,7 +260,9 @@ public class RoccoMenuScreen extends Screen
         {
             int x = this.left + PAD + 16;
             int y = this.top + 50;
+            com.cristoree.rocco.client.RoccoRenderer.inGui = true;
             InventoryScreen.renderEntityInInventoryFollowsMouse(graphics, x, y, 22, x - mouseX, y - 30 - mouseY, rocco);
+            com.cristoree.rocco.client.RoccoRenderer.inGui = false;
         }
 
         int textLeft = this.left + PAD + 40;

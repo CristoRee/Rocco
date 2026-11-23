@@ -20,6 +20,10 @@
 - **Mensajes que no eran órdenes se tomaban como órdenes** y se contestaban con frases predeterminadas en vez de la IA. "Conseguí pan para nosotros" se entendía como "conseguí pan" y respondía "Me faltan 48 de trigo para hacer pan". Ahora lo que le contás ("yo...", "recién...", "te traje...", "para nosotros") y los verbos en -ir que se escriben igual como orden o como pasado ("conseguí", "abrí", "subí") los contesta la IA, si hay una.
 - **1.21.1:** no se veía la vida de Rocco sobre su cabeza, ni la boya de su caña de pescar (las dos se dibujaban mirando para atrás).
 - **Uno de los corazones sobre su cabeza** podía no dibujarse.
+- **26.3: después de aplaudir, saludar, comer o cualquier gesto, Rocco quedaba congelado** en una pose fija (sin caminar ni animarse) y no se veían el asado, las tortas fritas ni lo que hiciera después, hasta el próximo gesto. Ahora cada gesto termina y vuelve a lo suyo.
+- **En el truco, al tomar el mate** ya no te tapan la mesa las partículas rosas de la regeneración (la regeneración sigue igual).
+- **En los menús, el Rocco chiquito** ya no muestra su nombre ni sus corazones encima.
+- **Si ya tenía un enemigo marcado mientras hacía otra cosa** (por ejemplo, tomando mate), a veces no lo dejaba para ir a pelear.
 
 ## 1.6.0
 

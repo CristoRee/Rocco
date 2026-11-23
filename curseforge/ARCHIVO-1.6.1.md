@@ -18,6 +18,10 @@
 - **Messages that weren't orders were taken as orders** and answered with canned lines instead of the AI. "Conseguí pan para nosotros" ("I got bread for us") was read as "get bread" and he answered "I'm missing 48 wheat to make bread". Now anything that tells him something ("yo...", "recién...", "te traje...", "para nosotros"), and the -ir verbs that read the same as an order or as the past ("conseguí", "abrí", "subí"), are answered by the AI when there is one.
 - **1.21.1:** Rocco's health over his head wasn't showing, and neither was the fishing bobber of his rod (both were drawn facing backwards).
 - **One of the hearts over his head** could go missing.
+- **26.3: after clapping, waving, eating or any gesture, Rocco got frozen** in a fixed pose (no walking, no animations) and you couldn't see the asado, the tortas fritas or whatever he did next, until the next gesture. Now each gesture ends and he goes back to what he was doing.
+- **In truco, drinking the mate** no longer covers the table with pink regeneration particles (you still get regeneration).
+- **In the menus, the little Rocco** no longer shows his name and hearts above him.
+- **If he already had an enemy targeted while doing something else** (like drinking mate), he sometimes didn't drop it to go fight.
 
 ---
 
@@ -41,3 +45,7 @@
 - **Mensajes que no eran órdenes se tomaban como órdenes** y se contestaban con frases predeterminadas en vez de la IA. "Conseguí pan para nosotros" se entendía como "conseguí pan" y respondía "Me faltan 48 de trigo para hacer pan". Ahora lo que le contás ("yo...", "recién...", "te traje...", "para nosotros") y los verbos en -ir que se escriben igual como orden o como pasado ("conseguí", "abrí", "subí") los contesta la IA, si hay una.
 - **1.21.1:** no se veía la vida de Rocco sobre su cabeza, ni la boya de su caña de pescar (las dos se dibujaban mirando para atrás).
 - **Uno de los corazones sobre su cabeza** podía no dibujarse.
+- **26.3: después de aplaudir, saludar, comer o cualquier gesto, Rocco quedaba congelado** en una pose fija (sin caminar ni animarse) y no se veían el asado, las tortas fritas ni lo que hiciera después, hasta el próximo gesto. Ahora cada gesto termina y vuelve a lo suyo.
+- **En el truco, al tomar el mate** ya no te tapan la mesa las partículas rosas de la regeneración (la regeneración sigue igual).
+- **En los menús, el Rocco chiquito** ya no muestra su nombre ni sus corazones encima.
+- **Si ya tenía un enemigo marcado mientras hacía otra cosa** (por ejemplo, tomando mate), a veces no lo dejaba para ir a pelear.

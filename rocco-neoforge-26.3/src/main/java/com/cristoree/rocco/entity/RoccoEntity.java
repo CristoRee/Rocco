@@ -285,6 +285,21 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
         return spoken != null ? spoken : getExpression();
     }
 
+    // GeckoLib 5 no suelta sola una animacion disparada que ya termino (en la 4 si): el controlador
+    // se quedaba en su ultimo cuadro y no volvia a preguntar que mostrar, asi que despues de un
+    // aplauso o un saludo Rocco no caminaba, no hacia el asado ni nada hasta el proximo disparo.
+    // Terminada, se suelta y vuelve a mandar mainAnimation. Las que se sostienen a proposito
+    // (escenas, despertar) no son disparadas, asi que esto no las toca.
+    private void releaseFinishedTrigger()
+    {
+        var manager = getAnimatableInstanceCache().getManagerForId(getId());
+        var controller = manager == null ? null : manager.getAnimationControllers().get("main");
+        if (controller != null && controller.hasAnimationFinished())
+        {
+            controller.stopTriggeredAnimation();
+        }
+    }
+
     // La animacion que esta mostrando el controlador principal ("" si ninguna). Solo tiene sentido
     // en el cliente.
     public String mainAnimationName()
@@ -3675,6 +3690,7 @@ public class RoccoEntity extends PathfinderMob implements GeoEntity, MenuProvide
 
         if (level().isClientSide())
         {
+            releaseFinishedTrigger();
             return;
         }
 
