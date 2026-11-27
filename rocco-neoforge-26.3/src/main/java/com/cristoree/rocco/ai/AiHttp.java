@@ -117,6 +117,11 @@ final class AiHttp
     // Saca el mensaje legible de un error JSON tipico ({"error":{"message":...}}).
     static String errorMessage(String payload)
     {
+        return com.cristoree.rocco.config.RoccoConfig.redact(errorMessageRaw(payload));
+    }
+
+    private static String errorMessageRaw(String payload)
+    {
         try
         {
             JsonObject root = JsonParser.parseString(payload).getAsJsonObject();

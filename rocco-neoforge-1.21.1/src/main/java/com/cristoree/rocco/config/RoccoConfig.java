@@ -67,6 +67,82 @@ public final class RoccoConfig
         return secret(RoccoCommonConfig.STT_CUSTOM_API_KEY, ENV_STT_CUSTOM);
     }
 
+    // ---------- claves propias del jugador (rocco-client.toml, solo en su PC) ----------
+
+    // Solo existen en el cliente: en un servidor dedicado la config CLIENT no se carga.
+    private static boolean clientLoaded()
+    {
+        return RoccoClientConfig.SPEC.isLoaded();
+    }
+
+    public static String ownDeepgramApiKey()
+    {
+        return clientLoaded() ? secret(RoccoClientConfig.OWN_DEEPGRAM_API_KEY, ENV_DEEPGRAM) : "";
+    }
+
+    public static String ownFishApiKey()
+    {
+        return clientLoaded() ? secret(RoccoClientConfig.OWN_FISH_API_KEY, ENV_FISH) : "";
+    }
+
+    // La voz propia; vacia = la de voice.voiceId de la config comun de esta PC.
+    public static String ownFishVoiceId()
+    {
+        if (!clientLoaded())
+        {
+            return "";
+        }
+        String own = RoccoClientConfig.OWN_FISH_VOICE_ID.get().trim();
+        return own.isEmpty() ? RoccoCommonConfig.FISH_VOICE_ID.get().trim() : own;
+    }
+
+    // El jugador puede pasar su voz a texto con su clave (si el servidor no tiene microfono).
+    public static boolean ownSttReady()
+    {
+        return clientLoaded() && RoccoClientConfig.USE_OWN_STT_KEY.get() && !ownDeepgramApiKey().isEmpty();
+    }
+
+    // El jugador puede escuchar a Rocco con su clave (si el servidor no tiene voz).
+    public static boolean ownVoiceReady()
+    {
+        return clientLoaded() && RoccoClientConfig.USE_OWN_VOICE_KEY.get()
+                && !ownFishApiKey().isEmpty() && !ownFishVoiceId().isEmpty();
+    }
+
+    // Tapa cualquier clave conocida dentro de un texto (errores de los proveedores, que a veces
+    // repiten lo que les mandaron) antes de que llegue a un log o al chat.
+    public static String redact(String text)
+    {
+        if (text == null || text.isEmpty())
+        {
+            return text;
+        }
+        String out = text;
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        try
+        {
+            if (RoccoCommonConfig.SPEC.isLoaded())
+            {
+                keys.addAll(java.util.List.of(geminiApiKey(), fishApiKey(), deepgramApiKey(), groqApiKey(),
+                        openrouterApiKey(), customApiKey(), customVoiceApiKey(), customSttApiKey()));
+            }
+            keys.add(ownDeepgramApiKey());
+            keys.add(ownFishApiKey());
+        }
+        catch (RuntimeException ignored)
+        {
+            // Con la config a medio cargar no hay claves que tapar.
+        }
+        for (String key : keys)
+        {
+            if (key != null && key.length() >= 6)
+            {
+                out = out.replace(key, "***");
+            }
+        }
+        return out;
+    }
+
     // Rocco siempre puede contestar algo: sin IA usa sus frases propias (si no se apago).
     public static boolean chatReady()
     {

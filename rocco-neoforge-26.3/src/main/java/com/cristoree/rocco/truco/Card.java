@@ -24,6 +24,6 @@ public record Card(int number, Suit suit) {
     @Override public String toString() { return number + suit.code; }
     public String nombre() {
         String n = switch (number) { case 1 -> "ancho"; case 10 -> "sota"; case 11 -> "caballo"; case 12 -> "rey"; default -> String.valueOf(number); };
-        return (number == 1 ? "el ancho de " : number >= 10 ? "el " + n + " de " : "el " + n + " de ") + suit.nombre;
+        return (number == 1 ? "el ancho de " : number == 10 ? "la sota de " : "el " + n + " de ") + suit.nombre;
     }
 }

@@ -92,7 +92,7 @@ final class VoiceHttp
     // El "message" de un error JSON, o el texto recortado.
     static String errorText(Response response)
     {
-        String text = response.text().replaceAll("\\s+", " ").trim();
+        String text = com.cristoree.rocco.config.RoccoConfig.redact(response.text()).replaceAll("\\s+", " ").trim();
         java.util.regex.Matcher message = java.util.regex.Pattern.compile("\"(message|err_msg|reason)\"\\s*:\\s*\"([^\"]+)\"").matcher(text);
         if (message.find())
         {

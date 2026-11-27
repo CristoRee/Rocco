@@ -23,8 +23,14 @@ public final class Deepgram
         {
             return OpenAiTranscribe.transcribe(wav);
         }
-        String key = RoccoConfig.deepgramApiKey();
-        if (key.isEmpty())
+        return transcribe(wav, RoccoConfig.deepgramApiKey());
+    }
+
+    // Con una clave dada: la del servidor, o la propia del jugador cuando transcribe su PC. La
+    // clave va solo en el header de este pedido; nunca se guarda ni se escribe en ningun lado.
+    public static Result transcribe(byte[] wav, String key)
+    {
+        if (key == null || key.isEmpty())
         {
             return new Result(null, "falta la clave de Deepgram");
         }
@@ -75,7 +81,7 @@ public final class Deepgram
         }
         catch (IOException e)
         {
-            return new Result(null, "no pude conectar con Deepgram (" + e.getMessage() + ")");
+            return new Result(null, "no pude conectar con Deepgram (" + com.cristoree.rocco.config.RoccoConfig.redact(String.valueOf(e.getMessage())) + ")");
         }
         catch (RuntimeException e)
         {

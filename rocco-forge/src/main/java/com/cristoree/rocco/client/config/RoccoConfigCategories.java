@@ -194,8 +194,9 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.VOICE_TIMEOUT_SECONDS, "Espera máxima (s)"),
                         opt(common, RoccoCommonConfig.VOICE_CACHE_ENABLED, "Guardar frases dichas"),
                         opt(common, RoccoCommonConfig.VOICE_CACHE_SIZE_MB, "Espacio para frases (MB)"),
-                        opt(common, RoccoCommonConfig.FISH_ENDPOINT, "Dirección de Fish Audio"))),
-                com.cristoree.rocco.config.RoccoConfig::voiceReady));
+                        opt(common, RoccoCommonConfig.FISH_ENDPOINT, "Dirección de Fish Audio"),
+                        opt(common, RoccoCommonConfig.ALLOW_CLIENT_VOICE, "rocco.config.opt.allow_client_voice"))),
+                RoccoConfigCategories::voiceReady));
 
         list.add(new Category("Micrófono", "Hablarle a Rocco con Deepgram o un proveedor propio. La tecla se cambia en Teclas.",
                 () -> new ItemStack(Items.SCULK_SENSOR), List.of(
@@ -221,8 +222,22 @@ public final class RoccoConfigCategories
                         opt(client, RoccoClientConfig.SHOW_MIC_INDICATOR, "Indicador en pantalla"),
                         opt(client, RoccoClientConfig.MIC_FEEDBACK_SOUND, "Clic al grabar")),
                 group("Avanzado",
-                        opt(common, RoccoCommonConfig.DEEPGRAM_ENDPOINT, "Dirección de Deepgram"))),
-                com.cristoree.rocco.config.RoccoConfig::sttReady));
+                        opt(common, RoccoCommonConfig.DEEPGRAM_ENDPOINT, "Dirección de Deepgram"),
+                        opt(common, RoccoCommonConfig.ALLOW_CLIENT_TRANSCRIPTION, "rocco.config.opt.allow_client_stt"))),
+                RoccoConfigCategories::sttReady));
+
+        // Las claves propias del jugador: para servidores que no tienen microfono o voz. Quedan en
+        // rocco-client.toml, en esta PC. Va con los ajustes (primera): entre las conexiones sumaria
+        // una fila y en pantallas chicas el boton Listo taparia la ultima.
+        list.add(new Category("rocco.config.own.title", "rocco.config.own.desc",
+                () -> new ItemStack(Items.TRIPWIRE_HOOK), List.of(
+                group("rocco.config.own.group.mic",
+                        opt(client, RoccoClientConfig.USE_OWN_STT_KEY, "rocco.config.own.use_stt"),
+                        opt(client, RoccoClientConfig.OWN_DEEPGRAM_API_KEY, "rocco.config.own.deepgram_key")),
+                group("rocco.config.own.group.voice",
+                        opt(client, RoccoClientConfig.USE_OWN_VOICE_KEY, "rocco.config.own.use_voice"),
+                        opt(client, RoccoClientConfig.OWN_FISH_API_KEY, "rocco.config.own.fish_key"),
+                        opt(client, RoccoClientConfig.OWN_FISH_VOICE_ID, "rocco.config.own.fish_voice")))));
 
         // Despues, el resto de los ajustes.
         list.add(new Category("General", "Encender a Rocco, su nombre y como se ve.",
@@ -376,6 +391,26 @@ public final class RoccoConfigCategories
                         opt(common, RoccoCommonConfig.DEBUG_LOGGING, "rocco.config.opt.debug_logging")))));
 
         return List.copyOf(list);
+    }
+
+    // Listo para usar: en un servidor ajeno, si lo da el servidor o tu clave; en tu mundo, tu config.
+    private static boolean sttReady()
+    {
+        if (com.cristoree.rocco.client.voice.ClientCaps.remote())
+        {
+            com.cristoree.rocco.client.voice.ClientCaps.Mic mic = com.cristoree.rocco.client.voice.ClientCaps.mic();
+            return mic == com.cristoree.rocco.client.voice.ClientCaps.Mic.SERVER || mic == com.cristoree.rocco.client.voice.ClientCaps.Mic.OWN;
+        }
+        return com.cristoree.rocco.config.RoccoConfig.sttReady() || com.cristoree.rocco.config.RoccoConfig.ownSttReady();
+    }
+
+    private static boolean voiceReady()
+    {
+        if (com.cristoree.rocco.client.voice.ClientCaps.remote())
+        {
+            return com.cristoree.rocco.client.voice.ClientCaps.voice() != com.cristoree.rocco.client.voice.ClientCaps.Voice.NONE;
+        }
+        return com.cristoree.rocco.config.RoccoConfig.voiceReady() || com.cristoree.rocco.config.RoccoConfig.ownVoiceReady();
     }
 
     private static Group group(String title, Option... options)

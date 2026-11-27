@@ -209,6 +209,15 @@ public class RoccoConfigScreen extends Screen
         {
             return com.cristoree.rocco.client.Tr.t("La configuración todavía no está cargada").withStyle(ChatFormatting.RED);
         }
+        // En un servidor ajeno: de donde sale el microfono y la voz (del servidor o de tu clave).
+        if (com.cristoree.rocco.client.voice.ClientCaps.remote())
+        {
+            return Component.empty()
+                    .append(com.cristoree.rocco.client.voice.ClientCaps.micStatus())
+                    .append(Component.literal("  ·  ").withStyle(ChatFormatting.DARK_GRAY))
+                    .append(com.cristoree.rocco.client.voice.ClientCaps.voiceStatus())
+                    .withStyle(ChatFormatting.AQUA);
+        }
         return com.cristoree.rocco.client.Tr.t("Elegí un tema o buscá una opción. Los cambios se guardan al salir.")
                 .withStyle(ChatFormatting.GRAY);
     }

@@ -93,7 +93,7 @@ final class OpenAiVoice
         }
         catch (IOException e)
         {
-            return new FishAudio.Result(null, "no pude conectar con " + WHO + " (" + e.getMessage() + ")", false);
+            return new FishAudio.Result(null, "no pude conectar con " + WHO + " (" + com.cristoree.rocco.config.RoccoConfig.redact(String.valueOf(e.getMessage())) + ")", false);
         }
     }
 

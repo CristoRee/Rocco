@@ -17,8 +17,9 @@ public final class RoccoNetwork
     // 3: se agrego VoiceLines (las frases grabadas). 4: el menu de Rocco (OpenMenu y MenuAction).
     // 5: CallRocco (traerlo desde la config o con su tecla). 6: la musica desde links.
     // 7: el eructo de la Roco Cola. 8: la guia de Rocco. 9: la cara que va con cada frase.
-    // 10: el truco (TrucoNetwork, desde el 20).
-    private static final int PROTOCOL = 10;
+    // 10: el truco (TrucoNetwork, desde el 20). 11: ServerCaps, TalkText y VoiceText (claves propias
+    // del jugador en servidores sin microfono o sin voz).
+    private static final int PROTOCOL = 11;
     public static final int CHUNK_BYTES = 30_000;
 
     // El jugador con el mod puede entrar a servidores que no lo tienen (ahi Rocco no existe y el canal
@@ -278,6 +279,129 @@ public final class RoccoNetwork
         }
     }
 
+    // ---------- multijugador: lo que tiene el servidor y las claves propias del jugador ----------
+
+    // Lo que el servidor tiene andando, para que el jugador sepa que hacer al apretar la tecla del
+    // microfono y que aviso mostrar. Solo si/no: las claves nunca viajan.
+    public record ServerCaps(boolean sttReady, boolean voiceReady, boolean chatReady, boolean dedicated,
+                             boolean allowClientStt, boolean allowClientVoice)
+    {
+        static void encode(ServerCaps msg, FriendlyByteBuf buf)
+        {
+            int flags = (msg.sttReady ? 1 : 0) | (msg.voiceReady ? 2 : 0) | (msg.chatReady ? 4 : 0)
+                    | (msg.dedicated ? 8 : 0) | (msg.allowClientStt ? 16 : 0) | (msg.allowClientVoice ? 32 : 0);
+            buf.writeVarInt(flags);
+        }
+
+        static ServerCaps decode(FriendlyByteBuf buf)
+        {
+            int flags = buf.readVarInt();
+            return new ServerCaps((flags & 1) != 0, (flags & 2) != 0, (flags & 4) != 0, (flags & 8) != 0,
+                    (flags & 16) != 0, (flags & 32) != 0);
+        }
+
+        public static ServerCaps of(net.minecraft.server.MinecraftServer server)
+        {
+            return new ServerCaps(com.cristoree.rocco.config.RoccoConfig.sttReady(),
+                    com.cristoree.rocco.config.RoccoConfig.voiceReady(),
+                    com.cristoree.rocco.config.RoccoConfig.chatReady(),
+                    server.isDedicatedServer(),
+                    com.cristoree.rocco.config.RoccoCommonConfig.ALLOW_CLIENT_TRANSCRIPTION.get(),
+                    com.cristoree.rocco.config.RoccoCommonConfig.ALLOW_CLIENT_VOICE.get());
+        }
+    }
+
+    // Lo que el jugador dijo por microfono, ya pasado a texto en su PC con su propia clave (servidor
+    // sin microfono). El servidor lo atiende igual que una frase por microfono (MicReceiver.receiveText).
+    public record TalkText(String text)
+    {
+        // Lo que el servidor acepta; el paquete deja un poco mas para no echar a nadie por un texto largo.
+        public static final int MAX_CHARS = 300;
+
+        static void encode(TalkText msg, FriendlyByteBuf buf)
+        {
+            buf.writeUtf(msg.text, 1024);
+        }
+
+        static TalkText decode(FriendlyByteBuf buf)
+        {
+            return new TalkText(buf.readUtf(1024));
+        }
+    }
+
+    // Lo que dice Rocco cuando el servidor no tiene voz: el que tiene su propia clave de Fish Audio lo
+    // escucha generado en su PC; el que no, escucha las frases grabadas (recorded) si las hay, o lee.
+    public record VoiceText(int entityId, String text, int face, java.util.List<String> recorded)
+    {
+        static void encode(VoiceText msg, FriendlyByteBuf buf)
+        {
+            buf.writeVarInt(msg.entityId);
+            buf.writeUtf(msg.text, 2048);
+            buf.writeVarInt(msg.face + 1);
+            buf.writeCollection(msg.recorded, (out, id) -> out.writeUtf(id, 96));
+        }
+
+        static VoiceText decode(FriendlyByteBuf buf)
+        {
+            int entity = buf.readVarInt();
+            String text = buf.readUtf(2048);
+            int face = buf.readVarInt() - 1;
+            return new VoiceText(entity, text, face, buf.readList(in -> in.readUtf(96)));
+        }
+    }
+
+    public static void sendCaps(ServerPlayer player)
+    {
+        CHANNEL.send(ServerCaps.of(player.server), Net.PLAYER.with(player));
+    }
+
+    // A todos (al recargar la config): si el dueño activo el microfono, los jugadores se enteran solos.
+    public static void broadcastCaps(net.minecraft.server.MinecraftServer server)
+    {
+        ServerCaps caps = ServerCaps.of(server);
+        for (ServerPlayer player : server.getPlayerList().getPlayers())
+        {
+            CHANNEL.send(caps, Net.PLAYER.with(player));
+        }
+    }
+
+    public static void sendTalkText(String text)
+    {
+        CHANNEL.send(new TalkText(text), Net.SERVER.noArg());
+    }
+
+    public static void sendVoiceText(ServerPlayer player, VoiceText msg)
+    {
+        CHANNEL.send(msg, Net.PLAYER.with(player));
+    }
+
+    private static void onServerCaps(ServerCaps msg, Net.Context context)
+    {
+        context.enqueueWork(() -> Net.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.voice.ClientCaps.set(msg)));
+        context.setPacketHandled(true);
+    }
+
+    private static void onTalkText(TalkText msg, Net.Context context)
+    {
+        ServerPlayer sender = context.getSender();
+        context.enqueueWork(() ->
+        {
+            if (sender != null)
+            {
+                MicReceiver.receiveText(sender, msg.text());
+            }
+        });
+        context.setPacketHandled(true);
+    }
+
+    private static void onVoiceText(VoiceText msg, Net.Context context)
+    {
+        context.enqueueWork(() -> Net.unsafeRunWhenOn(Dist.CLIENT,
+                () -> () -> com.cristoree.rocco.client.voice.VoicePlayback.speakOwn(msg)));
+        context.setPacketHandled(true);
+    }
+
     // "/rocco setup": que el jugador abra la pantalla de bienvenida (los comandos corren en el servidor).
     public record OpenSetup()
     {
@@ -307,6 +431,9 @@ public final class RoccoNetwork
         CHANNEL.messageBuilder(OpenTutorial.class, 13, Net.Direction.PLAY_TO_CLIENT).encoder(OpenTutorial::encode).decoder(OpenTutorial::decode).consumerNetworkThread(RoccoNetwork::handleTutorial).add();
         CHANNEL.messageBuilder(BurpFx.class, 12, Net.Direction.PLAY_TO_CLIENT).encoder(BurpFx::encode).decoder(BurpFx::decode).consumerNetworkThread(RoccoNetwork::handleBurp).add();
         CHANNEL.messageBuilder(MusicVolume.class, 11, Net.Direction.PLAY_TO_CLIENT).encoder(MusicVolume::encode).decoder(MusicVolume::decode).consumerNetworkThread(RoccoNetwork::onMusicVolume).add();
+        CHANNEL.messageBuilder(ServerCaps.class, 14, Net.Direction.PLAY_TO_CLIENT).encoder(ServerCaps::encode).decoder(ServerCaps::decode).consumerNetworkThread(RoccoNetwork::onServerCaps).add();
+        CHANNEL.messageBuilder(TalkText.class, 15, Net.Direction.PLAY_TO_SERVER).encoder(TalkText::encode).decoder(TalkText::decode).consumerNetworkThread(RoccoNetwork::onTalkText).add();
+        CHANNEL.messageBuilder(VoiceText.class, 16, Net.Direction.PLAY_TO_CLIENT).encoder(VoiceText::encode).decoder(VoiceText::decode).consumerNetworkThread(RoccoNetwork::onVoiceText).add();
         com.cristoree.rocco.truco.TrucoNetwork.register(CHANNEL, 20);
         CHANNEL.register(event);
     }

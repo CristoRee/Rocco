@@ -31,11 +31,15 @@ public class RoccoMod
     public static final String MODID = "rocco";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public RoccoMod(FMLJavaModLoadingContext context)
+    // Sin parametros a proposito: los Forge 1.20.1 de antes de la 47.3 solo buscan este constructor
+    // (con uno que recibe el contexto, fallaban con NoSuchMethodException). Por eso el bus sale de
+    // FMLJavaModLoadingContext.get() y la config de ModLoadingContext.get(), que andan en todas las 47.
+    @SuppressWarnings("removal")
+    public RoccoMod()
     {
-        IEventBus modEventBus = context.getModEventBus();
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        RoccoConfig.register(context);
+        RoccoConfig.register();
         ModEntities.register(modEventBus);
         ModItems.register(modEventBus);
         ModSounds.register(modEventBus);
@@ -48,7 +52,7 @@ public class RoccoMod
         // nuestro, porque Forge despacha esos eventos en paralelo.
         if (FMLEnvironment.dist == Dist.CLIENT)
         {
-            RoccoClientHooks.registerConfigScreen(context);
+            RoccoClientHooks.registerConfigScreen();
         }
     }
 
@@ -63,6 +67,8 @@ public class RoccoMod
                 // Primero se actualizan los defaults viejos, asi los avisos ya miran lo nuevo.
                 RoccoConfig.migrateOldDefaults();
                 RoccoConfig.warnAboutConflicts();
+                // Si el dueño activo (o apago) el microfono o la voz, los jugadores conectados se enteran.
+                com.cristoree.rocco.voice.ServerCapsEvents.configChanged();
             }
         }
 

@@ -62,7 +62,7 @@ public final class AiProbe
             }
             catch (IOException | RuntimeException e)
             {
-                String text = String.valueOf(e.getMessage());
+                String text = com.cristoree.rocco.config.RoccoConfig.redact(String.valueOf(e.getMessage()));
                 ChatReply.Failure failure = text.startsWith("HTTP 401") || text.startsWith("HTTP 403") || text.contains("API key not valid")
                         ? ChatReply.Failure.AUTH
                         : text.startsWith("HTTP 429") ? ChatReply.Failure.RATE_LIMIT : ChatReply.Failure.NETWORK;

@@ -147,6 +147,25 @@ public final class FishAudio
         return result;
     }
 
+    // La voz con la clave propia del jugador, en su PC (servidor sin voz). Siempre Fish Audio,
+    // con el mismo cache en disco y el mismo cambio al modelo gratis si el elegido no tiene credito.
+    public static Result synthesizeWith(String text, String key, String voice)
+    {
+        if (key == null || key.isEmpty() || voice == null || voice.isBlank())
+        {
+            return new Result(null, "falta la clave o el ID de voz de Fish Audio", true);
+        }
+        int sampleRate = closestSampleRate(RoccoCommonConfig.VOICE_SAMPLE_RATE.get());
+        Result result = synthesize(withEmotions(text, model()), key, voice.trim(), model(), sampleRate);
+        String configured = RoccoCommonConfig.FISH_MODEL.get().trim();
+        if (result.pcm() == null && result.fatal() && result.error().startsWith(NO_CREDIT) && !model().equals(FREE_MODEL))
+        {
+            fallbackFor = configured;
+            return synthesize(withEmotions(text, FREE_MODEL), key, voice.trim(), FREE_MODEL, sampleRate);
+        }
+        return result;
+    }
+
     private static final String NO_CREDIT = "Fish Audio no tiene credito";
 
     private static Result synthesize(String text, String key, String voice, String model, int sampleRate)
@@ -214,7 +233,7 @@ public final class FishAudio
         }
         catch (IOException e)
         {
-            return new Result(null, "no pude conectar con Fish Audio (" + e.getMessage() + ")", false);
+            return new Result(null, "no pude conectar con Fish Audio (" + com.cristoree.rocco.config.RoccoConfig.redact(String.valueOf(e.getMessage())) + ")", false);
         }
     }
 

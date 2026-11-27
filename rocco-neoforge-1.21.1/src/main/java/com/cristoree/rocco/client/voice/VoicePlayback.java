@@ -147,6 +147,84 @@ public final class VoicePlayback
         }
     }
 
+    // ---------- servidor sin voz: la voz con la clave propia del jugador ----------
+
+    // Un solo hilo: las frases se generan y entran a la fila en el orden en que Rocco las dijo.
+    private static java.util.concurrent.ExecutorService ownVoice;
+    private static String lastOwnError;
+    private static long lastOwnErrorAt;
+
+    // Lo que dijo Rocco en un servidor sin voz (VoiceText). Con clave propia se genera aca con Fish
+    // Audio (con el cache de voz de esta PC); sin clave, suenan las frases grabadas si las hay.
+    public static void speakOwn(RoccoNetwork.VoiceText msg)
+    {
+        boolean own = ClientCaps.voice() == ClientCaps.Voice.OWN && !msg.text().isBlank();
+        String key = own ? com.cristoree.rocco.config.RoccoConfig.ownFishApiKey() : "";
+        String voice = own ? com.cristoree.rocco.config.RoccoConfig.ownFishVoiceId() : "";
+        ownVoice().execute(() ->
+        {
+            com.cristoree.rocco.voice.FishAudio.Result result = null;
+            if (own)
+            {
+                try
+                {
+                    result = com.cristoree.rocco.voice.FishAudio.synthesizeWith(msg.text(), key, voice);
+                }
+                catch (RuntimeException e)
+                {
+                    result = new com.cristoree.rocco.voice.FishAudio.Result(null, "error inesperado", false, null);
+                }
+            }
+            com.cristoree.rocco.voice.FishAudio.Result done = result;
+            Minecraft.getInstance().execute(() ->
+            {
+                if (done != null && done.pcm() != null)
+                {
+                    QUEUE.add(new Clip(msg.entityId(), done.pcm().sampleRate(), done.pcm().data(), msg.face()));
+                    return;
+                }
+                if (done != null)
+                {
+                    ownProblem(com.cristoree.rocco.config.RoccoConfig.redact(done.error()));
+                }
+                if (!msg.recorded().isEmpty())
+                {
+                    playLines(msg.entityId(), msg.recorded(), msg.face());
+                }
+            });
+        });
+    }
+
+    // Si tu clave falla, se avisa una vez por problema (y no mas de una vez por minuto).
+    private static void ownProblem(String error)
+    {
+        com.cristoree.rocco.RoccoMod.LOGGER.warn("[Rocco] La voz con tu clave no anduvo: {}", error);
+        long now = System.currentTimeMillis();
+        if (error.equals(lastOwnError) || now - lastOwnErrorAt < 60_000L || Minecraft.getInstance().player == null)
+        {
+            return;
+        }
+        lastOwnError = error;
+        lastOwnErrorAt = now;
+        Minecraft.getInstance().player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[Rocco] ")
+                .append(net.minecraft.network.chat.Component.translatable("rocco.voice.own_failed", error))
+                .withStyle(net.minecraft.ChatFormatting.YELLOW));
+    }
+
+    private static synchronized java.util.concurrent.ExecutorService ownVoice()
+    {
+        if (ownVoice == null)
+        {
+            ownVoice = java.util.concurrent.Executors.newSingleThreadExecutor(runnable ->
+            {
+                Thread thread = new Thread(runnable, "Rocco-Voz-Propia");
+                thread.setDaemon(true);
+                return thread;
+            });
+        }
+        return ownVoice;
+    }
+
     // La voz sale desde Rocco, y el sonido con posicion tiene que ser mono: se promedian los canales.
     private static byte[] toMono(byte[] stereo)
     {

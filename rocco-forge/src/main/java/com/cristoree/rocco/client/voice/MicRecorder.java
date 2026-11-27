@@ -40,6 +40,10 @@ public final class MicRecorder
     private static int session;
     private static boolean lastKeyDown;
     private static long errorShownAt;
+    private static long offNoticeAt;
+    // Con que se paso a texto la grabacion que esta en curso (ver ClientCaps.mic).
+    private static volatile ClientCaps.Mic mode = ClientCaps.Mic.SERVER;
+    private static java.util.concurrent.ExecutorService ownExecutor;
 
     public static State state()
     {
@@ -64,7 +68,7 @@ public final class MicRecorder
         if (pushToTalk)
         {
             listening = false;
-            if (down && !lastKeyDown)
+            if (down && !lastKeyDown && canRecord())
             {
                 keyHeld = true;
                 start(true);
@@ -74,7 +78,7 @@ public final class MicRecorder
                 keyHeld = false;
             }
         }
-        else if (down && !lastKeyDown)
+        else if (down && !lastKeyDown && (listening || canRecord()))
         {
             // En modo por voz la tecla es un interruptor.
             listening = !listening;
@@ -93,6 +97,26 @@ public final class MicRecorder
             start(false);
         }
         lastKeyDown = down;
+    }
+
+    // Si hay con que pasar la voz a texto (el servidor o la clave propia). Si no, el aviso que
+    // corresponde (como mucho uno cada 20 segundos) y no se graba nada.
+    private static boolean canRecord()
+    {
+        ClientCaps.Mic now = ClientCaps.mic();
+        Component off = ClientCaps.micOffNotice();
+        if (off == null)
+        {
+            mode = now;
+            return true;
+        }
+        long time = System.currentTimeMillis();
+        if (time - offNoticeAt >= 20_000L && Minecraft.getInstance().player != null)
+        {
+            offNoticeAt = time;
+            Minecraft.getInstance().player.sendSystemMessage(Component.literal("[Rocco] ").append(off).withStyle(ChatFormatting.GRAY));
+        }
+        return false;
     }
 
     private static synchronized void start(boolean pushToTalk)
@@ -235,6 +259,11 @@ public final class MicRecorder
         {
             return;
         }
+        if (mode == ClientCaps.Mic.OWN)
+        {
+            transcribeOwn(pcm);
+            return;
+        }
         int id = ++session;
         Minecraft.getInstance().execute(() ->
         {
@@ -253,6 +282,65 @@ public final class MicRecorder
                 RoccoNetwork.sendMic(new RoccoNetwork.MicChunk(id, index, index == count - 1, Arrays.copyOfRange(pcm, from, to)));
             }
         });
+    }
+
+    // Servidor sin microfono y clave propia: la voz se pasa a texto aca, en un hilo aparte (nunca en
+    // el de la pantalla), y al servidor le llega solo el texto. La clave no sale de esta PC.
+    private static void transcribeOwn(byte[] pcm)
+    {
+        String key = com.cristoree.rocco.config.RoccoConfig.ownDeepgramApiKey();
+        byte[] wav = com.cristoree.rocco.voice.Wav.write(pcm, MicReceiver.SAMPLE_RATE);
+        ownExecutor().execute(() ->
+        {
+            com.cristoree.rocco.voice.Deepgram.Result result = com.cristoree.rocco.voice.Deepgram.transcribe(wav, key);
+            Minecraft.getInstance().execute(() ->
+            {
+                var player = Minecraft.getInstance().player;
+                if (player == null)
+                {
+                    return;
+                }
+                if (result.text() == null)
+                {
+                    String error = com.cristoree.rocco.config.RoccoConfig.redact(result.error());
+                    RoccoMod.LOGGER.warn("[Rocco] Tu microfono (con tu clave) no anduvo: {}", error);
+                    showError(Component.translatable("rocco.mic.failed", error));
+                    return;
+                }
+                if (result.text().isBlank())
+                {
+                    player.displayClientMessage(Component.translatable("rocco.mic.not_understood").withStyle(ChatFormatting.GRAY), true);
+                    return;
+                }
+                var connection = Minecraft.getInstance().getConnection();
+                if (connection == null || !RoccoNetwork.CHANNEL.isRemotePresent(connection.getConnection()))
+                {
+                    showError("Este servidor no tiene a Rocco instalado.");
+                    return;
+                }
+                String text = result.text().trim();
+                if (text.length() > RoccoNetwork.TalkText.MAX_CHARS)
+                {
+                    int cut = text.lastIndexOf(' ', RoccoNetwork.TalkText.MAX_CHARS);
+                    text = text.substring(0, cut > RoccoNetwork.TalkText.MAX_CHARS / 2 ? cut : RoccoNetwork.TalkText.MAX_CHARS);
+                }
+                RoccoNetwork.sendTalkText(text);
+            });
+        });
+    }
+
+    private static synchronized java.util.concurrent.ExecutorService ownExecutor()
+    {
+        if (ownExecutor == null)
+        {
+            ownExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(runnable ->
+            {
+                Thread thread = new Thread(runnable, "Rocco-Oido-Propio");
+                thread.setDaemon(true);
+                return thread;
+            });
+        }
+        return ownExecutor;
     }
 
     // Graba unos segundos para probar el microfono (la pantalla de bienvenida). Devuelve un WAV de
@@ -475,6 +563,11 @@ public final class MicRecorder
 
     private static void showError(String text)
     {
+        showError(Component.literal(text));
+    }
+
+    private static void showError(Component text)
+    {
         long now = System.currentTimeMillis();
         if (now - errorShownAt < 10_000L)
         {
@@ -485,7 +578,7 @@ public final class MicRecorder
         {
             if (Minecraft.getInstance().player != null)
             {
-                Minecraft.getInstance().player.sendSystemMessage(Component.literal("[Rocco] " + text).withStyle(ChatFormatting.GRAY));
+                Minecraft.getInstance().player.sendSystemMessage(Component.literal("[Rocco] ").append(text).withStyle(ChatFormatting.GRAY));
             }
         });
     }

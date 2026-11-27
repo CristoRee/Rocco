@@ -82,7 +82,7 @@ final class OpenAiTranscribe
         }
         catch (IOException e)
         {
-            return new Deepgram.Result(null, "no pude conectar con " + WHO + " (" + e.getMessage() + ")");
+            return new Deepgram.Result(null, "no pude conectar con " + WHO + " (" + com.cristoree.rocco.config.RoccoConfig.redact(String.valueOf(e.getMessage())) + ")");
         }
         catch (RuntimeException e)
         {

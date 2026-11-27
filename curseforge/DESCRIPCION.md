@@ -33,7 +33,7 @@ He works **without any account or key**: he comes with hundreds of built-in line
 
 | Minecraft | Loader | GeckoLib (required) | Java |
 |---|---|---|---|
-| 1.20.1 | Forge 47.4.10 or newer | 4.7.4 or newer | 17 |
+| 1.20.1 | Forge 47.1.0 or newer | 4.7.4 or newer | 17 |
 | 1.21.1 | NeoForge 21.1.150 or newer | 4.9.3 or newer | 21 |
 | 26.3 | NeoForge 26.3 | 5.5.7 or newer (the one for 26.3) | 25 |
 
@@ -99,7 +99,7 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, entien
 
 | Minecraft | Loader | GeckoLib | Java |
 |---|---|---|---|
-| 1.20.1 | Forge 47.4.10 o más nuevo | 4.7.4 o más nuevo | 17 |
+| 1.20.1 | Forge 47.1.0 o más nuevo | 4.7.4 o más nuevo | 17 |
 | 1.21.1 | NeoForge 21.1.150 o más nuevo | 4.9.3 o más nuevo | 21 |
 | 26.3 | NeoForge 26.3 | 5.5.7 o más nuevo (el de 26.3) | 25 |
 
@@ -121,7 +121,7 @@ Un mundo de 1.20.1 abierto en 1.21.1 conserva a Rocco, su arma, su inventario y 
 
 Ele fala **espanhol** e funciona **sem nenhuma conta ou chave**, com centenas de falas próprias. Com uma chave de IA gratuita (Groq, Gemini, OpenRouter ou um Ollama local) ele conversa de verdade, e pode responder em português: no menu dele (agachado + clique direito) abra **Personalidad** e coloque **Dialect** em **Automatic**: ele segue o idioma do seu jogo. Os menus, as falas prontas e as ordens sem IA são em espanhol.
 
-**Requer** GeckoLib, no cliente e no servidor: Minecraft 1.20.1 com Forge 47.4.10+ e GeckoLib 4.7.4+, 1.21.1 com NeoForge 21.1.150+ e GeckoLib 4.9.3+, ou 26.3 com NeoForge 26.3 e GeckoLib 5.5.7+. Baixe o arquivo da sua versão.
+**Requer** GeckoLib, no cliente e no servidor: Minecraft 1.20.1 com Forge 47.1.0+ e GeckoLib 4.7.4+, 1.21.1 com NeoForge 21.1.150+ e GeckoLib 4.9.3+, ou 26.3 com NeoForge 26.3 e GeckoLib 5.5.7+. Baixe o arquivo da sua versão.
 
 **Joga Bedrock?** Existe um complemento do Rocco separado para Minecraft Bedrock 1.26: procure **Rocco (Bedrock)**.
 

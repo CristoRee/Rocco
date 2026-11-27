@@ -35,8 +35,7 @@ public final class MicReceiver
         {
             if (chunk.last())
             {
-                notice(player, "El microfono esta apagado o sin configurar: Mods > Rocco > Config > Microfono "
-                        + "(Deepgram, que regala credito para empezar, o un proveedor propio como Groq).");
+                notice(player, offNotice(player));
             }
             return;
         }
@@ -57,7 +56,7 @@ public final class MicReceiver
         if (recording.audio().size() + chunk.data().length > maxBytes)
         {
             RECORDINGS.remove(player.getUUID());
-            notice(player, "La grabacion fue demasiado larga (maximo " + RoccoCommonConfig.STT_MAX_SECONDS.get() + " segundos).");
+            notice(player, Component.translatable("rocco.mic.too_long", RoccoCommonConfig.STT_MAX_SECONDS.get()));
             return;
         }
 
@@ -94,13 +93,13 @@ public final class MicReceiver
                 {
                     RoccoMod.LOGGER.warn("[Rocco] El microfono no anduvo: {}", result.error());
                     lastError = result.error();
-                    notice(player, "No te pude escuchar: " + result.error() + ".");
+                    notice(player, Component.translatable("rocco.mic.failed", result.error()));
                     return;
                 }
                 lastError = null;
                 if (result.text().isBlank())
                 {
-                    player.displayClientMessage(Component.literal("Rocco no te entendio, proba de nuevo.")
+                    player.displayClientMessage(Component.translatable("rocco.mic.not_understood")
                             .withStyle(ChatFormatting.GRAY), true);
                     return;
                 }
@@ -112,8 +111,65 @@ public final class MicReceiver
         });
     }
 
+    // Por que no se puede usar el microfono, segun donde juega: en su propio mundo lo arregla en su
+    // config; en un servidor, con su propia clave o pidiendoselo al dueño.
+    public static Component offNotice(ServerPlayer player)
+    {
+        var server = player.getServer();
+        boolean host = server != null && !server.isDedicatedServer() && server.isSingleplayerOwner(player.getGameProfile());
+        if (host)
+        {
+            return Component.translatable("rocco.mic.off.local");
+        }
+        return Component.translatable(RoccoCommonConfig.ALLOW_CLIENT_TRANSCRIPTION.get() ? "rocco.mic.off.server" : "rocco.mic.off.disabled");
+    }
+
+    // ---------- lo que el jugador transcribio en su PC (TalkText) ----------
+
+    // Entre una frase y la otra: nadie habla tan rapido, y frena a un cliente que mande de mas.
+    private static final long TEXT_MIN_GAP_MS = 1_500L;
+    private static final Map<UUID, Long> LAST_TEXT = new ConcurrentHashMap<>();
+
+    // Llega en el hilo del servidor. Pasa por el mismo camino que una frase por microfono (como un
+    // mensaje a Rocco en el chat, sin tener que nombrarlo): misma distancia, mismo dueño, misma IA.
+    public static void receiveText(ServerPlayer player, String raw)
+    {
+        if (!RoccoCommonConfig.ENABLED.get())
+        {
+            return;
+        }
+        if (!RoccoCommonConfig.ALLOW_CLIENT_TRANSCRIPTION.get())
+        {
+            notice(player, Component.translatable("rocco.mic.off.disabled"));
+            return;
+        }
+        // Sin colores ni caracteres de control: es texto que escribe otro programa.
+        String text = raw == null ? "" : raw.replaceAll("[\\p{Cntrl}§]", " ").replaceAll("\\s+", " ").trim();
+        if (text.isEmpty())
+        {
+            return;
+        }
+        if (text.length() > RoccoNetwork.TalkText.MAX_CHARS)
+        {
+            notice(player, Component.translatable("rocco.mic.text_too_long", RoccoNetwork.TalkText.MAX_CHARS));
+            return;
+        }
+        long now = System.currentTimeMillis();
+        Long last = LAST_TEXT.get(player.getUUID());
+        if (last != null && now - last < TEXT_MIN_GAP_MS)
+        {
+            notice(player, Component.translatable("rocco.mic.too_fast"));
+            return;
+        }
+        LAST_TEXT.put(player.getUUID(), now);
+        if (player.isAlive() && !player.hasDisconnected())
+        {
+            RoccoChatHandler.onVoice(player, text);
+        }
+    }
+
     // Avisos al jugador, como mucho uno cada 20 segundos para no llenar el chat.
-    private static void notice(ServerPlayer player, String text)
+    private static void notice(ServerPlayer player, Component text)
     {
         long now = System.currentTimeMillis();
         Long last = NOTICES.get(player.getUUID());
@@ -122,7 +178,7 @@ public final class MicReceiver
             return;
         }
         NOTICES.put(player.getUUID(), now);
-        player.sendSystemMessage(Component.literal("[Rocco] " + text).withStyle(ChatFormatting.GRAY));
+        player.sendSystemMessage(Component.literal("[Rocco] ").append(text).withStyle(ChatFormatting.GRAY));
     }
 
     // Para /rocco ia: con que escucha y, si fallo, por que.

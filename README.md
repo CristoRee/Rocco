@@ -13,7 +13,7 @@ Funciona **sin ninguna cuenta ni clave**: trae cientos de frases propias, charla
 | | Versión |
 |---|---|
 | Minecraft | 1.20.1 |
-| Forge | 47.4.10 o más nuevo |
+| Forge | 47.1.0 o más nuevo |
 | [GeckoLib](https://www.curseforge.com/minecraft/mc-mods/geckolib) | 4.7.4 o más nuevo |
 
 El mod tiene que estar instalado en el cliente y, si jugás en un servidor, también en el servidor.

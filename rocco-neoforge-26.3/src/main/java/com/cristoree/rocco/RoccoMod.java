@@ -62,6 +62,8 @@ public class RoccoMod
                 // Primero se actualizan los defaults viejos, asi los avisos ya miran lo nuevo.
                 RoccoConfig.migrateOldDefaults();
                 RoccoConfig.warnAboutConflicts();
+                // Si el dueño activo (o apago) el microfono o la voz, los jugadores conectados se enteran.
+                com.cristoree.rocco.voice.ServerCapsEvents.configChanged();
             }
         }
 

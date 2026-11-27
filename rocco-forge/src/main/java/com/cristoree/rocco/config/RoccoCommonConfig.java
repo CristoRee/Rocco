@@ -81,6 +81,7 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.ConfigValue<String> VOICE_CUSTOM_API_KEY;
     public static final ForgeConfigSpec.ConfigValue<String> VOICE_CUSTOM_MODEL;
     public static final ForgeConfigSpec.ConfigValue<String> VOICE_CUSTOM_VOICE;
+    public static final ForgeConfigSpec.BooleanValue ALLOW_CLIENT_VOICE;
 
     // stt (Deepgram)
     public static final ForgeConfigSpec.BooleanValue STT_ENABLED;
@@ -97,6 +98,7 @@ public final class RoccoCommonConfig
     public static final ForgeConfigSpec.ConfigValue<String> STT_CUSTOM_URL;
     public static final ForgeConfigSpec.ConfigValue<String> STT_CUSTOM_API_KEY;
     public static final ForgeConfigSpec.ConfigValue<String> STT_CUSTOM_MODEL;
+    public static final ForgeConfigSpec.BooleanValue ALLOW_CLIENT_TRANSCRIPTION;
 
     // behavior
     public static final ForgeConfigSpec.BooleanValue FOLLOW_ENABLED;
@@ -468,6 +470,11 @@ public final class RoccoCommonConfig
         VOICE_CUSTOM_VOICE = b
                 .comment("Proveedor propio: el nombre de la voz (en OpenAI: alloy, ash, echo, onyx...; en Kokoro: am_adam...).")
                 .define("customVoice", "ash");
+        ALLOW_CLIENT_VOICE = b
+                .comment("Servidor sin voz configurada: cada jugador que puso su propia clave de Fish Audio",
+                         "(Mods > Rocco > Config > Mis claves) escucha a Rocco con esa clave, en su PC.",
+                         "El servidor solo manda el texto; las claves nunca viajan. false = no se manda.")
+                .define("allowClientVoice", true);
         b.pop();
 
         b.comment("Escuchar al jugador por microfono (Deepgram, voz a texto).").push("stt");
@@ -522,6 +529,11 @@ public final class RoccoCommonConfig
         STT_CUSTOM_MODEL = b
                 .comment("Proveedor propio: el modelo (en Groq: whisper-large-v3-turbo; en OpenAI: whisper-1 o gpt-4o-mini-transcribe).")
                 .define("customModel", "whisper-large-v3-turbo");
+        ALLOW_CLIENT_TRANSCRIPTION = b
+                .comment("Servidor sin microfono configurado: cada jugador que puso su propia clave de Deepgram",
+                         "(Mods > Rocco > Config > Mis claves) puede hablarle a Rocco: su PC pasa la voz a texto",
+                         "y al servidor solo le llega el texto, como si lo hubiera escrito. false = no se permite.")
+                .define("allowClientTranscription", true);
         b.pop();
 
         b.comment("Como se mueve y actua Rocco en el mundo.").push("behavior");

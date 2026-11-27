@@ -27,6 +27,13 @@ public final class RoccoClientConfig
     public static final ModConfigSpec.ConfigValue<String> MIC_DEVICE;
     public static final ModConfigSpec.BooleanValue MIC_FEEDBACK_SOUND;
 
+    // ownKeys: las claves propias del jugador, para servidores que no tienen microfono o voz.
+    public static final ModConfigSpec.BooleanValue USE_OWN_STT_KEY;
+    public static final ModConfigSpec.ConfigValue<String> OWN_DEEPGRAM_API_KEY;
+    public static final ModConfigSpec.BooleanValue USE_OWN_VOICE_KEY;
+    public static final ModConfigSpec.ConfigValue<String> OWN_FISH_API_KEY;
+    public static final ModConfigSpec.ConfigValue<String> OWN_FISH_VOICE_ID;
+
     // setup
     public static final ModConfigSpec.BooleanValue SETUP_COMPLETED;
     public static final ModConfigSpec.IntValue SETUP_VERSION;
@@ -96,6 +103,31 @@ public final class RoccoClientConfig
         MIC_FEEDBACK_SOUND = b
                 .comment("Suena un clic al empezar y terminar de grabar.")
                 .define("micFeedbackSound", true);
+        b.pop();
+
+        b.comment("Tus propias claves, para jugar en servidores que no tienen el microfono o la voz de Rocco.",
+                  "Quedan solo en esta PC: nunca se mandan al servidor ni a los otros jugadores.",
+                  "Si el servidor ya tiene microfono o voz, se usa lo del servidor y estas no gastan nada.").push("ownKeys");
+        USE_OWN_STT_KEY = b
+                .comment("Usar tu clave de Deepgram cuando el servidor no tiene microfono: tu PC pasa tu voz a texto",
+                         "y al servidor le llega solo el texto.")
+                .define("useOwnSttKey", true);
+        OWN_DEEPGRAM_API_KEY = b
+                .comment("Tu clave de Deepgram (Deepgram regala credito para empezar).",
+                         "Si queda vacia se usa la variable de entorno ROCCO_DEEPGRAM_API_KEY.")
+                .define("deepgramApiKey", "");
+        USE_OWN_VOICE_KEY = b
+                .comment("Usar tu clave de Fish Audio cuando el servidor no tiene voz: escuchas a Rocco con tu clave.",
+                         "Los demas jugadores lo escuchan con la suya, o leen el texto.")
+                .define("useOwnVoiceKey", true);
+        OWN_FISH_API_KEY = b
+                .comment("Tu clave de Fish Audio.",
+                         "Si queda vacia se usa la variable de entorno ROCCO_FISH_API_KEY.")
+                .define("fishApiKey", "");
+        OWN_FISH_VOICE_ID = b
+                .comment("El ID de la voz de Fish Audio con la que escuchas a Rocco.",
+                         "Vacio = la de voice.voiceId de tu rocco-common.toml.")
+                .define("fishVoiceId", "");
         b.pop();
 
         b.comment("Pantalla de bienvenida (claves, voz, microfono y personalidad).").push("setup");

@@ -309,7 +309,7 @@ public final class AiRouter
 
     private static String describe(AiProvider provider, Exception e)
     {
-        String text = e.getMessage() == null ? e.toString() : e.getMessage();
+        String text = com.cristoree.rocco.config.RoccoConfig.redact(e.getMessage() == null ? e.toString() : e.getMessage());
 
         if (provider == AiProvider.OLLAMA && (e instanceof java.net.ConnectException || text.contains("Connection refused")))
         {

@@ -73,6 +73,18 @@ public final class RoccoVoice
         }
         java.util.List<String> recordedFinal = recorded;
 
+        // Sin voz en el servidor: cada jugador que tiene su propia clave de Fish Audio lo escucha
+        // generado en su PC; los demas, con las grabadas (si las hay) o leyendo, como siempre.
+        if (!RoccoConfig.voiceReady() && RoccoCommonConfig.ALLOW_CLIENT_VOICE.get())
+        {
+            String spoken = speakable(text);
+            if (!spoken.isEmpty() || recorded != null)
+            {
+                sendText(level, rocco, spoken, faceId, recorded == null ? java.util.List.of() : recorded);
+            }
+            return;
+        }
+
         // Sin voz propia (o con Fish Audio caido): suenan las grabadas, si las hay.
         if (!RoccoConfig.voiceReady() || fishPaused())
         {
@@ -221,6 +233,19 @@ public final class RoccoVoice
             if (player.distanceToSqr(rocco) <= radius * radius)
             {
                 RoccoNetwork.sendLines(player, packet);
+            }
+        }
+    }
+
+    private static void sendText(ServerLevel level, RoccoEntity rocco, String text, int face, java.util.List<String> recorded)
+    {
+        double radius = RoccoCommonConfig.CHAT_HEARING_RADIUS.get() + 8.0D;
+        RoccoNetwork.VoiceText packet = new RoccoNetwork.VoiceText(rocco.getId(), text, face, recorded);
+        for (ServerPlayer player : level.players())
+        {
+            if (player.distanceToSqr(rocco) <= radius * radius)
+            {
+                RoccoNetwork.sendVoiceText(player, packet);
             }
         }
     }

@@ -78,11 +78,15 @@ public class RoccoCategoryScreen extends Screen
     {
         this.list.applyAll();
         this.micResult = Component.translatable("rocco.setup.mic.recording").withStyle(ChatFormatting.GOLD);
+        // Con tu clave si es la que se va a usar (servidor sin microfono, o tu mundo sin clave comun).
+        boolean own = com.cristoree.rocco.client.voice.ClientCaps.mic() == com.cristoree.rocco.client.voice.ClientCaps.Mic.OWN
+                || (!com.cristoree.rocco.config.RoccoConfig.sttReady() && com.cristoree.rocco.config.RoccoConfig.ownSttReady());
+        String ownKey = own ? com.cristoree.rocco.config.RoccoConfig.ownDeepgramApiKey() : "";
         MicRecorder.recordSample(4)
                 .thenApply(wav ->
                 {
                     this.minecraft.execute(() -> this.micResult = Component.translatable("rocco.setup.testing").withStyle(ChatFormatting.GRAY));
-                    return Deepgram.transcribe(wav);
+                    return own ? Deepgram.transcribe(wav, ownKey) : Deepgram.transcribe(wav);
                 })
                 .whenComplete((result, error) -> this.minecraft.execute(() ->
                 {
@@ -94,7 +98,8 @@ public class RoccoCategoryScreen extends Screen
                     }
                     else if (result.text() == null)
                     {
-                        this.micResult = Component.literal(String.valueOf(result.error())).withStyle(ChatFormatting.RED);
+                        this.micResult = Component.literal(com.cristoree.rocco.config.RoccoConfig.redact(String.valueOf(result.error())))
+                                .withStyle(ChatFormatting.RED);
                     }
                     else if (result.text().isBlank())
                     {
