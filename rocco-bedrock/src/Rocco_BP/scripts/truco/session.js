@@ -7,8 +7,9 @@ import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 import { Game, RoccoAI, rules, T, LABELS, card } from "./game.js";
 import { rt, play, say, setFace, owner, displayName, sound, cutAnim } from "../rocco.js";
 import { line } from "../offline.js";
-import { now, choice, chance, dist2, safe } from "../util.js";
+import { now, choice, chance, dist2, safe, passable, standable } from "../util.js";
 import { inventoryOf, takeItem } from "../items.js";
+import { comeNear } from "../activities.js";
 
 const PLAYER = 0;
 const ROCCO = 1;
@@ -90,8 +91,10 @@ function clearAt(dim, at) {
   const feet = safe("bloque", () => dim.getBlock({ x: Math.floor(at.x), y: Math.floor(at.y), z: Math.floor(at.z) }));
   const head = safe("bloque", () => dim.getBlock({ x: Math.floor(at.x), y: Math.floor(at.y) + 1, z: Math.floor(at.z) }));
   const ground = safe("bloque", () => dim.getBlock({ x: Math.floor(at.x), y: Math.floor(at.y) - 1, z: Math.floor(at.z) }));
-  return !!feet && !!head && !!ground && feet.isAir && head.isAir && ground.isSolid;
+  // Como Java: alcanza con que no choque (pasto alto, flores y nieve fina no molestan).
+  return !!feet && !!head && !!ground && passable(feet) && passable(head) && standable(ground);
 }
+
 
 function puff(dim, at) {
   safe("puff", () => dim.spawnParticle("rocco:magic_burst", { x: at.x, y: at.y + 0.5, z: at.z }));
@@ -99,6 +102,7 @@ function puff(dim, at) {
 
 function start(rocco, player, opts) {
   if (!rocco.isValid || !player.isValid || sessions.has(rocco.id)) return;
+  comeNear(rocco, player);
   if (player.dimension.id !== rocco.dimension.id || dist2(player.location, rocco.location) > 12 * 12) {
     say(rocco, line("truco_not_here"), "bored");
     return;
@@ -145,16 +149,45 @@ function start(rocco, player, opts) {
   sessions.set(rocco.id, s);
   const r = rt(rocco);
   r.scene = { kind: "truco" };
-  safe("sentar", () => {
-    rocco.triggerEvent("rocco:seat");
-    rocco.teleport({ x: roccoSeat.x, y: roccoSeat.y + 0.5625, z: roccoSeat.z }, { rotation: { x: 0, y: yaw } });
-    chairP.getComponent("minecraft:rideable")?.addRider(player);
-  });
+  safe("sentar", () => rocco.triggerEvent("rocco:seat"));
+  seatRocco(s);
+  // El asiento de tu silla aparece con el evento "for_player", que se aplica recien al tick
+  // siguiente: hasta entonces no hay a que subirse. seatPlayer lo reintenta un rato.
+  seatPlayer(s);
   play(rocco, "truco_summon");
   say(rocco, line("truco_start"), "cheer");
   sound(rocco, "rocco.magic_burst", 0.8);
   s.waitUntil = now() + 60;
   updateFan(s);
+}
+
+const ROCCO_SEAT = 9 / 16;
+
+function seatSpot(s) {
+  const c = s.chairs[0];
+  return c && c.isValid ? { x: c.location.x, y: c.location.y + ROCCO_SEAT, z: c.location.z } : null;
+}
+
+/** Rocco arriba de su silla (sin gravedad mientras esta sentado), mirando la mesa. */
+function seatRocco(s) {
+  const at = seatSpot(s);
+  if (!at || !s.rocco.isValid) return;
+  safe("sentar", () => s.rocco.teleport(at));
+  safe("girar", () => s.rocco.setRotation({ x: 0, y: s.yaw }));
+}
+
+function riding(player, chair) {
+  const rider = safe("asiento", () => player.getComponent("minecraft:riding"));
+  return !!rider && rider.entityRidingOn && rider.entityRidingOn.id === chair.id;
+}
+
+function seatPlayer(s, tries = 0) {
+  if (!sessions.has(s.rocco.id) || !s.player.isValid) return;
+  const chair = s.chairs[1];
+  if (!chair || !chair.isValid || riding(s.player, chair)) return;
+  const seat = safe("asiento", () => chair.getComponent("minecraft:rideable"));
+  if (seat && safe("sentarte", () => seat.addRider(s.player))) return;
+  if (tries < 20) system.runTimeout(() => seatPlayer(s, tries + 1), 2);
 }
 
 // ---------------------------------------------------------------- cartas en la mesa
@@ -240,7 +273,7 @@ function events(s) {
       case "TANTO_SAID":
         if (e.value >= 0) tell(s, tr("gui.rocco.truco.tanto", seatName(s, e.seat), e.value));
         else tell(s, tr("gui.rocco.truco.son_buenas", seatName(s, e.seat)));
-        if (e.seat === ROCCO && e.value >= 0 && chance(0.5)) say(s.rocco, line("truco_tanto", { tanto: e.value }), "smug");
+        if (e.seat === ROCCO && e.value >= 0 && chance(0.5)) say(s.rocco, line("truco_tanto", { n: e.value }), "smug");
         break;
       case "POINTS":
         tell(s, { rawtext: [{ text: "+" + e.value + " " }, { translate: "rocco.truco.for" }, { text: " " + teamName(s, e.team) + " (" }, { translate: "gui.rocco.truco.why." + (WHY[e.text] ?? "truco") }, { text: ")" }] });
@@ -414,12 +447,10 @@ export function tickTruco(rocco) {
     end(s);
     return;
   }
-  // Rocco se queda en su silla aunque lo empujen.
-  if (now() % 20 === 0) {
-    const seat = s.chairs[0];
-    if (seat.isValid && dist2(rocco.location, seat.location) > 0.5) {
-      safe("sentar", () => rocco.teleport({ x: seat.location.x, y: seat.location.y + 0.5625, z: seat.location.z }, { rotation: { x: 0, y: s.yaw } }));
-    }
+  // Rocco se queda en su silla aunque lo empujen (o si se cayo).
+  if (now() % 10 === 0) {
+    const at = seatSpot(s);
+    if (at && (Math.abs(rocco.location.y - at.y) > 0.1 || (rocco.location.x - at.x) ** 2 + (rocco.location.z - at.z) ** 2 > 0.04)) seatRocco(s);
   }
   if (now() < s.waitUntil) return;
   if (s.stage === "summon") {
@@ -493,6 +524,25 @@ export function end(s) {
       rocco.triggerEvent("rocco:unseat");
       rocco.teleport({ x: s.center.x - s.f.x * 1.6, y: s.center.y, z: s.center.z - s.f.z * 1.6 });
     });
+  }
+}
+
+const PIECES = ["rocco:truco_mesa", "rocco:truco_silla", "rocco:truco_carta"];
+
+/** Mesas, sillas y cartas que quedaron de una partida cortada (se cerro el mundo a mitad). */
+export function sweepOrphans() {
+  const owned = new Set();
+  for (const s of sessions.values()) for (const e of [s.table, ...s.chairs, ...s.cards]) if (e && e.isValid) owned.add(e.id);
+  for (const id of ["minecraft:overworld", "minecraft:nether", "minecraft:the_end"]) {
+    const dim = safe("dimension", () => world.getDimension(id));
+    if (!dim) continue;
+    for (const type of PIECES) {
+      for (const e of safe("piezas", () => dim.getEntities({ type })) || []) {
+        if (owned.has(e.id)) continue;
+        safe("sacar", () => e.getComponent("minecraft:rideable")?.ejectRiders());
+        safe("sacar", () => e.remove());
+      }
+    }
   }
 }
 

@@ -82,3 +82,27 @@ export function safe(label, fn) {
     return undefined;
   }
 }
+
+// Block.isSolid no existe en la API estable: "frena el agua" es lo mas parecido a un bloque macizo.
+function blocksWater(block) {
+  try {
+    return block.isLiquidBlocking("Water");
+  } catch {
+    return !block.isAir && !block.isLiquid;
+  }
+}
+
+// Las cercas, paredes, puertas y rejas no frenan el agua pero si chocan.
+const THIN_WALLS = /fence|wall|door|pane|bars|chain|lantern|bell/;
+
+/** Se puede pararse adentro: aire o algo que no choca (pasto alto, flores, nieve fina). */
+export function passable(block) {
+  if (!block) return false;
+  if (block.isAir) return true;
+  return !block.isLiquid && !block.isWaterlogged && !blocksWater(block) && !THIN_WALLS.test(block.typeId);
+}
+
+/** Se puede pisar encima. */
+export function standable(block) {
+  return !!block && !block.isAir && !block.isLiquid && blocksWater(block);
+}

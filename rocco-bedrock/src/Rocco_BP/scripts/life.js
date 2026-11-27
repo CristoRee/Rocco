@@ -6,7 +6,7 @@ import {
   particle, data, setData, animBusy, calmFace, roccoOf,
 } from "./rocco.js";
 import { line } from "./offline.js";
-import { now, chance, randInt, choice, dist2, safe } from "./util.js";
+import { now, chance, randInt, choice, dist2, safe, passable, standable } from "./util.js";
 import { busy, poseAnim, drinkMate, drinkCola, tickShare, wave, sleep, standUp } from "./activities.js";
 import { tickCooking } from "./cooking.js";
 import { showGear, restoreGrave, onFightEnded } from "./combat.js";
@@ -31,7 +31,7 @@ function spotNear(player) {
       const ground = safe("bloque", () => dim.getBlock({ x, y: y - 1, z }));
       const feet = safe("bloque", () => dim.getBlock({ x, y, z }));
       const head = safe("bloque", () => dim.getBlock({ x, y: y + 1, z }));
-      if (ground && feet && head && ground.isSolid && feet.isAir && head.isAir) return { x: x + 0.5, y, z: z + 0.5 };
+      if (ground && feet && head && standable(ground) && passable(feet) && passable(head)) return { x: x + 0.5, y, z: z + 0.5 };
     }
   }
   return { x: base.x + 1.5, y: base.y, z: base.z };
@@ -193,6 +193,15 @@ function tickOne(rocco, t) {
     safe("mochila", () => rocco.setProperty("rocco:pack", data(rocco, "pack", 0)));
     if (s === "awakening") setState(rocco, "plant");
     if (s === "rising") setState(rocco, "active");
+    // Si el mundo se cerro a mitad de un truco o de cocinar, que no quede sentado ni clavado.
+    if (state(rocco) === "active") {
+      safe("levantar", () => {
+        rocco.triggerEvent("rocco:unseat");
+        rocco.setProperty("rocco:bits", 0);
+        rocco.setProperty("rocco:mate", false);
+        rocco.setDynamicProperty("rocco:mate_out", false);
+      });
+    }
     restoreGrave(rocco);
     setFace(rocco, state(rocco) === "plant" ? "sleep" : calmFace(rocco), 0);
   }

@@ -177,10 +177,52 @@ def build_textures():
     for name in os.listdir(items):
         if name.endswith(".png") and "_atlas" not in name:
             shutil.copyfile(os.path.join(items, name), os.path.join(tex, "items", "rocco", name.replace("_gui", "")))
+    # El mate de Java es un modelo 3D y mate.png es su textura, no un icono: se dibuja el modelo
+    # de frente para que en la barra se vea el mate y no un mosaico.
+    model_icon(os.path.join(ASSETS, "models", "item", "mate.json"), os.path.join(items, "mate.png"),
+               os.path.join(tex, "items", "rocco", "mate.png"))
     # La semillita hace de huevo de Rocco.
     shutil.copyfile(os.path.join(items, "semillita.png"), os.path.join(tex, "items", "rocco", "rocco_spawn_egg.png"))
     # Cartas del truco sueltas: los formularios muestran una imagen por boton.
     cut_cards(os.path.join(ASSETS, "textures", "gui", "truco", "cartas.png"), os.path.join(tex, "entity", "rocco", "cartas"))
+
+
+def model_icon(model_path, texture_path, out_path, size=32):
+    """Icono de un item con modelo 3D de Java: la cara de frente (north) de cada cubo, de atras
+    para adelante, mas un poco de la de arriba para que tenga volumen."""
+    model = read_json(model_path)
+    tex = Image.open(texture_path).convert("RGBA")
+    tw, th = model.get("texture_size", [16, 16])
+    sx, sy = tex.width / tw, tex.height / th
+    k = size / 16.0
+    icon = Image.new("RGBA", (size, size))
+    for el in sorted(model["elements"], key=lambda e: -e["from"][2]):
+        x1, y1, z1 = el["from"]
+        x2, y2, z2 = el["to"]
+        for face, (left, top, w, h) in (
+            ("up", (16 - x2, 16 - y2 - (z2 - z1) * 0.35, x2 - x1, (z2 - z1) * 0.35)),
+            ("north", (16 - x2, 16 - y2, x2 - x1, y2 - y1)),
+        ):
+            f = el.get("faces", {}).get(face)
+            if not f or w <= 0 or h <= 0:
+                continue
+            u1, v1, u2, v2 = f["uv"]
+            crop = tex.crop((int(min(u1, u2) * sx), int(min(v1, v2) * sy),
+                             max(int(max(u1, u2) * sx), int(min(u1, u2) * sx) + 1),
+                             max(int(max(v1, v2) * sy), int(min(v1, v2) * sy) + 1)))
+            pw, ph = max(1, round(w * k)), max(1, round(h * k))
+            part = crop.resize((pw, ph), Image.NEAREST)
+            if face == "up":
+                part = Image.eval(part, lambda p: p)  # sin sombra extra
+            icon.alpha_composite(part, (max(0, round(left * k)), max(0, round(top * k))))
+    # Centrado: se recorta lo vacio y se pone en el medio.
+    box = icon.getbbox()
+    if box:
+        piece = icon.crop(box)
+        out = Image.new("RGBA", (size, size))
+        out.alpha_composite(piece, ((size - piece.width) // 2, (size - piece.height) // 2))
+        icon = out
+    icon.save(out_path)
 
 
 def cut_cards(sheet_path, out_dir):

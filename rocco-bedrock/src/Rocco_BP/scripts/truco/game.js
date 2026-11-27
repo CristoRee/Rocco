@@ -13,7 +13,7 @@ export const card = {
   name(id) {
     const n = NUMBERS[id % 10];
     const word = n === 1 ? "ancho" : n === 10 ? "sota" : n === 11 ? "caballo" : n === 12 ? "rey" : String(n);
-    return "el " + word + " de " + SUIT_NAMES[Math.floor(id / 10)];
+    return (n === 10 ? "la " : "el ") + word + " de " + SUIT_NAMES[Math.floor(id / 10)];
   },
   texture: (id) => "textures/entity/rocco/cartas/" + SUITS[Math.floor(id / 10)] + "_" + NUMBERS[id % 10],
 };

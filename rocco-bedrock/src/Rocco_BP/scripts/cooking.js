@@ -6,6 +6,7 @@ import { rt, play, say, setFace, owner, sound, data } from "./rocco.js";
 import { line } from "./offline.js";
 import { now, dist2, safe } from "./util.js";
 import { inventoryOf, countItem, takeItem, giveToPlayer } from "./items.js";
+import { comeNear } from "./activities.js";
 
 const ASADO_GRAB_TICK = 12;
 const ASADO_DONE_TICK = 89;
@@ -91,6 +92,7 @@ export function startAsado(rocco, player) {
     say(rocco, line("asado_no_meat"), "sad");
     return;
   }
+  comeNear(rocco, player);
   const scene = { kind: "asado", cook: player ? player.id : null, grilling: 0, following: 0, ready: [], coalLeft: 0, alternate: false, wrapUp: false, made: 0 };
   r.scene = scene;
   rocco.triggerEvent("rocco:busy");
@@ -108,6 +110,7 @@ export function startTortas(rocco, player) {
     say(rocco, line("tortas_no_wheat"), "think");
     return;
   }
+  comeNear(rocco, player);
   const scene = { kind: "tortas", cook: player ? player.id : null, dough: 0, bowl: 0, alternate: false, wrapUp: false, made: 0 };
   r.scene = scene;
   rocco.triggerEvent("rocco:busy");

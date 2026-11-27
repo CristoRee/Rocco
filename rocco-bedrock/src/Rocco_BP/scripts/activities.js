@@ -62,6 +62,19 @@ export function drinkMate(rocco) {
 
 // ---------------------------------------------------------------- mate compartido
 
+/** Rocco aparece a un bloque y medio adelante del jugador (con su puff), si esta a mas de 4. */
+export function comeNear(rocco, player) {
+  if (!player || !player.isValid) return;
+  const same = player.dimension.id === rocco.dimension.id;
+  if (same && dist2(player.location, rocco.location) <= 4 * 4) return;
+  const v = player.getViewDirection();
+  const len = Math.hypot(v.x, v.z) || 1;
+  const at = { x: player.location.x + (v.x / len) * 1.5, y: player.location.y, z: player.location.z + (v.z / len) * 1.5 };
+  particle(rocco, "rocco:magic_burst", { x: 0, y: 0.6, z: 0 });
+  safe("acercarse", () => rocco.teleport(at, { dimension: player.dimension, facingLocation: player.location }));
+  particle(rocco, "rocco:magic_burst", { x: 0, y: 0.6, z: 0 });
+}
+
 const SHARE_ROUNDS = 4;
 const WAIT_TICKS = 20 * 30;
 
@@ -75,6 +88,8 @@ export function shareMate(rocco, player) {
     say(rocco, line("mate_share_cant"), "bored");
     return;
   }
+  // Si estaba lejos (se habia quedado en otro lado), viene al lado tuyo antes de cebar.
+  comeNear(rocco, player);
   r.task = "share";
   r.taskUntil = Number.MAX_SAFE_INTEGER;
   r.taskData = { player: player.id, round: 0, step: "start", stepUntil: now() + play(rocco, "mate_share_start") };

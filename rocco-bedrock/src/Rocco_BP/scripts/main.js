@@ -10,7 +10,7 @@ import { openMenu, giveHeld, equipBackpack } from "./menu.js";
 import { hear, onScriptEvent, aiAvailable, aiStatus } from "./chat.js";
 import { onRoccoHit, onRoccoHurt, onDied, rise, gearSlot, equipFrom } from "./combat.js";
 import { eatFood, playerDrankMate, busy, stopAll } from "./activities.js";
-import { trucoMateDrunk, endAllFor } from "./truco/session.js";
+import { trucoMateDrunk, endAllFor, sweepOrphans } from "./truco/session.js";
 import { heldItem, setHeldItem, isFood } from "./items.js";
 
 // ---------------------------------------------------------------- comandos
@@ -309,6 +309,7 @@ system.afterEvents.scriptEventReceive.subscribe((event) => {
 
 system.runInterval(() => tickAll(), 1);
 system.runInterval(() => safe("presencia", () => tickPresence()), 1200);
+system.runInterval(() => safe("piezas sueltas", () => sweepOrphans()), 200);
 
 world.afterEvents.playerLeave?.subscribe((event) => {
   system.run(() => {

@@ -182,22 +182,32 @@ async function run() {
   const silla = dim.spawnEntity("rocco:truco_silla", { x: at.x + 1, y: at.y, z: at.z });
   const sillaR = dim.spawnEntity("rocco:truco_silla", { x: at.x - 1, y: at.y, z: at.z });
   const carta = dim.spawnEntity("rocco:truco_carta", { x: at.x, y: at.y + 0.79, z: at.z });
-  await wait(2);
+  // Igual que el truco: el evento y el pedido de asiento en el mismo tick (ahi todavia no hay asiento).
   silla.triggerEvent("rocco:for_player");
   sillaR.setProperty("rocco:for_rocco", true);
   carta.setProperty("rocco:card", 23);
-  await wait(2);
-  const rideable = silla.getComponent("minecraft:rideable");
-  check("la silla tiene asiento", !!rideable);
-  check("te sentas en la silla", !!rideable && rideable.addRider(p));
+  check("en el mismo tick la silla todavia no tiene asiento (por eso se reintenta)", !silla.getComponent("minecraft:rideable"));
+  let sentado = false;
+  for (let i = 0; i < 20 && !sentado; i++) {
+    await wait(2);
+    const r = silla.getComponent("minecraft:rideable");
+    sentado = !!r && r.addRider(p);
+  }
+  check("te sentas en la silla (reintentando)", sentado);
   await wait(5);
+  const vehiculo = p.getComponent("minecraft:riding")?.entityRidingOn;
+  check("seguis sentado", !!vehiculo && vehiculo.id === silla.id);
   check("la carta muestra el 5 de oros", carta.getProperty("rocco:card") === 23);
   rocco.triggerEvent("rocco:seat");
   rocco.teleport({ x: sillaR.location.x, y: sillaR.location.y + 0.5625, z: sillaR.location.z });
-  await wait(40);
-  check("Rocco sentado no se cae", Math.abs(rocco.location.y - (sillaR.location.y + 0.5625)) < 0.05);
+  rocco.setRotation({ x: 0, y: 90 });
+  await wait(100);
+  const dy = rocco.location.y - (sillaR.location.y + 0.5625);
+  console.warn("PRUEBA dato Rocco sentado dy=" + dy.toFixed(3) + " rot=" + rocco.getRotation().y.toFixed(0));
+  check("Rocco sentado no se cae", Math.abs(dy) < 0.05);
+  check("Rocco mira la mesa", Math.abs(rocco.getRotation().y - 90) < 5);
   rocco.triggerEvent("rocco:unseat");
-  rideable?.ejectRiders();
+  silla.getComponent("minecraft:rideable")?.ejectRiders();
   for (const e of [mesa, silla, sillaR, carta]) e.remove();
   await wait(40);
   check("Rocco parado vuelve al piso", Math.abs(rocco.location.y - base.y) < 1.2);

@@ -124,7 +124,8 @@ export class Player extends Entity {
 }
 
 class Block {
-  constructor(air, solid) { this.isAir = air; this.isSolid = solid; }
+  constructor(air, solid) { this.isAir = air; this.isLiquid = false; this.typeId = air ? "minecraft:air" : "minecraft:stone"; this._solid = solid; }
+  isLiquidBlocking() { return !!this._solid; }
 }
 
 class Dimension {
